@@ -1,0 +1,169 @@
+{
+  "nlpPresuppositions": {
+    "title": "Presuppositions of NLP",
+    "subtitle": "Convenient Assumptions",
+    "mnemonic": "RESPECT UR-WORLD",
+    "presuppositions": [
+      {
+        "number": 1,
+        "letter": "R",
+        "keyword": "Respect",
+        "text": "Respect for the other person's model of the world."
+      },
+      {
+        "number": 2,
+        "letter": "E",
+        "keyword": "Ecology",
+        "text": "Behavior and change are to be evaluated in terms of context, and Ecology."
+      },
+      {
+        "number": 3,
+        "letter": "S",
+        "keyword": "Sign",
+        "text": "Resistance in a client is a Sign of a lack of rapport. There are no resistant clients, only inflexible communicators. Effective communicators accept and utilize all communication presented to them."
+      },
+      {
+        "number": 4,
+        "letter": "P",
+        "keyword": "People",
+        "text": "People are not their behaviors. Accept the person; change the behavior."
+      },
+      {
+        "number": 5,
+        "letter": "E",
+        "keyword": "Everyone",
+        "text": "Everyone is doing the best they can with the resources they have available. Behavior is geared for adaptation, and present behavior is the best choice available. Every behavior is motivated by a positive intent."
+      },
+      {
+        "number": 6,
+        "letter": "C",
+        "keyword": "Calibrate",
+        "text": "Calibrate on Behavior: The most important information about a person is that person's behavior."
+      },
+      {
+        "number": 7,
+        "letter": "T",
+        "keyword": "The",
+        "text": "The map is not the Territory. The words we use are NOT the event or the item they represent."
+      },
+      {
+        "number": 8,
+        "letter": "U",
+        "keyword": "You",
+        "text": "You are in charge of your mind, and therefore your results (and I am also in charge of my mind and therefore my results)."
+      },
+      {
+        "number": 9,
+        "letter": "R",
+        "keyword": "Resources",
+        "text": "People have all the Resources they need to succeed and to achieve their desired outcomes. There are no unresourceful people, only unresourceful states."
+      },
+      {
+        "number": 10,
+        "letter": "W",
+        "keyword": "Wholeness",
+        "text": "All procedures should increase Wholeness."
+      },
+      {
+        "number": 11,
+        "letter": "O",
+        "keyword": "Only",
+        "text": "There is Only feedback! There is no failure, only feedback."
+      },
+      {
+        "number": 12,
+        "letter": "R",
+        "keyword": "Response",
+        "text": "The meaning of communication is the Response you get."
+      },
+      {
+        "number": 13,
+        "letter": "L",
+        "keyword": "Law",
+        "text": "The Law of Requisite Variety: The system/person with the most flexibility of behavior will control the system."
+      },
+      {
+        "number": 14,
+        "letter": "D",
+        "keyword": "Designed",
+        "text": "All procedures should be Designed to increase choice."
+      }
+    ]
+  },
+  "linguisticPresuppositions": {
+    "title": "Presuppositions in Quantum Linguistics",
+    "definition": "Presuppositions are Linguistic Assumptions and are useful for recognizing what is assumed by the client's speech and assisting in creating new Internal Representations for the client.",
+    "types": [
+      {
+        "number": 1,
+        "name": "Existence",
+        "tipOff": "Nouns",
+        "solution": "Are you sure? Evidence challenge with not + time.",
+        "example": "I have anxiety.",
+        "response": "When are you sure it's not there?"
+      },
+      {
+        "number": 2,
+        "name": "Possibility/Necessity",
+        "tipOff": "Modal Operators",
+        "solution": "If Modal Operator of Impossibility, remember it's 'can do the process of not.' If Modal Operator of Necessity, chain it to Modal Operator of Possibility.",
+        "example": "I can't stop drinking.",
+        "response": "How can you...not stop drinking?"
+      },
+      {
+        "number": 3,
+        "name": "Cause-Effect",
+        "tipOff": "Makes, If...then",
+        "solution": "Switch position, chunk up effect, Switch Referential Index, and do a 'not' on Cause.",
+        "example": "My wife doesn't understand me.",
+        "response": "What is it that you don't totally understand in yourself that causes you to think that she doesn't understand you?"
+      },
+      {
+        "number": 4,
+        "name": "Complex Equivalence",
+        "tipOff": "Is, Means",
+        "solution": "Take the opposite, pace it to the limit and use a counter example with a Referential Index Switch to the solution.",
+        "example": "My wife never has dinner done; that means she doesn't love me.",
+        "response": "How much will you have to eat so she knows she loves you?"
+      },
+      {
+        "number": 5,
+        "name": "Awareness",
+        "tipOff": "Verbs with V, A, K, O, G",
+        "solution": "Pace the presupposition, plus switch referential index (you can also add 'not').",
+        "example": "I didn't realize that upset you.",
+        "response": "What you didn't realize was what else you were communicating your upset."
+      },
+      {
+        "number": 6,
+        "name": "Time",
+        "tipOff": "Verb Tense, Stop, Now, Yet",
+        "solution": "Since time is a Nominalization, you can use the decision destroyer.",
+        "example": "I regret my decision.",
+        "response": "When did you decide that? Before regretting it what were you deciding?"
+      },
+      {
+        "number": 7,
+        "name": "Adverb/Adjective",
+        "tipOff": "An adverb or adjective",
+        "solution": "Comparative Deletions. Same behavior -- different context."
+      },
+      {
+        "number": 8,
+        "name": "Exclusive/Inclusive OR",
+        "tipOff": "Or",
+        "solution": "Chunk up to a common intent (which gives you a Mind Read), what, when, how, plus exclusive or.",
+        "example": "I can't decide if I should take the trainer's training or go home.",
+        "response": "So if you don't do what you want, how will you learn what you need to learn?"
+      },
+      {
+        "number": 9,
+        "name": "Ordinal",
+        "tipOff": "A List",
+        "solution": "Reverse the order and apply one on top of another.",
+        "example": "I need to know why I do it before I change what I do.",
+        "response": "So why don't you change while you do it?"
+      }
+    ]
+  }
+}

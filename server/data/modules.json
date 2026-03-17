@@ -1,0 +1,221 @@
+{
+  "modules": [
+    {
+      "id": "module-1",
+      "title": "NLP Foundations",
+      "description": "Core concepts of Neuro-Linguistic Programming",
+      "lessons": [
+        {
+          "id": "module-1-lesson-1",
+          "title": "What is NLP?",
+          "description": "Neuro, Linguistic, Programming definitions + Attitude, Methodology, Techniques",
+          "dataFile": "prime-directives.json",
+          "contentKeys": ["whatIsNlp", "whatIsItReally"]
+        },
+        {
+          "id": "module-1-lesson-2",
+          "title": "Prime Directives 1-11",
+          "description": "Prime Directives of the Unconscious Mind: Stores memories through Enjoys serving",
+          "dataFile": "prime-directives.json",
+          "contentKeys": ["primeDirectives"]
+        },
+        {
+          "id": "module-1-lesson-3",
+          "title": "Prime Directives 12-21",
+          "description": "Prime Directives: Controls perceptions through Does not process negatives",
+          "dataFile": "prime-directives.json",
+          "contentKeys": ["primeDirectives"]
+        },
+        {
+          "id": "module-1-lesson-4",
+          "title": "NLP Communication Model",
+          "description": "External Event → Filters (Delete, Distort, Generalize) → Internal Representation → State → Behavior",
+          "dataFile": "prime-directives.json",
+          "contentKeys": ["communicationModel"]
+        },
+        {
+          "id": "module-1-lesson-5",
+          "title": "Presuppositions of NLP & State vs Goal",
+          "description": "14 NLP Presuppositions (RESPECT UR-WORLD mnemonic) and the distinction between states and goals",
+          "dataFile": "presuppositions.json",
+          "contentKeys": ["nlpPresuppositions"]
+        }
+      ]
+    },
+    {
+      "id": "module-2",
+      "title": "Milton Model — Hypnotic Language Patterns",
+      "description": "19 hypnotic language patterns for influencing at the unconscious level",
+      "lessons": [
+        {
+          "id": "module-2-lesson-1",
+          "title": "Mind Reading, Lost Performative, Cause & Effect, Complex Equivalence",
+          "description": "The first 4 Milton Model patterns with definitions, tip-offs, and examples",
+          "dataFile": "milton-model.json",
+          "contentKeys": ["patterns"]
+        },
+        {
+          "id": "module-2-lesson-2",
+          "title": "Presuppositions, Universal Quantifiers, Modal Operators, Nominalizations",
+          "description": "Milton Model patterns 5-8 with definitions, tip-offs, and examples",
+          "dataFile": "milton-model.json",
+          "contentKeys": ["patterns"]
+        },
+        {
+          "id": "module-2-lesson-3",
+          "title": "Unspecified Verbs, Tag Questions, Lack of Referential Index, Comparative Deletions",
+          "description": "Milton Model patterns 9-12 with definitions, tip-offs, and examples",
+          "dataFile": "milton-model.json",
+          "contentKeys": ["patterns"]
+        },
+        {
+          "id": "module-2-lesson-4",
+          "title": "Pacing, Double Binds, Conversational Postulates, Extended Quotes",
+          "description": "Milton Model patterns 13-16 with definitions, tip-offs, and examples",
+          "dataFile": "milton-model.json",
+          "contentKeys": ["patterns"]
+        },
+        {
+          "id": "module-2-lesson-5",
+          "title": "Selectional Restriction, Ambiguities, Utilization",
+          "description": "Milton Model patterns 17-19 plus Putting It All Together exercise",
+          "dataFile": "milton-model.json",
+          "contentKeys": ["patterns"]
+        }
+      ]
+    },
+    {
+      "id": "module-3",
+      "title": "Quantum Linguistics",
+      "description": "Advanced language patterns for directing internal representations",
+      "lessons": [
+        {
+          "id": "module-3-lesson-1",
+          "title": "Linguistic Presuppositions",
+          "description": "9 types of linguistic presuppositions: Existence, Possibility, Cause-Effect, and more",
+          "dataFile": "presuppositions.json",
+          "contentKeys": ["linguisticPresuppositions"]
+        },
+        {
+          "id": "module-3-lesson-2",
+          "title": "Embedded Commands & Cartesian Coordinates",
+          "description": "How to deliver embedded commands and use Cartesian Coordinates for exploring decisions",
+          "dataFile": "quantum-linguistics.json",
+          "contentKeys": ["embeddedCommands", "cartesianCoordinates"]
+        },
+        {
+          "id": "module-3-lesson-3",
+          "title": "Symbolic Logic & Inductive/Deductive Language",
+          "description": "Logical operators in NLP and reasoning from general to specific vs specific to general",
+          "dataFile": "quantum-linguistics.json",
+          "contentKeys": ["symbolicLogic", "inductiveDeductive"]
+        }
+      ]
+    },
+    {
+      "id": "module-4",
+      "title": "Hierarchy of Ideas & Language Models",
+      "description": "Chunking, negotiation models, advanced language techniques, and metaphor",
+      "lessons": [
+        {
+          "id": "module-4-lesson-1",
+          "title": "Chunking & Negotiation Model",
+          "description": "Chunking Up for agreement, Chunking Down for distinctions, and the NLP Negotiation Model",
+          "dataFile": "quantum-linguistics.json",
+          "contentKeys": ["hierarchyOfIdeas"]
+        },
+        {
+          "id": "module-4-lesson-2",
+          "title": "Modal Operators & Prepositions",
+          "description": "Classification of Modal Operators, Spatial and Temporal Prepositions, Time Scramble, Decision Destroyer",
+          "dataFile": "quantum-linguistics.json",
+          "contentKeys": ["symbolicLogic"]
+        },
+        {
+          "id": "module-4-lesson-3",
+          "title": "Advanced Language Patterns",
+          "description": "Linguistic Re-Sourcing, De-Identification Pattern, Linguistic Parts Integration, Prime Concerns",
+          "dataFile": "quantum-linguistics.json",
+          "contentKeys": ["quantumLinguistics"]
+        },
+        {
+          "id": "module-4-lesson-4",
+          "title": "Metaphor Construction",
+          "description": "How to construct and deliver effective metaphors, Making Metaphors Work",
+          "dataFile": "quantum-linguistics.json",
+          "contentKeys": ["quantumLinguistics"]
+        }
+      ]
+    },
+    {
+      "id": "module-5",
+      "title": "Complex Meta Programs (MPVI)",
+      "description": "19 filters that determine how people process information and make decisions",
+      "lessons": [
+        {
+          "id": "module-5-lesson-1",
+          "title": "Direction, Reason & Frame of Reference Filters",
+          "description": "Core motivation filters: Toward/Away, Possibility/Necessity, Internal/External",
+          "dataFile": "meta-programs.json",
+          "contentKeys": ["filters"]
+        },
+        {
+          "id": "module-5-lesson-2",
+          "title": "Convincer & Management Filters",
+          "description": "Convincer Representational, Convincer Demonstration, and Management Direction filters",
+          "dataFile": "meta-programs.json",
+          "contentKeys": ["filters"]
+        },
+        {
+          "id": "module-5-lesson-3",
+          "title": "Action, Affiliation, Work & Interest Filters",
+          "description": "Action Filter, Affiliation, Work Preference, and Primary Interest filters",
+          "dataFile": "meta-programs.json",
+          "contentKeys": ["filters"]
+        },
+        {
+          "id": "module-5-lesson-4",
+          "title": "Processing & Response Filters",
+          "description": "Chunk Size, Relationship, Emotional Stress Response, Time Storage, Modal Operator Sequence, Attention Direction",
+          "dataFile": "meta-programs.json",
+          "contentKeys": ["filters"]
+        },
+        {
+          "id": "module-5-lesson-5",
+          "title": "Communication Styles & Linguistic Markers",
+          "description": "Information Processing, Listening, Speaking styles plus Linguistic Markers for all 19 filters",
+          "dataFile": "meta-programs.json",
+          "contentKeys": ["filters"]
+        }
+      ]
+    },
+    {
+      "id": "module-6",
+      "title": "Personal Breakthrough Sessions",
+      "description": "How to conduct a complete Personal Breakthrough Session using NLP and Time Line Therapy",
+      "lessons": [
+        {
+          "id": "module-6-lesson-1",
+          "title": "Pre-Session & Personal History",
+          "description": "Screening questions, establishing rapport, and the 13 Detailed Personal History questions",
+          "dataFile": "personal-breakthrough.json",
+          "contentKeys": ["preSession", "detailedPersonalHistory"]
+        },
+        {
+          "id": "module-6-lesson-2",
+          "title": "Intervention Process",
+          "description": "Setting frames, eliciting values, intervention steps: negative emotions, limiting decisions, parts integration",
+          "dataFile": "personal-breakthrough.json",
+          "contentKeys": ["setFrames", "interventionSteps"]
+        },
+        {
+          "id": "module-6-lesson-3",
+          "title": "Completing the Session",
+          "description": "Testing, future pacing, ecology check, task assignment, client disclosure and follow-up",
+          "dataFile": "personal-breakthrough.json",
+          "contentKeys": ["completingSession"]
+        }
+      ]
+    }
+  ]
+}

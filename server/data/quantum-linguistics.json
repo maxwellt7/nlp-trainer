@@ -1,0 +1,399 @@
+{
+  "title": "Quantum Linguistics",
+  "subtitle": "The Advanced Language Patterns of NLP",
+  "description": "You can directionalize your language to affect internal representations. Neurological changes can be made using directionalized language. You can control the client's internal representations during conversation.",
+  "embeddedCommands": {
+    "title": "Embedded Commands",
+    "subtitle": "How to Deliver Ones That Work!",
+    "twoElements": {
+      "element1": "2 times (or 2 words) MEANS 'How to do it.'",
+      "element2": "1 time (or 1 word) END 'What to do.'"
+    },
+    "key": "The key is three in a single sentence. Delivered LOWER & LOUDER!",
+    "steps": [
+      "Decide Outcome",
+      "Develop Sentence",
+      "Deliver It",
+      "Calibrate for Results -- Outcome"
+    ],
+    "delivery": "Deliver it congruently"
+  },
+  "cartesianCoordinates": {
+    "title": "Cartesian Coordinates",
+    "quadrants": [
+      {
+        "name": "Theorem",
+        "symbol": "AB",
+        "question": "What would happen if you did?"
+      },
+      {
+        "name": "Converse",
+        "symbol": "~AB",
+        "question": "What wouldn't happen if you did?"
+      },
+      {
+        "name": "Inverse",
+        "symbol": "A~B",
+        "question": "What would happen if you didn't?"
+      },
+      {
+        "name": "Non-Mirror Image Reverse",
+        "symbol": "~A~B",
+        "question": "What wouldn't happen if you didn't?"
+      }
+    ]
+  },
+  "symbolicLogic": {
+    "title": "Symbolic Logic",
+    "operators": [
+      "And",
+      "Or (Inclusive Or)",
+      "Not",
+      "Not equal to",
+      "If... Then",
+      "Less Than",
+      "Greater Than",
+      "Either-or, neither-nor (Exclusive Or)",
+      "Equivalent",
+      "Causes",
+      "Universal quantifiers, Total"
+    ]
+  },
+  "inductiveDeductive": {
+    "title": "Inductive & Deductive Language",
+    "deduction": {
+      "definition": "Reasoning from general to specific",
+      "example": "Since I can't drive any car, I won't be able to drive a Cadillac."
+    },
+    "induction": {
+      "definition": "Reasoning from specific to general",
+      "example": "If I can learn to do this, I can learn anything."
+    }
+  },
+  "hierarchyOfIdeas": {
+    "title": "Hierarchy of Ideas",
+    "subtitle": "The level of abstraction in your language makes a difference",
+    "chunkUp": {
+      "purpose": "Chunk up to gain greater agreement, and trance.",
+      "questions": ["What is this an Example of?", "For What Purpose...?", "What is your intention...?"],
+      "result": "Big Picture, Milton Model, Abstract, In Trance, Intuitor, Agreement"
+    },
+    "chunkDown": {
+      "purpose": "Chunk down for greater distinctions, and to bring them out of trance.",
+      "questions": ["What are examples of this?", "What specifically...?", "Any Meta Model Question"],
+      "result": "Specific, Meta Model, Details, Out of Trance, Sensor, Distinctions"
+    },
+    "structureOfOverwhelm": "Too Big Chunks",
+    "structureOfNitPicking": "Chunking Down and Mismatching",
+    "structureOfIntuition": "The ability to chunk-up to find connections & relationships, and then to chunk back down to relate to the current situation."
+  },
+  "nlpNegotiationModel": {
+    "title": "NLP Negotiation Model",
+    "steps": [
+      "Discover the positions of each of the parties in the conflict. Make sure agreement is possible. Make sure that both parties can make a decision.",
+      "Begin with one side (generally the least solid) and Chunk up - until you get beyond the boundaries of what the position originally was. You will know this when the original position becomes meaningless.",
+      "Separate intention from behavior. Use a conditional close: 'So if you get X then however we do it is OK.'",
+      "Chunk down only as quickly as you can maintain agreement. If maintenance of agreement is not possible, then chunk objecting party higher."
+    ]
+  },
+  "metaModel": {
+    "title": "The Meta Model",
+    "categories": {
+      "distortions": [
+        {
+          "name": "Mind Reading",
+          "description": "Claiming to know someone's internal state.",
+          "example": "You don't like me.",
+          "response": "How do you know I don't like you?",
+          "prediction": "Recovers Source of the Info."
+        },
+        {
+          "name": "Lost Performative",
+          "description": "Value judgments where the person doing the judging is left out.",
+          "example": "It's bad to be inconsistent.",
+          "response": "Who says it's bad? According to whom? How do you know it's bad.",
+          "prediction": "Gathers evidence. Recovers source of the belief, the Performative, strategy for the belief."
+        },
+        {
+          "name": "Cause-Effect",
+          "description": "Where cause is wrongly put outside the self.",
+          "example": "You make me sad.",
+          "response": "How does what I'm doing cause you to choose to feel sad? (Also, Counter Ex., or How Specifically?)",
+          "prediction": "Recovers the choice."
+        },
+        {
+          "name": "Complex Equivalence",
+          "description": "Where two experiences are interpreted as being synonymous.",
+          "example": "She's always yelling at me, she doesn't like me.",
+          "response": "How does her yelling mean that she...? Have you ever yelled at someone you liked?",
+          "prediction": "Recovers Complex Equivalence. Counter Example."
+        },
+        {
+          "name": "Presuppositions",
+          "description": "Assumptions embedded in speech.",
+          "example": "If my husband knew how much I suffered, he wouldn't do that.",
+          "response": "(1) How do you choose to suffer? (2) How is he (re)acting? (3) How do you know he doesn't know?",
+          "prediction": "Specify the choice & the verb, & what he does. Recover the Internal Rep., and the Complex Equivalence"
+        }
+      ],
+      "generalizations": [
+        {
+          "name": "Universal Quantifiers",
+          "description": "Universal Generalizations such as all, every, never, everyone, no one, etc.",
+          "example": "She never listens to me.",
+          "response": "Find Counter Examples. 'Never?' 'What would happen if she did?'",
+          "prediction": "Recovers Counter Examples, Effects, and Outcomes."
+        },
+        {
+          "name": "Modal Operators of Necessity",
+          "description": "As in should, shouldn't, must, must not, have to, need to, it is necessary.",
+          "example": "I have to take care of her.",
+          "response": "What would happen if you did? (What would happen if you didn't?) Also, 'Or?'",
+          "prediction": "Recovers Effects, Outcome."
+        },
+        {
+          "name": "Modal Operators of Possibility",
+          "description": "(Or Impossibility.) As in can/can't, will/won't, may/may not, possible/impossible.",
+          "example": "I can't tell him the truth.",
+          "response": "What prevents you? (What would happen if you did?)",
+          "prediction": "Recovers Causes"
+        }
+      ],
+      "deletions": [
+        {
+          "name": "Nominalizations",
+          "description": "Process words which have been frozen in time, making them nouns.",
+          "example": "There is no communication here.",
+          "response": "Who's not communicating what to whom? How would you like to communicate?",
+          "prediction": "Turns it back into a process, recovers deletion, and Ref. Index."
+        },
+        {
+          "name": "Unspecified Verbs",
+          "description": "Verbs without specificity.",
+          "example": "He rejected me.",
+          "response": "How, specifically?",
+          "prediction": "Specifies the verb."
+        },
+        {
+          "name": "Simple Deletions",
+          "description": "Fails to specify completely.",
+          "example": "I am uncomfortable.",
+          "response": "About what/whom?",
+          "prediction": "Recovers Deletion."
+        },
+        {
+          "name": "Lack of Referential Index",
+          "description": "Fails to specify a person or thing.",
+          "example": "They don't listen to me.",
+          "response": "Who, specifically, doesn't listen to you?",
+          "prediction": "Recovers Ref. Index."
+        },
+        {
+          "name": "Comparative Deletions",
+          "description": "As in good, better, best, worst, more, less, most, least.",
+          "example": "She's a better person.",
+          "response": "Better than whom? Better at what? Compared to whom, what?",
+          "prediction": "Recovers Comparative Deletion."
+        }
+      ]
+    }
+  },
+  "metaModelIII": {
+    "title": "Meta Model III - Directed Questioning for a Specific Result",
+    "steps": [
+      { "number": 1, "question": "What's wrong?", "phase": "Problem" },
+      { "number": 2, "question": "What Caused this problem?", "phase": "Problem" },
+      { "number": 3, "question": "How have you failed to resolve this?", "phase": "Problem" },
+      { "number": 4, "question": "How can you overcome the solution to your problem?", "phase": "FLIP" },
+      { "number": 5, "question": "What would you like to change?", "phase": "Solution" },
+      { "number": 6, "question": "When will you STOP IT from being a limitation?", "phase": "Solution" },
+      { "number": 7, "question": "How many ways do you know you have solved this?", "phase": "Solution" },
+      { "number": 8, "question": "I know you are changing and seeing things differently.", "phase": "Confirm" }
+    ]
+  },
+  "modalOperators": {
+    "title": "Modal Operators - Classification",
+    "categories": [
+      {
+        "name": "Negative Necessity",
+        "number": 1,
+        "words": ["Doesn't allow", "Don't have to", "Got to not", "It's not time", "Must not", "Not necessary", "Ought not", "Shouldn't", "Supposed not to"]
+      },
+      {
+        "name": "Improbability",
+        "number": 2,
+        "words": ["Couldn't", "Don't dare to", "Don't deserve", "Don't let", "Don't prefer", "Don't pretend", "Don't wish", "Had better not", "May not", "Might not", "Wouldn't"]
+      },
+      {
+        "name": "Impossibility",
+        "number": 3,
+        "words": ["Am not", "Can't", "Doesn't permit", "Don't choose to", "Don't decide", "Don't intend", "Impossible", "Try not", "Unable to", "Won't"]
+      },
+      {
+        "name": "Necessity",
+        "number": 4,
+        "words": ["Allow", "Got to", "Have to", "It's time", "Must", "Necessary", "Need to", "Ought to", "Should", "Supposed to"]
+      },
+      {
+        "name": "Probability",
+        "number": 5,
+        "words": ["Could", "Dare to", "Deserve", "Had better", "Let", "May", "Might", "Prefer", "Pretend", "Wish", "Would"]
+      },
+      {
+        "name": "Possibility",
+        "number": 6,
+        "words": ["Able to", "Am", "Can", "Choose to", "Decide", "Do", "Intend", "It is possible", "Permit", "Try", "Will"]
+      }
+    ]
+  },
+  "advancedPresuppositions": {
+    "title": "Advanced Presuppositions - The Process",
+    "description": "The purpose of this process is to learn how to just loosen the client's model, not necessarily to solve the problem (which you may do anyway), by undercutting the original presuppositions.",
+    "steps": [
+      "Identify the most basic presuppositions (write them down). Ask: 'How is this a problem now?' Identify ALL presuppositions in the sentence.",
+      "Determine which one(s) will have the greatest effect on the problem.",
+      "Structure response as a question, and presuppose a solution in the question. (How? By doing a Mind Read on what solution will work and asking a question that presupposes it.)",
+      "Bring the presuppositions into consciousness (restate the problem).",
+      "Ask the question."
+    ]
+  },
+  "decisionDestroyer": {
+    "title": "Decision Destroyer",
+    "context": "Where client says, 'I've already decided.' This process requires rapport!",
+    "steps": [
+      "Pace the problem. Get the client back to the decision.",
+      "Where were you when you were deciding that?",
+      ".....just before that where were you?",
+      "NOW, as you think about your present situation in life, notice how many options you have, now.",
+      "Think of that problem and notice how you feel now.",
+      "As you think about the next time you may do X, knowing what you know now, notice how much better you feel, not doing it."
+    ]
+  },
+  "goingBeyondBoundaries": {
+    "title": "Going Beyond Boundaries",
+    "subtitle": "It's a good thing to NOT Know",
+    "steps": [
+      "What is it?",
+      "What is it not?",
+      "How do you know? (Re: What it is not.)",
+      "What is it that you need to not know to know this?"
+    ],
+    "alternative": "What is it that you are pretending to not know to know this?"
+  },
+  "linguisticReSourcing": {
+    "title": "Linguistic Re-Sourcing",
+    "steps": [
+      "What's the problem?",
+      "How do you know (it's a problem)?",
+      "When did you decide that?",
+      "When don't you do it now?",
+      "What are you not deciding when you don't do it?",
+      "How is that different from how you were?",
+      "How do you know that, now?",
+      "What other changes would you like to make?"
+    ]
+  },
+  "deIdentificationPattern": {
+    "title": "De-Identification Pattern",
+    "description": "This pattern is useful for going beyond limiting (and therefore false) identifications, usually in the form of a Complex Equivalence. Complex equivalence's are the language construction of identification.",
+    "steps": [
+      "Elicit the identification in the form of a Complex Equivalence. Listen for: the verb 'to be' or 'Means'",
+      "Pace and feedback the complex equivalence. 'So, you are ___.'",
+      "'Is that all you think you are?' (Look for a physiological shift.)",
+      "'Aren't you more than that?' (There should be agreement.)",
+      "'So, what are you that's not (the previous identification)?' You want a verbal answer from the client.",
+      "'And beyond (the word elicited in #5), is that all you are? How much more are you than that?' For extra leverage use Tag Question: 'You do know you are more than that, don't you?'",
+      "'How do you know?' Anchors the change to the client's reality strategy."
+    ]
+  },
+  "linguisticPartsIntegration": {
+    "title": "Linguistic Parts Integration",
+    "description": "This pattern can be useful in integrating Parts. Here's how you would resolve a Part's conflict using Prime Concerns.",
+    "steps": [
+      "Discover the Function/Behavior for Each Part: 'What is the behavior of the Part, or what is the function that the Part plays?'",
+      "Discover the Purpose/Intention of the Behavior: 'What is the purpose of this behavior? What is the intent of the behavior?'",
+      "Make sure the Learning's are Preserved: 'What is there to learn from the behavior?' (Handle the ecology of the integration.)",
+      "Switch the Purpose/Intention of One Part to the other: Take the intention from part A and talk about it as though it was the intention of part B, while at the same time talking about the original intention for Part A and the original intention for Part B.",
+      "Test for Integration"
+    ]
+  },
+  "primeConcerns": {
+    "title": "Prime Concerns",
+    "elicitation": {
+      "title": "Prime Concerns Elicitation - Starting, Changing, Stopping",
+      "description": "For our purposes in elicitation there are six possibilities that operate in conjunction with one another. In other words, a person will usually be best at one and worst at one. So there are two questions to use, and they should be asked in order.",
+      "questions": [
+        {
+          "label": "First Question",
+          "question": "What are you best at -- starting things, changing things, or stopping things?"
+        },
+        {
+          "label": "Second Question",
+          "question": "What are you worst at -- starting things, changing things, or stopping things?"
+        },
+        {
+          "label": "Third Question",
+          "question": "So (who/what) is it that you are not (being/doing/having) that you want to (be/do/have)?"
+        }
+      ],
+      "predictions": [
+        "The person who's worst at starting things will have trouble being who they want to be. 'Why can't I be who I want?'",
+        "The person who's worst at changing things will have trouble doing what they want to do. 'Why can't I do what I want to do?'",
+        "The person that's worst at stopping things will have trouble having what they want. 'Why can't I ever get what I want?'"
+      ]
+    },
+    "process": {
+      "title": "Prime Concerns - Overview of the Process",
+      "steps": [
+        "Gather Information Re: The Presenting Problem (Starting, Changing, Stopping / Ecstatic State)",
+        "Listen/Look for: Significant, Analogically Marked Words",
+        "Test Words: (Use the Same Words) Feed them back",
+        "See If the Neural Networks are Activated",
+        "Generate a New Pattern: In one of the Cartesian Coordinate quadrants, And Inductive... Have them Fully Consider the New Pattern!",
+        "Use the pattern to go back and forth across the threshold & the boundaries -- 3x or 7x or 21x.",
+        "Resolution: The Problem Disappears / They Can't Hear You / Parts Integrate / Boundary Disappears / Capacity of words to act as linguistic marker disappears",
+        "Test and Future Pace"
+      ]
+    },
+    "nullSet": {
+      "title": "Prime Concerns Null Set",
+      "steps": [
+        "Tell me about that ....",
+        "Tell me more .... (until client has said everything that (s)he can think of)",
+        "What is it that you haven't told me that you're NOT thinking of ... right now! (Anchor)",
+        "Then fire off the Null Set anchor as they consider problems, problem states, or strategies that create the problem states."
+      ]
+    }
+  },
+  "reality": {
+    "title": "Reality",
+    "realityIsAConstruction": ["Space", "Time", "Matter", "Energy"],
+    "howWeConstructReality": [
+      "We create what we observe.",
+      "We observe with our minds.",
+      "Observations are measurements.",
+      "Measurements transform nothing into something.",
+      "We make measurements through our language."
+    ]
+  },
+  "timeScramble": {
+    "title": "Time Scramble - An Example of Temporal Language",
+    "examples": [
+      "Go inside and try in vain to have the same problem.",
+      "It was a terrible problem, wasn't it?",
+      "You want to make changes haven't you?...",
+      "What would it be like when you have made those changes, now?",
+      "In the future as you look back and see what it was like to have had that problem...as you think about it now, if you could make this change for yourself so that you could STOP...having made that change and see yourself now.",
+      "Do you like the way you look if you could make that change and look back at yourself having made that change now!"
+    ]
+  },
+  "prepositions": {
+    "title": "Prepositions",
+    "definition": "A preposition is a word that connects a verb and a noun by indicating a relationship between the things for which they stand. Prepositions limit verbs (much like adverbs) as to some circumstance of space, time, manner, degree, cause or reason.",
+    "spatial": ["Across", "After", "Along (side)", "Apart from", "Around", "Aside", "At", "Before", "Behind", "Beside", "Between", "Beyond", "By", "Down", "Except", "From above", "From below", "In", "Including", "In front of", "In place of", "Inside", "Into", "Off", "On", "Onto", "Out of", "Outside", "Over", "Relative to", "Short of", "Through", "Toward", "Under", "Up", "With (in/out)"],
+    "temporalPast": ["Before", "Then", "Look back", "Just", "Did", "Happened", "Was", "Made", "Did", "Decision", "Different"],
+    "temporalPresent": ["Here", "Now", "Already", "During", "Happen", "Is", "Make"],
+    "temporalFuture": ["After", "When", "Look ahead", "Soon", "Want to", "Would be", "If", "Will happen", "Will be", "Will make", "May"],
+    "temporalAtemporal": ["Looking", "Until", "Like", "Happening", "Being", "Making", "Deciding", "Differently"]
+  }
+}
