@@ -14,31 +14,31 @@
         },
         {
           "id": "module-1-lesson-2",
-          "title": "Prime Directives 1-11",
-          "description": "Prime Directives of the Unconscious Mind: Stores memories through Enjoys serving",
+          "title": "Prime Directives of the Unconscious Mind",
+          "description": "The 21 Prime Directives that govern how the Unconscious Mind operates",
           "dataFile": "prime-directives.json",
           "contentKeys": ["primeDirectives"]
         },
         {
           "id": "module-1-lesson-3",
-          "title": "Prime Directives 12-21",
-          "description": "Prime Directives: Controls perceptions through Does not process negatives",
-          "dataFile": "prime-directives.json",
-          "contentKeys": ["primeDirectives"]
-        },
-        {
-          "id": "module-1-lesson-4",
           "title": "NLP Communication Model",
-          "description": "External Event → Filters (Delete, Distort, Generalize) → Internal Representation → State → Behavior",
+          "description": "External Event, Filters (Delete, Distort, Generalize), Internal Representation, State, Physiology, Behavior",
           "dataFile": "prime-directives.json",
           "contentKeys": ["communicationModel"]
         },
         {
-          "id": "module-1-lesson-5",
-          "title": "Presuppositions of NLP & State vs Goal",
-          "description": "14 NLP Presuppositions (RESPECT UR-WORLD mnemonic) and the distinction between states and goals",
+          "id": "module-1-lesson-4",
+          "title": "Presuppositions of NLP",
+          "description": "The 14 Presuppositions encoded in RESPECT UR-WORLD mnemonic",
           "dataFile": "presuppositions.json",
           "contentKeys": ["nlpPresuppositions"]
+        },
+        {
+          "id": "module-1-lesson-5",
+          "title": "State vs Goal",
+          "description": "The critical difference between states and goals, and why writing goals leads to better outcomes",
+          "dataFile": "prime-directives.json",
+          "contentKeys": ["stateVsGoal"]
         }
       ]
     },
@@ -78,7 +78,7 @@
         {
           "id": "module-2-lesson-5",
           "title": "Selectional Restriction, Ambiguities, Utilization",
-          "description": "Milton Model patterns 17-19 plus Putting It All Together exercise",
+          "description": "Milton Model patterns 17-19 plus Putting It All Together",
           "dataFile": "milton-model.json",
           "contentKeys": ["patterns"]
         }
@@ -92,7 +92,7 @@
         {
           "id": "module-3-lesson-1",
           "title": "Linguistic Presuppositions",
-          "description": "9 types of linguistic presuppositions: Existence, Possibility, Cause-Effect, and more",
+          "description": "9 types: Existence, Possibility, Cause-Effect, Complex Equivalence, Awareness, Time, Adverb/Adjective, OR, Ordinal",
           "dataFile": "presuppositions.json",
           "contentKeys": ["linguisticPresuppositions"]
         },
@@ -126,24 +126,24 @@
         },
         {
           "id": "module-4-lesson-2",
-          "title": "Modal Operators & Prepositions",
-          "description": "Classification of Modal Operators, Spatial and Temporal Prepositions, Time Scramble, Decision Destroyer",
+          "title": "Modal Operators & Language Structure",
+          "description": "Classification of Modal Operators and logical language structures",
           "dataFile": "quantum-linguistics.json",
           "contentKeys": ["symbolicLogic"]
         },
         {
           "id": "module-4-lesson-3",
           "title": "Advanced Language Patterns",
-          "description": "Linguistic Re-Sourcing, De-Identification Pattern, Linguistic Parts Integration, Prime Concerns",
+          "description": "Quantum Linguistics techniques for directing internal representations and creating change",
           "dataFile": "quantum-linguistics.json",
           "contentKeys": ["quantumLinguistics"]
         },
         {
           "id": "module-4-lesson-4",
-          "title": "Metaphor Construction",
-          "description": "How to construct and deliver effective metaphors, Making Metaphors Work",
+          "title": "Embedded Commands & Application",
+          "description": "Practical application of embedded commands and Cartesian Coordinates",
           "dataFile": "quantum-linguistics.json",
-          "contentKeys": ["quantumLinguistics"]
+          "contentKeys": ["embeddedCommands", "cartesianCoordinates"]
         }
       ]
     },
@@ -162,14 +162,14 @@
         {
           "id": "module-5-lesson-2",
           "title": "Convincer & Management Filters",
-          "description": "Convincer Representational, Convincer Demonstration, and Management Direction filters",
+          "description": "Convincer Representational, Convincer Demonstration, and Management Direction",
           "dataFile": "meta-programs.json",
           "contentKeys": ["filters"]
         },
         {
           "id": "module-5-lesson-3",
           "title": "Action, Affiliation, Work & Interest Filters",
-          "description": "Action Filter, Affiliation, Work Preference, and Primary Interest filters",
+          "description": "Action Filter, Affiliation, Work Preference, and Primary Interest",
           "dataFile": "meta-programs.json",
           "contentKeys": ["filters"]
         },
@@ -183,7 +183,7 @@
         {
           "id": "module-5-lesson-5",
           "title": "Communication Styles & Linguistic Markers",
-          "description": "Information Processing, Listening, Speaking styles plus Linguistic Markers for all 19 filters",
+          "description": "Information Processing, Listening, Speaking styles plus Linguistic Markers for all filters",
           "dataFile": "meta-programs.json",
           "contentKeys": ["filters"]
         }
@@ -211,7 +211,7 @@
         {
           "id": "module-6-lesson-3",
           "title": "Completing the Session",
-          "description": "Testing, future pacing, ecology check, task assignment, client disclosure and follow-up",
+          "description": "Testing, future pacing, ecology check, task assignment, and follow-up",
           "dataFile": "personal-breakthrough.json",
           "contentKeys": ["completingSession"]
         }
