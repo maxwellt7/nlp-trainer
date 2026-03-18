@@ -66,7 +66,7 @@ export default function Reference() {
         if (ql.hierarchyOfIdeas) items.push({ name: 'Hierarchy of Ideas', definition: ql.hierarchyOfIdeas.subtitle || '', examples: [...(ql.hierarchyOfIdeas.chunkUp?.questions || []), ...(ql.hierarchyOfIdeas.chunkDown?.questions || [])] });
         if (ql.metaModel?.categories) {
           const cats = ql.metaModel.categories;
-          for (const [catName, patterns] of Object.entries(cats)) {
+          for (const [, patterns] of Object.entries(cats)) {
             (patterns as any[]).forEach((p: any) => items.push({ name: p.name, definition: p.description, examples: [p.example, p.response].filter(Boolean) }));
           }
         }
