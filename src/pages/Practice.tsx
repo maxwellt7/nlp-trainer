@@ -53,8 +53,9 @@ export default function Practice() {
           { role: 'user', content: initContent, hidden: true },
           { role: 'assistant', content: parsed.dialogue, coaching: parsed.coaching },
         ]);
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        setError(err.message || 'Failed to start session');
+        setSessionStarted(false);
       } finally {
         setLoading(false);
       }

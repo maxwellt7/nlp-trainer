@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import Chat from '../components/Chat';
 
@@ -229,12 +230,12 @@ export default function Hypnosis() {
             </button>
           )}
           {audioGenerated && (
-            <a
-              href="/audios"
+            <Link
+              to="/audios"
               className="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-6 py-3 font-medium transition-colors inline-block"
             >
               View in Audios
-            </a>
+            </Link>
           )}
           <button
             onClick={reset}

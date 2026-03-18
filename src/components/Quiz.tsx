@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Question {
   type: string;
@@ -26,6 +26,11 @@ interface Props {
 
 export default function Quiz({ questions, onSubmit, results, loading }: Props) {
   const [answers, setAnswers] = useState<string[]>(new Array(questions.length).fill(''));
+
+  // Reset answers when questions change (e.g., retaking a quiz)
+  useEffect(() => {
+    setAnswers(new Array(questions.length).fill(''));
+  }, [questions]);
 
   const setAnswer = (idx: number, value: string) => {
     setAnswers(prev => {

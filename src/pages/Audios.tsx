@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 
 interface SavedScript {
@@ -33,33 +34,53 @@ export default function Audios() {
 
   useEffect(() => {
     loadScripts();
+
+    return () => {
+      // Cleanup audio on unmount to prevent memory leak
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeAttribute('src');
+        audioRef.current = null;
+      }
+    };
   }, []);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current.removeAttribute('src');
+      audioRef.current = null;
+    }
+    setPlayingId(null);
+  };
 
   const playAudio = (script: SavedScript) => {
     if (!script.audioFile) return;
 
     if (playingId === script.id) {
-      // Stop
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setPlayingId(null);
+      stopAudio();
       return;
     }
 
-    // Stop current
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    // Stop any currently playing audio
+    stopAudio();
 
     const audio = new Audio(api.getAudioUrl(script.audioFile));
-    audio.onended = () => setPlayingId(null);
+    audio.onended = () => {
+      audioRef.current = null;
+      setPlayingId(null);
+    };
     audio.onerror = () => {
+      audioRef.current = null;
       setPlayingId(null);
       setError('Failed to play audio');
     };
-    audio.play();
+    audio.play().catch(() => {
+      setError('Failed to play audio');
+      setPlayingId(null);
+    });
     audioRef.current = audio;
     setPlayingId(script.id);
   };
@@ -78,9 +99,8 @@ export default function Audios() {
   };
 
   const deleteScript = async (scriptId: string) => {
-    if (playingId === scriptId && audioRef.current) {
-      audioRef.current.pause();
-      setPlayingId(null);
+    if (playingId === scriptId) {
+      stopAudio();
     }
     try {
       await api.deleteScript(scriptId);
@@ -107,7 +127,7 @@ export default function Audios() {
       {scripts.length === 0 ? (
         <div className="bg-gray-900 rounded-xl p-12 border border-gray-800 text-center">
           <p className="text-gray-400 mb-4">No scripts yet. Generate one from the Hypnosis page.</p>
-          <a href="/hypnosis" className="text-indigo-400 hover:text-indigo-300">Go to Hypnosis</a>
+          <Link to="/hypnosis" className="text-indigo-400 hover:text-indigo-300">Go to Hypnosis</Link>
         </div>
       ) : (
         <div className="space-y-4">

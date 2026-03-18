@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync } from 'fs';
-import { dirname, join } from 'path';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, statSync, createReadStream } from 'fs';
+import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
@@ -12,6 +12,11 @@ const router = Router();
 const scriptsDir = join(__dirname, '..', 'data', 'scripts');
 const audioDir = join(__dirname, '..', 'data', 'audio');
 
+// Validate that an ID/filename is safe (no path traversal)
+function isSafeFilename(name) {
+  return /^[a-zA-Z0-9_-]+$/.test(name);
+}
+
 // Ensure directories exist
 if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
 if (!existsSync(audioDir)) mkdirSync(audioDir, { recursive: true });
@@ -20,10 +25,16 @@ if (!existsSync(audioDir)) mkdirSync(audioDir, { recursive: true });
 router.get('/scripts', (req, res) => {
   try {
     const files = readdirSync(scriptsDir).filter(f => f.endsWith('.json'));
-    const scripts = files.map(f => {
-      const data = JSON.parse(readFileSync(join(scriptsDir, f), 'utf-8'));
-      return data;
-    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const scripts = [];
+    for (const f of files) {
+      try {
+        const data = JSON.parse(readFileSync(join(scriptsDir, f), 'utf-8'));
+        scripts.push(data);
+      } catch (err) {
+        console.warn(`Skipping corrupt script file ${f}: ${err.message}`);
+      }
+    }
+    scripts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     res.json({ scripts });
   } catch (error) {
     console.error('Error listing scripts:', error.message);
@@ -38,6 +49,9 @@ router.post('/scripts', (req, res) => {
     if (!title || !script) {
       return res.status(400).json({ error: 'title and script are required' });
     }
+    if (typeof title !== 'string' || typeof script !== 'string') {
+      return res.status(400).json({ error: 'title and script must be strings' });
+    }
 
     const id = `script-${Date.now()}`;
     const data = {
@@ -51,7 +65,7 @@ router.post('/scripts', (req, res) => {
     };
 
     writeFileSync(join(scriptsDir, `${id}.json`), JSON.stringify(data, null, 2));
-    res.json(data);
+    res.status(201).json(data);
   } catch (error) {
     console.error('Error saving script:', error.message);
     res.status(500).json({ error: 'Failed to save script' });
@@ -62,6 +76,9 @@ router.post('/scripts', (req, res) => {
 router.post('/generate-audio/:scriptId', async (req, res) => {
   try {
     const { scriptId } = req.params;
+    if (!isSafeFilename(scriptId)) {
+      return res.status(400).json({ error: 'Invalid script ID' });
+    }
     const scriptPath = join(scriptsDir, `${scriptId}.json`);
 
     if (!existsSync(scriptPath)) {
@@ -91,12 +108,12 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
       },
       body: JSON.stringify({
         text: scriptText,
-        model_id: 'eleven_turbo_v2_5',
+        model_id: 'eleven_multilingual_v2',
         voice_settings: {
-          stability: 0.75,
-          similarity_boost: 0.75,
-          style: 0.4,
-          use_speaker_boost: true,
+          stability: 0.85,
+          similarity_boost: 0.80,
+          style: 0.15,
+          use_speaker_boost: false,
         },
       }),
     });
@@ -127,20 +144,54 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
   }
 });
 
-// GET /audio/:filename — serve audio file
+// GET /audio/:filename — serve audio file with range request support
 router.get('/audio/:filename', (req, res) => {
-  const filePath = join(audioDir, req.params.filename);
+  const filename = req.params.filename;
+  // Only allow safe filenames ending in .mp3
+  if (!isSafeFilename(filename.replace('.mp3', '')) || !filename.endsWith('.mp3')) {
+    return res.status(400).json({ error: 'Invalid filename' });
+  }
+
+  const filePath = join(audioDir, filename);
   if (!existsSync(filePath)) {
     return res.status(404).json({ error: 'Audio file not found' });
   }
-  res.setHeader('Content-Type', 'audio/mpeg');
-  res.send(readFileSync(filePath));
+
+  const stat = statSync(filePath);
+  const fileSize = stat.size;
+
+  const range = req.headers.range;
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    if (start >= fileSize || end >= fileSize || start > end) {
+      res.status(416).setHeader('Content-Range', `bytes */${fileSize}`);
+      return res.end();
+    }
+
+    res.status(206);
+    res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Length', end - start + 1);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    createReadStream(filePath, { start, end }).pipe(res);
+  } else {
+    res.setHeader('Content-Length', fileSize);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
+    createReadStream(filePath).pipe(res);
+  }
 });
 
 // DELETE /scripts/:scriptId — delete a script and its audio
 router.delete('/scripts/:scriptId', (req, res) => {
   try {
     const { scriptId } = req.params;
+    if (!isSafeFilename(scriptId)) {
+      return res.status(400).json({ error: 'Invalid script ID' });
+    }
     const scriptPath = join(scriptsDir, `${scriptId}.json`);
 
     if (!existsSync(scriptPath)) {
@@ -151,7 +202,7 @@ router.delete('/scripts/:scriptId', (req, res) => {
 
     // Delete audio file if exists
     if (scriptData.audioFile) {
-      const audioPath = join(audioDir, scriptData.audioFile);
+      const audioPath = join(audioDir, basename(scriptData.audioFile));
       if (existsSync(audioPath)) {
         unlinkSync(audioPath);
       }

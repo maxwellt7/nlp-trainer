@@ -59,7 +59,7 @@ export const api = {
     request<any>(`/audio/generate-audio/${scriptId}`, { method: 'POST' }),
   deleteScript: (scriptId: string) =>
     request<any>(`/audio/scripts/${scriptId}`, { method: 'DELETE' }),
-  getAudioUrl: (filename: string) => `/api/audio/audio/${filename}`,
+  getAudioUrl: (filename: string) => `${BASE}/audio/audio/${filename}`,
 
   // Reference
   getReference: () => request<any>('/learn/reference'),

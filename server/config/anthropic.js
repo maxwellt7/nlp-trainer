@@ -6,6 +6,11 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '..', '.env') });
 
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.error('FATAL: ANTHROPIC_API_KEY environment variable is not set');
+  process.exit(1);
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });

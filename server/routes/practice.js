@@ -19,8 +19,11 @@ const SCENARIO_SETUPS = {
   free: 'Activate the FREE scenario. Wait for the student to describe the character and situation they want to practice with.',
 };
 
-// Helper: load all data files to build the full knowledge base
+// Helper: load all data files to build the full knowledge base (cached)
+let contentCache = null;
 function loadAllContent() {
+  if (contentCache) return contentCache;
+
   const files = readdirSync(dataDir).filter((f) => f.endsWith('.json') && f !== 'modules.json');
   const allContent = {};
 
@@ -33,6 +36,7 @@ function loadAllContent() {
     }
   }
 
+  contentCache = allContent;
   return allContent;
 }
 
@@ -73,17 +77,26 @@ router.post('/chat', async (req, res) => {
     let apiMessages;
     if (incomingMessages && Array.isArray(incomingMessages)) {
       // Frontend sends full messages array
-      apiMessages = incomingMessages.map(m => ({ role: m.role, content: m.content }));
+      apiMessages = incomingMessages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: String(m.content) }));
     } else if (message) {
       // Legacy format: build from conversationHistory + message
-      apiMessages = conversationHistory.map(m => ({ role: m.role, content: m.content }));
-      apiMessages.push({ role: 'user', content: message });
+      apiMessages = conversationHistory
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: String(m.content) }));
+      apiMessages.push({ role: 'user', content: String(message) });
     } else {
       return res.status(400).json({ error: 'scenario and messages (or message) are required' });
     }
 
     if (!scenario || apiMessages.length === 0) {
       return res.status(400).json({ error: 'scenario and at least one message are required' });
+    }
+
+    // Prevent excessively long conversation histories
+    if (apiMessages.length > 100) {
+      return res.status(400).json({ error: 'Conversation too long. Please start a new session.' });
     }
 
     const scenarioKey = scenario.toLowerCase();
@@ -149,6 +162,10 @@ router.post('/debrief', async (req, res) => {
 
     if (!scenario || history.length === 0) {
       return res.status(400).json({ error: 'scenario and messages are required' });
+    }
+
+    if (history.length > 100) {
+      return res.status(400).json({ error: 'Conversation too long for debrief.' });
     }
 
     const allContent = loadAllContent();

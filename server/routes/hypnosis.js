@@ -10,7 +10,10 @@ const promptsDir = join(dataDir, 'prompts');
 
 const router = Router();
 
+let contentCache = null;
 function loadAllContent() {
+  if (contentCache) return contentCache;
+
   const files = readdirSync(dataDir).filter((f) => f.endsWith('.json') && f !== 'modules.json');
   const allContent = {};
   for (const file of files) {
@@ -21,6 +24,7 @@ function loadAllContent() {
       console.warn(`Skipping data file ${file}: ${err.message}`);
     }
   }
+  contentCache = allContent;
   return allContent;
 }
 
@@ -54,11 +58,24 @@ router.post('/chat', async (req, res) => {
 
     const fullSystemPrompt = `${systemPrompt}\n\nYou are in INTAKE phase. Conduct the intake conversation. Respond in JSON format: {"reply": "...", "readyToGenerate": false/true}`;
 
+    // Limit conversation length and validate roles
+    if (messages.length > 50) {
+      return res.status(400).json({ error: 'Conversation too long. Please start a new session.' });
+    }
+
+    const apiMessages = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: String(m.content) }));
+
+    if (apiMessages.length === 0) {
+      return res.status(400).json({ error: 'No valid messages provided' });
+    }
+
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       system: fullSystemPrompt,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      messages: apiMessages,
     });
 
     const text = response.content[0].text;
@@ -92,8 +109,14 @@ router.post('/generate', async (req, res) => {
 
     const fullSystemPrompt = `${systemPrompt}\n\nYou are in GENERATION phase. Based on the intake conversation, generate the complete self-hypnosis script. Respond in JSON format: {"title": "...", "duration": "short" or "full", "estimatedMinutes": number, "script": "..."}`;
 
+    if (messages.length > 50) {
+      return res.status(400).json({ error: 'Conversation too long.' });
+    }
+
     const apiMessages = [
-      ...messages.map(m => ({ role: m.role, content: m.content })),
+      ...messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: String(m.content) })),
       { role: 'user', content: 'Please generate my personalized hypnosis script now based on everything we discussed.' },
     ];
 
