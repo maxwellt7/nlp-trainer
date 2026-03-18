@@ -39,6 +39,18 @@ export const api = {
       body: JSON.stringify({ scenario, conversationHistory: messages }),
     }),
 
+  // Hypnosis
+  hypnosisChat: (messages: any[]) =>
+    request<any>('/hypnosis/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
+  hypnosisGenerate: (messages: any[]) =>
+    request<any>('/hypnosis/generate', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
+
   // Reference
   getReference: () => request<any>('/learn/reference'),
 };

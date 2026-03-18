@@ -4,6 +4,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: '\u25C9' },
   { to: '/learn', label: 'Learn', icon: '\u25C8' },
   { to: '/practice', label: 'Practice', icon: '\u25C7' },
+  { to: '/hypnosis', label: 'Hypnosis', icon: '\u2726' },
   { to: '/reference', label: 'Reference', icon: '\u25C6' },
 ];
 

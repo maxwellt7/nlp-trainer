@@ -5,6 +5,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import learnRoutes from './routes/learn.js';
 import practiceRoutes from './routes/practice.js';
+import hypnosisRoutes from './routes/hypnosis.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '.env') });
@@ -15,6 +16,7 @@ app.use(express.json());
 
 app.use('/api/learn', learnRoutes);
 app.use('/api/practice', practiceRoutes);
+app.use('/api/hypnosis', hypnosisRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

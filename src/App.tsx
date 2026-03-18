@@ -5,6 +5,7 @@ import Learn from './pages/Learn';
 import Lesson from './pages/Lesson';
 import Practice from './pages/Practice';
 import Reference from './pages/Reference';
+import Hypnosis from './pages/Hypnosis';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/learn" element={<Learn />} />
           <Route path="/learn/:lessonId" element={<Lesson />} />
           <Route path="/practice" element={<Practice />} />
+          <Route path="/hypnosis" element={<Hypnosis />} />
           <Route path="/reference" element={<Reference />} />
         </Route>
       </Routes>
