@@ -56,6 +56,9 @@ export default function Hypnosis() {
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [savedScriptId, setSavedScriptId] = useState<string | null>(null);
+  const [generatingAudio, setGeneratingAudio] = useState(false);
+  const [audioGenerated, setAudioGenerated] = useState(false);
 
   const sendMessage = useCallback(async (content: string) => {
     const userMsg: Message = { role: 'user', content };
@@ -88,11 +91,36 @@ export default function Hypnosis() {
       const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
       const data = await api.hypnosisGenerate(apiMessages);
       setScriptResult(data);
+
+      // Auto-save to disk
+      const saved = await api.saveScript({
+        title: data.title,
+        duration: data.duration,
+        estimatedMinutes: data.estimatedMinutes,
+        script: data.script,
+      });
+      setSavedScriptId(saved.id);
+
       setState('script');
     } catch (err: any) {
       setError(err.message || 'Failed to generate script');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const generateAudio = async () => {
+    if (!savedScriptId) return;
+    setGeneratingAudio(true);
+    setError(null);
+
+    try {
+      await api.generateAudio(savedScriptId);
+      setAudioGenerated(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate audio');
+    } finally {
+      setGeneratingAudio(false);
     }
   };
 
@@ -122,6 +150,9 @@ export default function Hypnosis() {
     setScriptResult(null);
     setError(null);
     setGenerating(false);
+    setSavedScriptId(null);
+    setGeneratingAudio(false);
+    setAudioGenerated(false);
   };
 
   // Welcome state
@@ -170,7 +201,13 @@ export default function Hypnosis() {
           {renderScript(scriptResult.script)}
         </div>
 
-        <div className="flex gap-3">
+        {error && (
+          <div className="bg-red-900/30 border border-red-800 rounded-xl px-6 py-3 text-sm text-red-300 mb-4">
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3 flex-wrap">
           <button
             onClick={copyScript}
             className={`rounded-xl px-6 py-3 font-medium transition-colors ${
@@ -181,6 +218,23 @@ export default function Hypnosis() {
           >
             {copied ? 'Copied!' : 'Copy Script'}
           </button>
+          {savedScriptId && !audioGenerated && (
+            <button
+              onClick={generateAudio}
+              disabled={generatingAudio}
+              className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl px-6 py-3 font-medium transition-colors"
+            >
+              {generatingAudio ? 'Generating Audio...' : 'Generate Audio'}
+            </button>
+          )}
+          {audioGenerated && (
+            <a
+              href="/audios"
+              className="bg-emerald-600 hover:bg-emerald-500 rounded-xl px-6 py-3 font-medium transition-colors inline-block"
+            >
+              View in Audios
+            </a>
+          )}
           <button
             onClick={reset}
             className="bg-gray-800 hover:bg-gray-700 rounded-xl px-6 py-3 font-medium transition-colors"

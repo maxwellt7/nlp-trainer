@@ -51,6 +51,16 @@ export const api = {
       body: JSON.stringify({ messages }),
     }),
 
+  // Audio / Scripts
+  listScripts: () => request<any>('/audio/scripts'),
+  saveScript: (script: { title: string; duration: string; estimatedMinutes: number; script: string }) =>
+    request<any>('/audio/scripts', { method: 'POST', body: JSON.stringify(script) }),
+  generateAudio: (scriptId: string) =>
+    request<any>(`/audio/generate-audio/${scriptId}`, { method: 'POST' }),
+  deleteScript: (scriptId: string) =>
+    request<any>(`/audio/scripts/${scriptId}`, { method: 'DELETE' }),
+  getAudioUrl: (filename: string) => `/api/audio/audio/${filename}`,
+
   // Reference
   getReference: () => request<any>('/learn/reference'),
 };

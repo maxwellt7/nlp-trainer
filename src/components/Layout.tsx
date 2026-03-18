@@ -5,6 +5,7 @@ const navItems = [
   { to: '/learn', label: 'Learn', icon: '\u25C8' },
   { to: '/practice', label: 'Practice', icon: '\u25C7' },
   { to: '/hypnosis', label: 'Hypnosis', icon: '\u2726' },
+  { to: '/audios', label: 'Audios', icon: '\u266B' },
   { to: '/reference', label: 'Reference', icon: '\u25C6' },
 ];
 
