@@ -43,14 +43,15 @@ export default function Practice() {
       setLoading(true);
       try {
         const initContent = 'Start the scenario. Give me your opening line in character.';
-        const response = await api.sendMessage(
+        const data = await api.sendMessage(
           scenario,
           [{ role: 'user', content: initContent }],
           coached
         );
+        const parsed = data.response || data;
         setMessages([
           { role: 'user', content: initContent, hidden: true },
-          { role: 'assistant', content: response.dialogue, coaching: response.coaching },
+          { role: 'assistant', content: parsed.dialogue, coaching: parsed.coaching },
         ]);
       } catch (err) {
         console.error(err);
@@ -71,16 +72,17 @@ export default function Practice() {
 
     try {
       const apiMessages = updated.map(m => ({ role: m.role, content: m.content }));
-      const response = await api.sendMessage(
+      const data = await api.sendMessage(
         scenario!,
         apiMessages,
         coached,
         scenario === 'free' ? freeSetup : undefined
       );
+      const parsed = data.response || data;
       setMessages([...updated, {
         role: 'assistant',
-        content: response.dialogue,
-        coaching: response.coaching,
+        content: parsed.dialogue,
+        coaching: parsed.coaching,
       }]);
       setLastFailedMessage(null);
     } catch (err: any) {
@@ -98,7 +100,7 @@ export default function Practice() {
     try {
       const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
       const result = await api.getDebrief(scenario, apiMessages);
-      setDebrief(result);
+      setDebrief(result.debrief || result);
       recordPracticeSession(scenario);
     } catch (err) {
       console.error(err);

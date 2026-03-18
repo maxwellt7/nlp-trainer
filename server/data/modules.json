@@ -206,7 +206,7 @@
           "title": "Intervention Process",
           "description": "Setting frames, eliciting values, intervention steps: negative emotions, limiting decisions, parts integration",
           "dataFile": "personal-breakthrough.json",
-          "contentKeys": ["setFrames", "interventionSteps"]
+          "contentKeys": ["interventionSteps"]
         },
         {
           "id": "module-6-lesson-3",

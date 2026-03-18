@@ -115,6 +115,60 @@
     "causeAndEffect": "When did they choose to have these symptoms? Ask why did the Unconscious Mind choose to create this? Check for secondary gain.",
     "models": "Who did they model in youth? Connecting health / power / protection? Find out client's self-image - who did they model their life on? (The client may have extreme external frame of reference.)"
   },
+  "setFrames": {
+    "title": "Setting Frames for the Session",
+    "description": "Before beginning the intervention, establish the frames that will support the client's change process.",
+    "frames": [
+      {
+        "title": "Beliefs to Adopt",
+        "description": "Any beliefs you want the client to adopt before beginning the intervention work."
+      },
+      {
+        "title": "Why Time Line Therapy Techniques Work",
+        "description": "Explain the basis of Time Line Therapy techniques and why emotions release."
+      },
+      {
+        "title": "Cause and Effect",
+        "description": "Ensure the client understands and accepts being at cause for their results."
+      },
+      {
+        "title": "Getting Value from the Process",
+        "description": "Frame the importance of being fully engaged and committed to the process."
+      },
+      {
+        "title": "The Importance of Taking Action",
+        "description": "Emphasize that change requires action and focus after the session."
+      },
+      {
+        "title": "Task Agreement",
+        "description": "Remind the client that there will be a Task after the session. Get their agreement for doing it."
+      }
+    ],
+    "elicitValues": {
+      "step": 5,
+      "title": "Elicit Values",
+      "description": "Elicit the client's values in the area of life in which the problem falls. (In healing, 'What's important about LIVING,' not just health.) Evaluate the client's values. Make sure that they are appropriate for the solution of the problem."
+    },
+    "willingnessToPlay": {
+      "step": 6,
+      "title": "Determine - is the client willing to play at 100%",
+      "description": "Ask what they are willing to do or to be to have the problem disappear. Are they willing to do ANYTHING? What are they not willing to do? Also ask Unconscious Mind what they need to do: may need to give up current lifestyle."
+    },
+    "setOutcomes": {
+      "step": 7,
+      "title": "Set Outcomes",
+      "description": "Do standard outcome setting, as in Practitioner Time Line Therapy Training."
+    },
+    "threeRequisites": {
+      "step": 9,
+      "title": "Three Requisites for Change",
+      "requisites": [
+        "Getting rid of Negative Emotions, Limiting Decisions, Parts Integration, Values, Create the Future",
+        "Taking Action (Includes Enforcing your Boundaries)",
+        "Focusing on What You Want (Your Evaluations Become Suggestions to the Unconscious Mind)"
+      ]
+    }
+  },
   "interventionSteps": {
     "title": "Intervention Steps",
     "preIntervention": [

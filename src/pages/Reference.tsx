@@ -38,41 +38,61 @@ export default function Reference() {
         }));
       case 'presuppositions':
         return [
-          ...(data.presuppositions?.nlpPresuppositions || []).map((p: any) => ({
-            name: `${p.mnemonicLetter} \u2014 ${p.keyword}`, definition: p.text, number: p.number
+          ...(data.presuppositions?.nlpPresuppositions?.presuppositions || []).map((p: any) => ({
+            name: `${p.letter} \u2014 ${p.keyword}`, definition: p.text, number: p.number
           })),
-          ...(data.presuppositions?.linguisticPresuppositions || []).map((p: any) => ({
-            name: p.name, definition: p.definition, tipOff: p.tipOff, examples: p.examples, number: p.number
+          ...(data.presuppositions?.linguisticPresuppositions?.types || []).map((p: any) => ({
+            name: p.name, definition: `${p.solution || ''}`, tipOff: p.tipOff, examples: [p.example, p.response].filter(Boolean), number: p.number
           })),
         ];
       case 'prime-directives':
-        return (data.primeDirectives?.primeDirectives || []).map((d: any) => ({
-          name: d.text, definition: d.details || '', number: d.number
+        return (data.primeDirectives?.primeDirectives?.directives || data.primeDirectives?.directives || []).map((d: any) => ({
+          name: d.title || d.text || '', definition: d.description || d.details || '', number: d.number
         }));
       case 'quantum-linguistics': {
         const ql = data.quantumLinguistics || {};
         const items: any[] = [];
-        if (ql.embeddedCommands) items.push({ name: 'Embedded Commands', definition: ql.embeddedCommands.definition, examples: ql.embeddedCommands.steps });
-        if (ql.cartesianCoordinates) items.push({
+        if (ql.embeddedCommands) items.push({ name: 'Embedded Commands', definition: ql.embeddedCommands.key || ql.embeddedCommands.subtitle || '', examples: ql.embeddedCommands.steps });
+        if (ql.cartesianCoordinates?.quadrants) items.push({
           name: 'Cartesian Coordinates',
           definition: 'Four perspectives for exploring decisions',
-          examples: Object.entries(ql.cartesianCoordinates).map(([k, v]: [string, any]) => `${k}: ${v.question}`)
+          examples: ql.cartesianCoordinates.quadrants.map((q: any) => `${q.name}: ${q.question}`)
         });
-        if (ql.symbolicLogic) items.push({ name: 'Symbolic Logic', definition: 'Logical operators used in NLP', examples: ql.symbolicLogic });
+        if (ql.symbolicLogic?.operators) items.push({ name: 'Symbolic Logic', definition: 'Logical operators used in NLP', examples: ql.symbolicLogic.operators });
         if (ql.inductiveDeductive) {
           items.push({ name: 'Deduction', definition: ql.inductiveDeductive.deduction.definition, examples: [ql.inductiveDeductive.deduction.example] });
           items.push({ name: 'Induction', definition: ql.inductiveDeductive.induction.definition, examples: [ql.inductiveDeductive.induction.example] });
+        }
+        if (ql.hierarchyOfIdeas) items.push({ name: 'Hierarchy of Ideas', definition: ql.hierarchyOfIdeas.subtitle || '', examples: [...(ql.hierarchyOfIdeas.chunkUp?.questions || []), ...(ql.hierarchyOfIdeas.chunkDown?.questions || [])] });
+        if (ql.metaModel?.categories) {
+          const cats = ql.metaModel.categories;
+          for (const [catName, patterns] of Object.entries(cats)) {
+            (patterns as any[]).forEach((p: any) => items.push({ name: p.name, definition: p.description, examples: [p.example, p.response].filter(Boolean) }));
+          }
         }
         return items;
       }
       case 'personal-breakthrough': {
         const pb = data.personalBreakthrough || {};
         const pbItems: any[] = [];
-        if (pb.detailedPersonalHistory) pbItems.push(...pb.detailedPersonalHistory.map((q: any) => ({
+        if (pb.preSession?.screeningQuestions) {
+          pbItems.push({ name: 'Pre-Session Screening', definition: 'Questions to ask before the session begins', examples: pb.preSession.screeningQuestions });
+        }
+        if (pb.detailedPersonalHistory?.questions) pbItems.push(...pb.detailedPersonalHistory.questions.map((q: any) => ({
           name: `Question ${q.number}`, definition: q.question, examples: q.purpose ? [q.purpose] : [], number: q.number
         })));
-        if (pb.interventionSteps) pbItems.push(...pb.interventionSteps.map((s: any) => ({
-          name: s.title, definition: s.description, number: s.number
+        if (pb.interventionSteps) {
+          const allSteps = [
+            ...(pb.interventionSteps.preIntervention || []),
+            ...(pb.interventionSteps.intervention || []),
+            ...(pb.interventionSteps.postIntervention || []),
+          ];
+          pbItems.push(...allSteps.map((s: any) => ({
+            name: s.title, definition: s.description || '', number: s.step
+          })));
+        }
+        if (pb.completingSession?.steps) pbItems.push(...pb.completingSession.steps.map((s: any) => ({
+          name: s.title, definition: s.description || '', number: s.step
         })));
         return pbItems;
       }

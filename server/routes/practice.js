@@ -67,15 +67,29 @@ function parseJsonResponse(text) {
 // POST /chat - send a message in a practice session
 router.post('/chat', async (req, res) => {
   try {
-    const { scenario, message, conversationHistory = [], coached = true, customSetup } = req.body;
+    const { scenario, messages: incomingMessages, message, conversationHistory = [], coached = true, scenarioSetup, customSetup } = req.body;
 
-    if (!scenario || !message) {
-      return res.status(400).json({ error: 'scenario and message are required' });
+    // Support both frontend format (messages array) and legacy format (message + conversationHistory)
+    let apiMessages;
+    if (incomingMessages && Array.isArray(incomingMessages)) {
+      // Frontend sends full messages array
+      apiMessages = incomingMessages.map(m => ({ role: m.role, content: m.content }));
+    } else if (message) {
+      // Legacy format: build from conversationHistory + message
+      apiMessages = conversationHistory.map(m => ({ role: m.role, content: m.content }));
+      apiMessages.push({ role: 'user', content: message });
+    } else {
+      return res.status(400).json({ error: 'scenario and messages (or message) are required' });
+    }
+
+    if (!scenario || apiMessages.length === 0) {
+      return res.status(400).json({ error: 'scenario and at least one message are required' });
     }
 
     const scenarioKey = scenario.toLowerCase();
-    const setupInstruction = scenarioKey === 'free' && customSetup
-      ? `Activate the FREE scenario. ${customSetup}`
+    const setup = scenarioSetup || customSetup;
+    const setupInstruction = scenarioKey === 'free' && setup
+      ? `Activate the FREE scenario. ${setup}`
       : SCENARIO_SETUPS[scenarioKey];
 
     if (!setupInstruction) {
@@ -93,26 +107,11 @@ router.post('/chat', async (req, res) => {
 
     const fullSystemPrompt = `${systemPrompt}\n\n--- SESSION SETUP ---\n${setupInstruction}\n\n${modeInstruction}`;
 
-    // Build messages array: include conversation history plus the new message
-    const messages = [];
-
-    for (const msg of conversationHistory) {
-      messages.push({
-        role: msg.role,
-        content: msg.content,
-      });
-    }
-
-    messages.push({
-      role: 'user',
-      content: message,
-    });
-
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
       system: fullSystemPrompt,
-      messages,
+      messages: apiMessages,
     });
 
     const text = response.content[0].text;
@@ -143,10 +142,13 @@ router.post('/chat', async (req, res) => {
 // POST /debrief - get end-of-session debrief
 router.post('/debrief', async (req, res) => {
   try {
-    const { scenario, conversationHistory = [] } = req.body;
+    const { scenario, messages: incomingMessages, conversationHistory = [] } = req.body;
 
-    if (!scenario || conversationHistory.length === 0) {
-      return res.status(400).json({ error: 'scenario and conversationHistory are required' });
+    // Support both frontend format (messages) and legacy format (conversationHistory)
+    const history = (incomingMessages && Array.isArray(incomingMessages)) ? incomingMessages : conversationHistory;
+
+    if (!scenario || history.length === 0) {
+      return res.status(400).json({ error: 'scenario and messages are required' });
     }
 
     const allContent = loadAllContent();
@@ -160,7 +162,7 @@ router.post('/debrief', async (req, res) => {
     // Build messages from conversation history, then append debrief request
     const messages = [];
 
-    for (const msg of conversationHistory) {
+    for (const msg of history) {
       messages.push({
         role: msg.role,
         content: msg.content,

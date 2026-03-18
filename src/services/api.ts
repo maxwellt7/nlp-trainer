@@ -25,15 +25,18 @@ export const api = {
     }),
 
   // Practice
-  sendMessage: (scenario: string, messages: any[], coached: boolean, scenarioSetup?: string) =>
-    request<any>('/practice/chat', {
+  sendMessage: (scenario: string, messages: any[], coached: boolean, scenarioSetup?: string) => {
+    const conversationHistory = messages.slice(0, -1);
+    const message = messages.length > 0 ? messages[messages.length - 1].content : '';
+    return request<any>('/practice/chat', {
       method: 'POST',
-      body: JSON.stringify({ scenario, messages, coached, scenarioSetup }),
-    }),
+      body: JSON.stringify({ scenario, message, conversationHistory, coached, customSetup: scenarioSetup }),
+    });
+  },
   getDebrief: (scenario: string, messages: any[]) =>
     request<any>('/practice/debrief', {
       method: 'POST',
-      body: JSON.stringify({ scenario, messages }),
+      body: JSON.stringify({ scenario, conversationHistory: messages }),
     }),
 
   // Reference

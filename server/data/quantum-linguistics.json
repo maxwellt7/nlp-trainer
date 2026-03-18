@@ -387,6 +387,72 @@
       "Do you like the way you look if you could make that change and look back at yourself having made that change now!"
     ]
   },
+  "quantumLinguistics": {
+    "title": "Quantum Linguistics — Advanced Techniques",
+    "description": "Quantum Linguistics techniques for directing internal representations and creating change. These advanced patterns allow you to directionalize your language to affect neurological change.",
+    "techniques": [
+      {
+        "name": "Meta Model",
+        "description": "Recovers deletions, distortions, and generalizations in client language to challenge the client's model of the world.",
+        "reference": "metaModel"
+      },
+      {
+        "name": "Meta Model III — Directed Questioning",
+        "description": "A specific sequence of questions designed to move a client from problem state to solution state.",
+        "reference": "metaModelIII"
+      },
+      {
+        "name": "Modal Operators Classification",
+        "description": "Classification of modal operators from Negative Necessity through Possibility, used to identify and shift a client's language patterns.",
+        "reference": "modalOperators"
+      },
+      {
+        "name": "Advanced Presuppositions Process",
+        "description": "A process for loosening the client's model by undercutting the original presuppositions in their language.",
+        "reference": "advancedPresuppositions"
+      },
+      {
+        "name": "Decision Destroyer",
+        "description": "A pattern for resolving limiting decisions by taking the client back before the decision point.",
+        "reference": "decisionDestroyer"
+      },
+      {
+        "name": "Going Beyond Boundaries",
+        "description": "A technique for moving past limiting identifications using the concept of not-knowing.",
+        "reference": "goingBeyondBoundaries"
+      },
+      {
+        "name": "Linguistic Re-Sourcing",
+        "description": "A questioning sequence that helps clients re-source their experience and create change.",
+        "reference": "linguisticReSourcing"
+      },
+      {
+        "name": "De-Identification Pattern",
+        "description": "A pattern for going beyond limiting Complex Equivalence identifications.",
+        "reference": "deIdentificationPattern"
+      },
+      {
+        "name": "Linguistic Parts Integration",
+        "description": "Resolving Parts conflicts using Prime Concerns and linguistic techniques.",
+        "reference": "linguisticPartsIntegration"
+      },
+      {
+        "name": "Prime Concerns",
+        "description": "Elicitation and resolution of core patterns around Starting, Changing, and Stopping.",
+        "reference": "primeConcerns"
+      },
+      {
+        "name": "Time Scramble",
+        "description": "Using temporal language to scramble the client's experience of a problem across time.",
+        "reference": "timeScramble"
+      },
+      {
+        "name": "Prepositions",
+        "description": "Spatial and temporal prepositions used to direct internal representations.",
+        "reference": "prepositions"
+      }
+    ]
+  },
   "prepositions": {
     "title": "Prepositions",
     "definition": "A preposition is a word that connects a verb and a noun by indicating a relationship between the things for which they stand. Prepositions limit verbs (much like adverbs) as to some circumstance of space, time, manner, degree, cause or reason.",

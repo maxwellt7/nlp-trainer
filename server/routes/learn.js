@@ -30,10 +30,21 @@ function loadLessonContent(lesson) {
   }
 
   // Filter to only the specified content keys
+  // Search top-level first, then one level deep for nested structures
   const filtered = {};
   for (const key of lesson.contentKeys) {
     if (data[key] !== undefined) {
       filtered[key] = data[key];
+    } else {
+      // Search one level deep inside nested objects
+      for (const topKey of Object.keys(data)) {
+        if (data[topKey] && typeof data[topKey] === 'object' && !Array.isArray(data[topKey])) {
+          if (data[topKey][key] !== undefined) {
+            filtered[key] = data[topKey][key];
+            break;
+          }
+        }
+      }
     }
   }
   return filtered;
