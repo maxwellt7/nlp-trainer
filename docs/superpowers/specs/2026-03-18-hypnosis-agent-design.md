@@ -129,6 +129,21 @@ And I wonder if you've already begun to notice... that feeling of heaviness... i
 
 ## Backend API
 
+### Claude Response Format (readyToGenerate Signal)
+
+The `hypnotist.txt` system prompt instructs Claude to always respond in JSON format during intake:
+
+```json
+{"reply": "Your conversational response here", "readyToGenerate": false}
+```
+
+When Claude determines it has enough context, it sets `readyToGenerate: true`. The backend parses this JSON (with fallback extraction like the existing routes) and passes both fields to the frontend. The `hypnotist.txt` prompt uses the `{{CONTENT}}` placeholder to receive the full NLP knowledge base, matching the existing prompt-loading convention.
+
+### Token Limits
+
+- `/api/hypnosis/chat`: `max_tokens: 1024` (short conversational replies)
+- `/api/hypnosis/generate`: `max_tokens: 8192` (full-session scripts can be 2500-4000 words / ~5000+ tokens)
+
 ### POST /api/hypnosis/chat
 
 Intake conversation. Sends the full message history each call. The agent decides when it has enough info and signals readiness.
@@ -190,7 +205,7 @@ Generates the full script based on the intake conversation.
 - Reuses Chat component with `coached={false}`
 - No coaching sidebar
 - Agent asks questions one at a time
-- When the agent signals `readyToGenerate`, show a "Generate Script" button (or auto-trigger)
+- When the agent signals `readyToGenerate`, show a "Generate Script" button (manual trigger — user confirms before the longer generation call)
 - "Cancel" button returns to welcome
 
 **3. Script Display**
@@ -204,12 +219,16 @@ Generates the full script based on the intake conversation.
 
 ## Navigation
 
-Add "Hypnosis" as the 5th nav item in the sidebar, between Practice and Reference:
-- Dashboard
-- Learn
-- Practice
-- **Hypnosis**
-- Reference
+Add "Hypnosis" as the 5th nav item in the sidebar, between Practice and Reference. Use Unicode `✦` (four-pointed star) as the icon to match the existing geometric icon style:
+- Dashboard (◉)
+- Learn (◈)
+- Practice (◇)
+- **Hypnosis (✦)**
+- Reference (◆)
+
+### Script Rendering Safety
+
+SSML `<break>` tags in the script output must be parsed and rendered safely — use a custom parser/regex replacement to convert tags to styled React elements. Do not use `dangerouslySetInnerHTML`.
 
 ## Error Handling
 
