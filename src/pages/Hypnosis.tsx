@@ -257,13 +257,21 @@ export default function Hypnosis() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {readyToGenerate && (
+          {readyToGenerate ? (
             <button
               onClick={generateScript}
               disabled={generating}
-              className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors"
+              className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors animate-pulse"
             >
-              {generating ? 'Generating...' : 'Generate Script'}
+              {generating ? 'Generating Script...' : 'Generate Script'}
+            </button>
+          ) : messages.length >= 4 && (
+            <button
+              onClick={generateScript}
+              disabled={generating}
+              className="bg-gray-700 hover:bg-gray-600 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors"
+            >
+              {generating ? 'Generating Script...' : 'Generate Now'}
             </button>
           )}
           <button
