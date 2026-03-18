@@ -16,31 +16,32 @@ interface ScriptResult {
 }
 
 function renderScript(script: string) {
-  const parts = script.split(/(<break\s+time="(\d+)s"\s*\/>)/g);
+  // Split on break tags, keeping them as separators
+  const parts = script.split(/<break\s+time="(\d+)s"\s*\/>/g);
+  // split with one capture group alternates: [text, seconds, text, seconds, ...]
   const elements: React.ReactNode[] = [];
-  let i = 0;
 
-  while (i < parts.length) {
-    const part = parts[i];
-    if (part && part.startsWith('<break')) {
-      const seconds = parts[i + 1];
-      elements.push(
-        <span key={i} className="flex items-center gap-2 my-3">
-          <span className="flex-1 border-t border-gray-700" />
-          <span className="text-xs text-gray-500 shrink-0">{seconds}s pause</span>
-          <span className="flex-1 border-t border-gray-700" />
-        </span>
-      );
-      i += 3; // skip full match, capture group, and next
-    } else if (part && part.trim()) {
-      elements.push(
-        <span key={i} className="leading-relaxed">
-          {part}
-        </span>
-      );
-      i++;
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      // Text segment
+      const text = parts[i];
+      if (text && text.trim()) {
+        elements.push(
+          <p key={`t${i}`} className="leading-loose mb-0">
+            {text.trim()}
+          </p>
+        );
+      }
     } else {
-      i++;
+      // Captured seconds from break tag
+      const seconds = parts[i];
+      elements.push(
+        <div key={`b${i}`} className="flex items-center gap-2 my-2">
+          <span className="flex-1 border-t border-gray-700/50" />
+          <span className="text-[10px] text-gray-600 shrink-0">{seconds}s</span>
+          <span className="flex-1 border-t border-gray-700/50" />
+        </div>
+      );
     }
   }
 
