@@ -24,7 +24,7 @@ export default function PatternCard({ name, definition, tipOff, examples, number
           {examples && examples.length > 0 && (
             <div className="mt-3 space-y-1">
               {examples.slice(0, 5).map((ex, i) => (
-                <p key={i} className="text-sm text-gray-400 italic">&ldquo;{ex}&rdquo;</p>
+                <p key={i} className="text-sm text-gray-400 italic">&ldquo;{typeof ex === 'object' ? JSON.stringify(ex) : String(ex)}&rdquo;</p>
               ))}
             </div>
           )}

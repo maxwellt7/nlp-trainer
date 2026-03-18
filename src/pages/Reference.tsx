@@ -15,11 +15,13 @@ export default function Reference() {
   const [data, setData] = useState<any>(null);
   const [category, setCategory] = useState('milton-model');
   const [search, setSearch] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getReference().then(setData).catch(console.error);
+    api.getReference().then(setData).catch(err => setError(err.message || 'Failed to load reference data'));
   }, []);
 
+  if (error) return <div className="p-8 text-red-400">{error}</div>;
   if (!data) return <div className="p-8 text-gray-400">Loading reference data...</div>;
 
   const getItems = (): any[] => {
@@ -107,7 +109,7 @@ export default function Reference() {
     items = items.filter((item: any) =>
       item.name?.toLowerCase().includes(q) ||
       item.definition?.toLowerCase().includes(q) ||
-      item.examples?.some((e: string) => e.toLowerCase().includes(q))
+      item.examples?.some((e: any) => String(e || '').toLowerCase().includes(q))
     );
   }
 

@@ -51,7 +51,7 @@ export default function Practice() {
         const parsed = data.response || data;
         setMessages([
           { role: 'user', content: initContent, hidden: true },
-          { role: 'assistant', content: parsed.dialogue, coaching: parsed.coaching },
+          { role: 'assistant', content: parsed.dialogue || parsed.content || JSON.stringify(parsed), coaching: parsed.coaching },
         ]);
       } catch (err: any) {
         setError(err.message || 'Failed to start session');
@@ -82,7 +82,7 @@ export default function Practice() {
       const parsed = data.response || data;
       setMessages([...updated, {
         role: 'assistant',
-        content: parsed.dialogue,
+        content: parsed.dialogue || parsed.content || JSON.stringify(parsed),
         coaching: parsed.coaching,
       }]);
       setLastFailedMessage(null);
@@ -127,7 +127,7 @@ export default function Practice() {
         <h1 className="text-2xl font-bold mb-6">Session Debrief</h1>
         <div className="space-y-4">
           <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-            <p className="text-gray-300">{debrief.summary}</p>
+            <p className="text-gray-300 whitespace-pre-wrap">{debrief.summary}</p>
           </div>
           {debrief.patternsUsed && (
             <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">

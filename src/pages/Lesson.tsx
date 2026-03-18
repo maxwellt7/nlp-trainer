@@ -17,7 +17,9 @@ export default function Lesson() {
 
   useEffect(() => {
     if (!lessonId) return;
-    api.getLesson(lessonId).then(setLesson).catch(console.error);
+    api.getLesson(lessonId).then(setLesson).catch(err => {
+      setError(err.message || 'Failed to load lesson');
+    });
     setShowQuiz(false);
     setQuestions(null);
     setQuizResults(null);
@@ -52,6 +54,12 @@ export default function Lesson() {
     }
   };
 
+  if (!lesson && error) return (
+    <div className="p-8">
+      <p className="text-red-400 mb-4">{error}</p>
+      <Link to="/learn" className="text-indigo-400 hover:text-indigo-300">&larr; Back to Curriculum</Link>
+    </div>
+  );
   if (!lesson) return <div className="p-8 text-gray-400">Loading lesson...</div>;
 
   const renderContent = (data: any): React.ReactNode => {
@@ -82,7 +90,7 @@ export default function Lesson() {
               <h3 className="font-semibold capitalize mb-2">{key.replace(/([A-Z])/g, ' $1').trim()}</h3>
               <div className="text-sm text-gray-300 space-y-1">
                 {Object.entries(value).map(([k, v]) => (
-                  <div key={k}><span className="text-gray-500">{k}:</span> {Array.isArray(v) ? (v as string[]).join(', ') : String(v)}</div>
+                  <div key={k}><span className="text-gray-500">{k}:</span> {Array.isArray(v) ? v.map(item => typeof item === 'object' ? JSON.stringify(item) : String(item)).join(', ') : (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v))}</div>
                 ))}
               </div>
             </div>

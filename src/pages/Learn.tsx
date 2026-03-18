@@ -5,12 +5,14 @@ import { useProgress } from '../hooks/useProgress';
 
 export default function Learn() {
   const [modules, setModules] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const { progress } = useProgress();
 
   useEffect(() => {
-    api.getModules().then(setModules).catch(console.error);
+    api.getModules().then(setModules).catch(err => setError(err.message || 'Failed to load curriculum'));
   }, []);
 
+  if (error) return <div className="p-8 text-red-400">{error}</div>;
   if (!modules) return <div className="p-8 text-gray-400">Loading curriculum...</div>;
 
   return (
