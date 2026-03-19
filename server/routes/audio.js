@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, statSync, createReadStream } from 'fs';
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import dotenv from 'dotenv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -27,25 +27,31 @@ if (!existsSync(musicDir)) mkdirSync(musicDir, { recursive: true });
 // Mix voice audio with background music using ffmpeg
 // Music plays at lower volume, loops to match voice length, fades in/out
 function mixAudioWithMusic(voicePath, musicPath, outputPath, musicVolume = 0.15) {
-  // ffmpeg command:
-  // - Input 0: voice MP3
-  // - Input 1: background music, looped to match voice duration
-  // - Filter: lower music volume, fade in 5s, fade out 5s at the end, mix together
-  const cmd = [
-    'ffmpeg', '-y',
-    '-i', `"${voicePath}"`,
-    '-stream_loop', '-1', '-i', `"${musicPath}"`,
-    '-filter_complex',
-    `"[1:a]volume=${musicVolume},afade=t=in:d=5[music];` +
+  // Validate musicVolume is a safe number in range
+  const vol = Number(musicVolume);
+  if (!Number.isFinite(vol) || vol < 0 || vol > 1) {
+    throw new Error('musicVolume must be a number between 0 and 1');
+  }
+
+  // Use execFileSync with argument array to prevent shell injection.
+  // Arguments are passed directly to the ffmpeg process, never interpreted by a shell.
+  const filterComplex =
+    `[1:a]volume=${vol},afade=t=in:d=5[music];` +
     `[0:a]aresample=44100[voice];` +
     `[music]aresample=44100,afade=t=out:st=0:d=5[musicfade];` +
-    `[voice][musicfade]amix=inputs=2:duration=first:dropout_transition=5[out]"`,
-    '-map', '"[out]"',
-    '-ab', '192k',
-    `"${outputPath}"`,
-  ].join(' ');
+    `[voice][musicfade]amix=inputs=2:duration=first:dropout_transition=5[out]`;
 
-  execSync(cmd, { stdio: 'pipe', timeout: 300000 });
+  const args = [
+    '-y',
+    '-i', voicePath,
+    '-stream_loop', '-1', '-i', musicPath,
+    '-filter_complex', filterComplex,
+    '-map', '[out]',
+    '-ab', '192k',
+    outputPath,
+  ];
+
+  execFileSync('ffmpeg', args, { stdio: 'pipe', timeout: 300000 });
 }
 
 // GET /music — list available background music tracks
@@ -178,8 +184,10 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
     let finalFileName = `${scriptId}.mp3`;
     const finalPath = join(audioDir, finalFileName);
 
-    if (musicTrack && isSafeFilename(musicTrack.replace(/\.(mp3|wav)$/, ''))) {
-      const musicPath = join(musicDir, musicTrack);
+    const musicBaseName = musicTrack ? musicTrack.replace(/\.(mp3|wav)$/, '') : '';
+    const hasValidExt = musicTrack && (musicTrack.endsWith('.mp3') || musicTrack.endsWith('.wav'));
+    if (musicTrack && hasValidExt && isSafeFilename(musicBaseName)) {
+      const musicPath = join(musicDir, `${musicBaseName}${musicTrack.endsWith('.wav') ? '.wav' : '.mp3'}`);
       if (existsSync(musicPath)) {
         try {
           console.log(`Mixing voice with music: ${musicTrack} at volume ${musicVolume || 0.15}`);

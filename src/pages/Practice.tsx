@@ -103,8 +103,8 @@ export default function Practice() {
       const result = await api.getDebrief(scenario, apiMessages);
       setDebrief(result.debrief || result);
       recordPracticeSession(scenario);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate debrief. Your practice session was still recorded.');
     } finally {
       setLoading(false);
     }

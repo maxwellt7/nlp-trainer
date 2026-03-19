@@ -6,9 +6,14 @@ import { useProgress } from '../hooks/useProgress';
 export default function Dashboard() {
   const { progress } = useProgress();
   const [modules, setModules] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getModules().then(setModules).catch(console.error);
+    api.getModules()
+      .then(setModules)
+      .catch(err => setError(err.message || 'Failed to load modules'))
+      .finally(() => setLoading(false));
   }, []);
 
   const totalLessons = modules?.modules?.reduce((sum: number, m: any) => sum + m.lessons.length, 0) || 0;
@@ -46,6 +51,16 @@ export default function Dashboard() {
   return (
     <div className="p-8 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+
+      {error && (
+        <div className="bg-red-900/30 border border-red-800 rounded-xl px-6 py-3 text-sm text-red-300 mb-6">
+          {error}
+        </div>
+      )}
+
+      {loading && !modules && (
+        <div className="text-gray-400 mb-6">Loading...</div>
+      )}
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">

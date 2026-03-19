@@ -119,8 +119,8 @@ router.get('/lesson/:lessonId', (req, res) => {
 router.post('/quiz', async (req, res) => {
   try {
     const { lessonId } = req.body;
-    if (!lessonId) {
-      return res.status(400).json({ error: 'lessonId is required' });
+    if (!lessonId || typeof lessonId !== 'string') {
+      return res.status(400).json({ error: 'lessonId is required and must be a string' });
     }
 
     const result = findLesson(lessonId);
@@ -174,8 +174,8 @@ router.post('/quiz/evaluate', async (req, res) => {
   try {
     const { lessonId, questions, userAnswers } = req.body;
     const answers = userAnswers;
-    if (!lessonId || !questions || !answers) {
-      return res.status(400).json({ error: 'lessonId, questions, and userAnswers are required' });
+    if (!lessonId || typeof lessonId !== 'string' || !questions || !Array.isArray(questions) || !answers || !Array.isArray(answers)) {
+      return res.status(400).json({ error: 'lessonId (string), questions (array), and userAnswers (array) are required' });
     }
 
     const result = findLesson(lessonId);

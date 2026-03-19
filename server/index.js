@@ -22,8 +22,13 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, server-to-server)
-    if (!origin) return callback(null, true);
+    // In production, reject requests with no origin to prevent CORS bypasses
+    // (null origin comes from sandboxed iframes, data: URIs, etc.)
+    // In development, allow no-origin for curl/Postman convenience
+    if (!origin) {
+      const isDev = process.env.NODE_ENV !== 'production';
+      return callback(isDev ? null : new Error('Origin required'), isDev);
+    }
     // Allow any *.vercel.app preview deployment
     if (origin.endsWith('.vercel.app')) return callback(null, true);
     // Allow explicitly listed origins
@@ -32,7 +37,7 @@ app.use(cors({
   },
   methods: ['GET', 'POST', 'DELETE'],
 }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '1mb' }));
 
 app.use('/api/learn', learnRoutes);
 app.use('/api/practice', practiceRoutes);

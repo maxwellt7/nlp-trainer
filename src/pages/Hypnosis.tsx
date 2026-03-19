@@ -18,7 +18,7 @@ interface ScriptResult {
 
 function renderScript(script: string) {
   // Split on break tags, keeping them as separators
-  const parts = script.split(/<break\s+time="(\d+)s"\s*\/>/g);
+  const parts = script.split(/<break\s+time="([\d.]+)s"\s*\/>/g);
   // split with one capture group alternates: [text, seconds, text, seconds, ...]
   const elements: React.ReactNode[] = [];
 

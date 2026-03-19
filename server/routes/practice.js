@@ -177,14 +177,10 @@ router.post('/debrief', async (req, res) => {
     const fullSystemPrompt = `${systemPrompt}\n\n--- SESSION SETUP ---\n${setupInstruction}\n\nRespond in COACHED mode.`;
 
     // Build messages from conversation history, then append debrief request
-    const messages = [];
-
-    for (const msg of history) {
-      messages.push({
-        role: msg.role,
-        content: msg.content,
-      });
-    }
+    // Filter to valid roles and coerce content to string to prevent injection
+    const messages = history
+      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+      .map(msg => ({ role: msg.role, content: String(msg.content) }));
 
     messages.push({
       role: 'user',
