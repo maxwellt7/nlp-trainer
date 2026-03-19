@@ -61,6 +61,9 @@ export default function Hypnosis() {
   const [savedScriptId, setSavedScriptId] = useState<string | null>(null);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [audioGenerated, setAudioGenerated] = useState(false);
+  const [musicTracks, setMusicTracks] = useState<any[]>([]);
+  const [selectedMusic, setSelectedMusic] = useState<string>('');
+  const [musicVolume, setMusicVolume] = useState(0.15);
 
   const sendMessage = useCallback(async (content: string) => {
     const userMsg: Message = { role: 'user', content };
@@ -103,6 +106,15 @@ export default function Hypnosis() {
       });
       setSavedScriptId(saved.id);
 
+      // Load available music tracks
+      try {
+        const musicData = await api.listMusic();
+        setMusicTracks(musicData.tracks || []);
+        if (musicData.tracks?.length > 0) {
+          setSelectedMusic(musicData.tracks[0].filename);
+        }
+      } catch { /* music is optional */ }
+
       setState('script');
     } catch (err: any) {
       setError(err.message || 'Failed to generate script');
@@ -117,7 +129,11 @@ export default function Hypnosis() {
     setError(null);
 
     try {
-      await api.generateAudio(savedScriptId);
+      await api.generateAudio(
+        savedScriptId,
+        selectedMusic || undefined,
+        selectedMusic ? musicVolume : undefined
+      );
       setAudioGenerated(true);
     } catch (err: any) {
       setError(err.message || 'Failed to generate audio');
@@ -221,13 +237,44 @@ export default function Hypnosis() {
             {copied ? 'Copied!' : 'Copy Script'}
           </button>
           {savedScriptId && !audioGenerated && (
-            <button
-              onClick={generateAudio}
-              disabled={generatingAudio}
-              className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl px-6 py-3 font-medium transition-colors"
-            >
-              {generatingAudio ? 'Generating Audio...' : 'Generate Audio'}
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              {musicTracks.length > 0 && (
+                <>
+                  <select
+                    value={selectedMusic}
+                    onChange={e => setSelectedMusic(e.target.value)}
+                    className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100"
+                  >
+                    <option value="">No background music</option>
+                    {musicTracks.map((t: any) => (
+                      <option key={t.filename} value={t.filename}>{t.name}</option>
+                    ))}
+                  </select>
+                  {selectedMusic && (
+                    <label className="flex items-center gap-2 text-xs text-gray-400">
+                      Vol
+                      <input
+                        type="range"
+                        min="0.05"
+                        max="0.4"
+                        step="0.05"
+                        value={musicVolume}
+                        onChange={e => setMusicVolume(parseFloat(e.target.value))}
+                        className="w-20 accent-purple-500"
+                      />
+                      {Math.round(musicVolume * 100)}%
+                    </label>
+                  )}
+                </>
+              )}
+              <button
+                onClick={generateAudio}
+                disabled={generatingAudio}
+                className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-xl px-6 py-3 font-medium transition-colors"
+              >
+                {generatingAudio ? 'Generating Audio...' : 'Generate Audio'}
+              </button>
+            </div>
           )}
           {audioGenerated && (
             <Link

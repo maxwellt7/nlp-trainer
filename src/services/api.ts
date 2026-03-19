@@ -55,8 +55,12 @@ export const api = {
   listScripts: () => request<any>('/audio/scripts'),
   saveScript: (script: { title: string; duration: string; estimatedMinutes: number; script: string }) =>
     request<any>('/audio/scripts', { method: 'POST', body: JSON.stringify(script) }),
-  generateAudio: (scriptId: string) =>
-    request<any>(`/audio/generate-audio/${scriptId}`, { method: 'POST' }),
+  generateAudio: (scriptId: string, musicTrack?: string, musicVolume?: number) =>
+    request<any>(`/audio/generate-audio/${scriptId}`, {
+      method: 'POST',
+      body: JSON.stringify({ musicTrack, musicVolume }),
+    }),
+  listMusic: () => request<any>('/audio/music'),
   deleteScript: (scriptId: string) =>
     request<any>(`/audio/scripts/${scriptId}`, { method: 'DELETE' }),
   getAudioUrl: (filename: string) => `${BASE}/audio/audio/${filename}`,

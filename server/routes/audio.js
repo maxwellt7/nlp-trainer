@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, statSync, createReadStream } from 'fs';
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 import dotenv from 'dotenv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -11,6 +12,7 @@ const router = Router();
 
 const scriptsDir = join(__dirname, '..', 'data', 'scripts');
 const audioDir = join(__dirname, '..', 'data', 'audio');
+const musicDir = join(__dirname, '..', 'data', 'music');
 
 // Validate that an ID/filename is safe (no path traversal)
 function isSafeFilename(name) {
@@ -20,6 +22,47 @@ function isSafeFilename(name) {
 // Ensure directories exist
 if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
 if (!existsSync(audioDir)) mkdirSync(audioDir, { recursive: true });
+if (!existsSync(musicDir)) mkdirSync(musicDir, { recursive: true });
+
+// Mix voice audio with background music using ffmpeg
+// Music plays at lower volume, loops to match voice length, fades in/out
+function mixAudioWithMusic(voicePath, musicPath, outputPath, musicVolume = 0.15) {
+  // ffmpeg command:
+  // - Input 0: voice MP3
+  // - Input 1: background music, looped to match voice duration
+  // - Filter: lower music volume, fade in 5s, fade out 5s at the end, mix together
+  const cmd = [
+    'ffmpeg', '-y',
+    '-i', `"${voicePath}"`,
+    '-stream_loop', '-1', '-i', `"${musicPath}"`,
+    '-filter_complex',
+    `"[1:a]volume=${musicVolume},afade=t=in:d=5[music];` +
+    `[0:a]aresample=44100[voice];` +
+    `[music]aresample=44100,afade=t=out:st=0:d=5[musicfade];` +
+    `[voice][musicfade]amix=inputs=2:duration=first:dropout_transition=5[out]"`,
+    '-map', '"[out]"',
+    '-ab', '192k',
+    `"${outputPath}"`,
+  ].join(' ');
+
+  execSync(cmd, { stdio: 'pipe', timeout: 300000 });
+}
+
+// GET /music — list available background music tracks
+router.get('/music', (req, res) => {
+  try {
+    const files = readdirSync(musicDir).filter(f => f.endsWith('.mp3') || f.endsWith('.wav'));
+    const tracks = files.map(f => ({
+      id: f.replace(/\.(mp3|wav)$/, ''),
+      filename: f,
+      name: f.replace(/\.(mp3|wav)$/, '').replace(/_/g, ' '),
+    }));
+    res.json({ tracks });
+  } catch (error) {
+    console.error('Error listing music:', error.message);
+    res.status(500).json({ error: 'Failed to list music tracks' });
+  }
+});
 
 // GET /scripts — list all saved scripts
 router.get('/scripts', (req, res) => {
@@ -124,18 +167,51 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
       return res.status(502).json({ error: `ElevenLabs API error: ${response.status}` });
     }
 
-    // Save audio file
+    // Save voice-only audio file
     const audioBuffer = Buffer.from(await response.arrayBuffer());
-    const audioFileName = `${scriptId}.mp3`;
-    writeFileSync(join(audioDir, audioFileName), audioBuffer);
+    const voiceFileName = `${scriptId}-voice.mp3`;
+    const voicePath = join(audioDir, voiceFileName);
+    writeFileSync(voicePath, audioBuffer);
+
+    // Check if music track was requested
+    const { musicTrack, musicVolume } = req.body || {};
+    let finalFileName = `${scriptId}.mp3`;
+    const finalPath = join(audioDir, finalFileName);
+
+    if (musicTrack && isSafeFilename(musicTrack.replace(/\.(mp3|wav)$/, ''))) {
+      const musicPath = join(musicDir, musicTrack);
+      if (existsSync(musicPath)) {
+        try {
+          console.log(`Mixing voice with music: ${musicTrack} at volume ${musicVolume || 0.15}`);
+          mixAudioWithMusic(voicePath, musicPath, finalPath, musicVolume || 0.15);
+          // Remove voice-only file after successful mix
+          unlinkSync(voicePath);
+        } catch (mixErr) {
+          console.error('Music mixing failed, using voice-only:', mixErr.message);
+          // Fall back to voice-only
+          writeFileSync(finalPath, audioBuffer);
+          if (existsSync(voicePath) && voicePath !== finalPath) unlinkSync(voicePath);
+        }
+      } else {
+        console.warn(`Music track not found: ${musicTrack}, using voice-only`);
+        writeFileSync(finalPath, audioBuffer);
+        if (existsSync(voicePath)) unlinkSync(voicePath);
+      }
+    } else {
+      // No music requested — just rename voice file to final
+      writeFileSync(finalPath, audioBuffer);
+      if (existsSync(voicePath)) unlinkSync(voicePath);
+    }
 
     // Update script record with audio file reference
-    scriptData.audioFile = audioFileName;
+    scriptData.audioFile = finalFileName;
+    scriptData.musicTrack = musicTrack || null;
     writeFileSync(scriptPath, JSON.stringify(scriptData, null, 2));
 
     res.json({
       success: true,
-      audioFile: audioFileName,
+      audioFile: finalFileName,
+      musicTrack: musicTrack || null,
       script: scriptData,
     });
   } catch (error) {
