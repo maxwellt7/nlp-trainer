@@ -144,9 +144,11 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
     // Use voice ID from env or default to "Rachel" (a calm, soothing voice)
     const voiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
 
-    // Strip SSML break tags for plain text, or keep them if using SSML mode
-    // ElevenLabs supports SSML in their API with model_id that supports it
-    const scriptText = scriptData.script;
+    // Strip SSML break tags — ElevenLabs v1 TTS doesn't support SSML
+    // Replace breaks with natural pauses (ellipsis + newline) for pacing
+    const scriptText = scriptData.script
+      .replace(/<break\s+time="[^"]*"\s*\/>/g, '... ')
+      .replace(/<[^>]+>/g, '');
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
