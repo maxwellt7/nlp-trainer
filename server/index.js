@@ -9,7 +9,8 @@ import hypnosisRoutes from './routes/hypnosis.js';
 import audioRoutes from './routes/audio.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dirname, '..', '.env') });
+// Load .env for local dev; Railway/production injects env vars directly
+dotenv.config({ path: join(__dirname, '..', '.env'), quiet: true });
 
 const app = express();
 
