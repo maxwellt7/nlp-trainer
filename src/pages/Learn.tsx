@@ -16,8 +16,8 @@ export default function Learn() {
   if (!modules) return <div className="p-8 text-gray-400">Loading curriculum...</div>;
 
   return (
-    <div className="p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Learn NLP</h1>
+    <div className="p-4 sm:p-8 max-w-4xl">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Learn NLP</h1>
       <div className="space-y-6">
         {modules.modules.map((mod: any) => {
           const completedCount = mod.lessons.filter((l: any) => progress.lessons[l.id]?.completed).length;

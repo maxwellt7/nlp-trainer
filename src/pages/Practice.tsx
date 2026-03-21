@@ -123,7 +123,7 @@ export default function Practice() {
   // Debrief view
   if (debrief) {
     return (
-      <div className="p-8 max-w-4xl">
+      <div className="p-4 sm:p-8 max-w-4xl">
         <h1 className="text-2xl font-bold mb-6">Session Debrief</h1>
         <div className="space-y-4">
           <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
@@ -168,7 +168,7 @@ export default function Practice() {
   // Scenario selection
   if (!sessionStarted) {
     return (
-      <div className="p-8 max-w-4xl">
+      <div className="p-4 sm:p-8 max-w-4xl">
         <h1 className="text-3xl font-bold mb-8">Practice NLP</h1>
         <div className="space-y-3 mb-6">
           {SCENARIOS.map(s => (

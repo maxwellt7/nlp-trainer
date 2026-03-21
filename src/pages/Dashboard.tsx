@@ -49,8 +49,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+    <div className="p-4 sm:p-8 max-w-4xl">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Dashboard</h1>
 
       {error && (
         <div className="bg-red-900/30 border border-red-800 rounded-xl px-6 py-3 text-sm text-red-300 mb-6">
@@ -62,17 +62,17 @@ export default function Dashboard() {
         <div className="text-gray-400 mb-6">Loading...</div>
       )}
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <div className="text-3xl font-bold text-indigo-400">{completedLessons}/{totalLessons}</div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+        <div className="bg-gray-900 rounded-xl p-3 sm:p-6 border border-gray-800">
+          <div className="text-xl sm:text-3xl font-bold text-indigo-400">{completedLessons}/{totalLessons}</div>
           <div className="text-sm text-gray-400 mt-1">Lessons Completed</div>
         </div>
-        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <div className="text-3xl font-bold text-emerald-400">{avgQuiz}%</div>
+        <div className="bg-gray-900 rounded-xl p-3 sm:p-6 border border-gray-800">
+          <div className="text-xl sm:text-3xl font-bold text-emerald-400">{avgQuiz}%</div>
           <div className="text-sm text-gray-400 mt-1">Quiz Accuracy</div>
         </div>
-        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <div className="text-3xl font-bold text-amber-400">{progress.practice.sessionsCompleted}</div>
+        <div className="bg-gray-900 rounded-xl p-3 sm:p-6 border border-gray-800">
+          <div className="text-xl sm:text-3xl font-bold text-amber-400">{progress.practice.sessionsCompleted}</div>
           <div className="text-sm text-gray-400 mt-1">Practice Sessions</div>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function Dashboard() {
       {progress.practice.sessionsCompleted > 0 && (
         <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
           <h2 className="text-lg font-semibold mb-4">Practice Breakdown</h2>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {Object.entries(progress.practice.scenarios).map(([name, count]) => (
               <div key={name} className="text-center">
                 <div className="text-xl font-bold text-gray-300">{count}</div>

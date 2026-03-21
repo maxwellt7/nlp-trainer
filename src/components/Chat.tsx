@@ -41,7 +41,7 @@ export default function Chat({ messages, onSend, loading, coached, disabled }: P
         {messages.filter(msg => !msg.hidden).map((msg, i) => (
           <div key={i}>
             <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[75%] rounded-xl px-4 py-3 text-sm whitespace-pre-wrap ${
+              <div className={`max-w-[90%] sm:max-w-[75%] rounded-xl px-4 py-3 text-sm whitespace-pre-wrap ${
                 msg.role === 'user'
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-800 text-gray-100'

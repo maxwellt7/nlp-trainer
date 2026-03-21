@@ -176,8 +176,8 @@ export default function Hypnosis() {
   // Welcome state
   if (state === 'welcome') {
     return (
-      <div className="p-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-4">Hypnosis Script Generator</h1>
+      <div className="p-4 sm:p-8 max-w-2xl">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4">Hypnosis Script Generator</h1>
         <p className="text-gray-400 mb-6">
           Create personalized self-hypnosis scripts powered by NLP. The agent will ask a few questions
           about your goal, then generate a custom script formatted for ElevenLabs audio generation.
@@ -203,8 +203,8 @@ export default function Hypnosis() {
   // Script display state
   if (state === 'script' && scriptResult) {
     return (
-      <div className="p-8 max-w-3xl">
-        <h1 className="text-3xl font-bold mb-2">{scriptResult.title}</h1>
+      <div className="p-4 sm:p-8 max-w-3xl">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{scriptResult.title}</h1>
         <div className="flex items-center gap-3 mb-6">
           <span className={`px-3 py-1 rounded-full text-sm ${
             scriptResult.duration === 'full'
@@ -215,7 +215,7 @@ export default function Hypnosis() {
           </span>
         </div>
 
-        <div className="bg-gray-900 rounded-xl p-8 border border-gray-800 mb-6 text-gray-200 text-base leading-loose font-serif">
+        <div className="bg-gray-900 rounded-xl p-4 sm:p-8 border border-gray-800 mb-6 text-gray-200 text-sm sm:text-base leading-loose font-serif">
           {renderScript(scriptResult.script)}
         </div>
 
@@ -298,9 +298,9 @@ export default function Hypnosis() {
   // Intake chat state
   return (
     <div className="h-screen flex flex-col">
-      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-800 bg-gray-900 shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 border-b border-gray-800 bg-gray-900 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="font-medium">Hypnosis Intake</span>
+          <span className="font-medium text-sm sm:text-base">Hypnosis Intake</span>
           {readyToGenerate && (
             <span className="text-xs bg-emerald-900/50 text-emerald-400 px-2 py-0.5 rounded">Ready</span>
           )}

@@ -113,9 +113,9 @@ export default function Audios() {
   if (loading) return <div className="p-8 text-gray-400">Loading scripts...</div>;
 
   return (
-    <div className="p-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-2">Audios</h1>
-      <p className="text-gray-400 mb-8">Your saved hypnosis scripts and generated audio files.</p>
+    <div className="p-4 sm:p-8 max-w-4xl">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-2">Audios</h1>
+      <p className="text-gray-400 mb-6 sm:mb-8 text-sm sm:text-base">Your saved hypnosis scripts and generated audio files.</p>
 
       {error && (
         <div className="bg-red-900/30 border border-red-800 rounded-xl px-6 py-3 text-sm text-red-300 mb-6">
@@ -133,10 +133,10 @@ export default function Audios() {
         <div className="space-y-4">
           {scripts.map(script => (
             <div key={script.id} className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-              <div className="p-5 flex items-center justify-between">
+              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="font-semibold truncate">{script.title}</h2>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h2 className="font-semibold truncate text-sm sm:text-base">{script.title}</h2>
                     <span className={`px-2 py-0.5 rounded text-xs shrink-0 ${
                       script.duration === 'full'
                         ? 'bg-indigo-900/50 text-indigo-300'
@@ -157,7 +157,7 @@ export default function Audios() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 ml-4">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   {script.audioFile ? (
                     <button
                       onClick={() => playAudio(script)}
