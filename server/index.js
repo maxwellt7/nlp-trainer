@@ -22,13 +22,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // In production, reject requests with no origin to prevent CORS bypasses
-    // (null origin comes from sandboxed iframes, data: URIs, etc.)
-    // In development, allow no-origin for curl/Postman convenience
-    if (!origin) {
-      const isDev = process.env.NODE_ENV !== 'production';
-      return callback(isDev ? null : new Error('Origin required'), isDev);
-    }
+    // Allow requests with no origin (health checks, server-to-server, curl)
+    if (!origin) return callback(null, true);
     // Allow any *.vercel.app preview deployment
     if (origin.endsWith('.vercel.app')) return callback(null, true);
     // Allow explicitly listed origins

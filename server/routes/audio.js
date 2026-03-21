@@ -150,36 +150,84 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
       .replace(/<break\s+time="[^"]*"\s*\/>/g, '... ')
       .replace(/<[^>]+>/g, '');
 
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text: scriptText,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.85,
-          similarity_boost: 0.80,
-          style: 0.15,
-          use_speaker_boost: false,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ElevenLabs error:', response.status, errorText);
-      return res.status(502).json({ error: `ElevenLabs API error: ${response.status}` });
+    // ElevenLabs has a 10,000 char limit per request — split long scripts into chunks
+    const MAX_CHUNK = 9500; // leave margin for safety
+    const chunks = [];
+    if (scriptText.length <= MAX_CHUNK) {
+      chunks.push(scriptText);
+    } else {
+      let remaining = scriptText;
+      while (remaining.length > 0) {
+        if (remaining.length <= MAX_CHUNK) {
+          chunks.push(remaining);
+          break;
+        }
+        // Split at the last sentence boundary within the limit
+        let splitIdx = remaining.lastIndexOf('. ', MAX_CHUNK);
+        if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.5) {
+          splitIdx = remaining.lastIndexOf(' ', MAX_CHUNK);
+        }
+        if (splitIdx === -1) splitIdx = MAX_CHUNK;
+        chunks.push(remaining.slice(0, splitIdx + 1));
+        remaining = remaining.slice(splitIdx + 1).trimStart();
+      }
     }
 
-    // Save voice-only audio file
-    const audioBuffer = Buffer.from(await response.arrayBuffer());
+    // Generate audio for each chunk
+    const audioBuffers = [];
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`Generating audio chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg',
+        },
+        body: JSON.stringify({
+          text: chunks[i],
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.85,
+            similarity_boost: 0.80,
+            style: 0.15,
+            use_speaker_boost: false,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('ElevenLabs error:', response.status, errorText);
+        return res.status(502).json({ error: `ElevenLabs API error: ${response.status}` });
+      }
+
+      audioBuffers.push(Buffer.from(await response.arrayBuffer()));
+    }
+
+    // If multiple chunks, concatenate with ffmpeg; otherwise use the single buffer
     const voiceFileName = `${scriptId}-voice.mp3`;
     const voicePath = join(audioDir, voiceFileName);
-    writeFileSync(voicePath, audioBuffer);
+
+    if (audioBuffers.length === 1) {
+      writeFileSync(voicePath, audioBuffers[0]);
+    } else {
+      // Write each chunk to a temp file, then concatenate with ffmpeg
+      const chunkPaths = audioBuffers.map((buf, i) => {
+        const p = join(audioDir, `${scriptId}-chunk-${i}.mp3`);
+        writeFileSync(p, buf);
+        return p;
+      });
+      const listFile = join(audioDir, `${scriptId}-chunks.txt`);
+      writeFileSync(listFile, chunkPaths.map(p => `file '${p}'`).join('\n'));
+      try {
+        execFileSync('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', voicePath], { stdio: 'pipe', timeout: 120000 });
+      } finally {
+        // Clean up temp files
+        chunkPaths.forEach(p => { try { unlinkSync(p); } catch {} });
+        try { unlinkSync(listFile); } catch {}
+      }
+    }
 
     // Check if music track was requested
     const { musicTrack, musicVolume } = req.body || {};
