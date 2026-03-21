@@ -10,8 +10,11 @@ dotenv.config({ path: join(__dirname, '..', '..', '.env'), quiet: true });
 
 const router = Router();
 
-const scriptsDir = join(__dirname, '..', 'data', 'scripts');
-const audioDir = join(__dirname, '..', 'data', 'audio');
+// Persistent storage: use /app/storage on Railway (volume mount), fallback to data/ locally
+const storageRoot = existsSync('/app/storage') ? '/app/storage' : join(__dirname, '..', 'data');
+const scriptsDir = join(storageRoot, 'scripts');
+const audioDir = join(storageRoot, 'audio');
+// Music is static content shipped with the code, not user-generated
 const musicDir = join(__dirname, '..', 'data', 'music');
 
 // Validate that an ID/filename is safe (no path traversal)
