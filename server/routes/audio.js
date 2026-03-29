@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, statSync, createReadStream } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, unlinkSync, renameSync, statSync, createReadStream } from 'fs';
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { execFileSync } from 'child_process';
@@ -249,19 +249,16 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
           unlinkSync(voicePath);
         } catch (mixErr) {
           console.error('Music mixing failed, using voice-only:', mixErr.message);
-          // Fall back to voice-only
-          writeFileSync(finalPath, audioBuffer);
-          if (existsSync(voicePath) && voicePath !== finalPath) unlinkSync(voicePath);
+          // Fall back to voice-only — rename the existing voice file
+          renameSync(voicePath, finalPath);
         }
       } else {
         console.warn(`Music track not found: ${musicTrack}, using voice-only`);
-        writeFileSync(finalPath, audioBuffer);
-        if (existsSync(voicePath)) unlinkSync(voicePath);
+        renameSync(voicePath, finalPath);
       }
     } else {
       // No music requested — just rename voice file to final
-      writeFileSync(finalPath, audioBuffer);
-      if (existsSync(voicePath)) unlinkSync(voicePath);
+      renameSync(voicePath, finalPath);
     }
 
     // Update script record with audio file reference
