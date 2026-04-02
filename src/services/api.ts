@@ -80,6 +80,11 @@ export const api = {
     request<any>(`/audio/scripts/${scriptId}`, { method: 'DELETE' }),
   getAudioUrl: (filename: string) => `${BASE}/audio/audio/${filename}`,
 
+  // ── Identity & Values ──
+  getIdentity: () => request<any>('/identity'),
+  getValueEvidence: (valueName: string) =>
+    request<any>(`/identity/values/${encodeURIComponent(valueName)}/evidence`),
+
   // ── Reference ──
   getReference: () => request<any>('/learn/reference'),
 };
