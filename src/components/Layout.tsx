@@ -6,6 +6,7 @@ const navItems = [
   { to: '/hypnosis', label: 'Session', icon: '✦' },
   { to: '/sessions', label: 'History', icon: '◈' },
   { to: '/insights', label: 'Insights', icon: '◇' },
+  { to: '/identity', label: 'Identity', icon: '⬡' },
   { to: '/audios', label: 'Audios', icon: '♫' },
   { to: '/learn', label: 'Learn', icon: '◈' },
   { to: '/practice', label: 'Practice', icon: '◇' },
@@ -55,7 +56,7 @@ export default function Layout() {
 
         {/* Primary nav */}
         <div className="text-xs text-gray-600 px-3 mb-1 uppercase tracking-wider">Daily</div>
-        {navItems.slice(0, 5).map(item => (
+        {navItems.slice(0, 6).map(item => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -76,7 +77,7 @@ export default function Layout() {
 
         {/* Secondary nav */}
         <div className="text-xs text-gray-600 px-3 mb-1 mt-4 uppercase tracking-wider">Learn</div>
-        {navItems.slice(5).map(item => (
+        {navItems.slice(6).map(item => (
           <NavLink
             key={item.to}
             to={item.to}

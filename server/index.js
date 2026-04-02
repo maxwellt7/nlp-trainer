@@ -8,6 +8,7 @@ import practiceRoutes from './routes/practice.js';
 import hypnosisRoutes from './routes/hypnosis.js';
 import audioRoutes from './routes/audio.js';
 import profileRoutes from './routes/profile.js';
+import identityRoutes from './routes/identity.js';
 import { ensureDefaultUser } from './services/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -49,6 +50,7 @@ app.use('/api/practice', practiceRoutes);
 app.use('/api/hypnosis', hypnosisRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/identity', identityRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

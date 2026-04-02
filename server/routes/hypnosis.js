@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import anthropic from '../config/anthropic.js';
 import { ensureDefaultUser, getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
 import { createSession, updateSessionMessages, updateSessionMetadata, buildMemoryContext, getTodaySession } from '../services/memory.js';
+import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -51,11 +52,14 @@ function buildSystemPrompt(userId, phase) {
   const profile = getProfileForPrompt(userId);
   const memoryContext = buildMemoryContext(userId);
 
+  const identityContext = buildIdentityContext(userId);
+
   let prompt = template
     .replace('{{NLP_CONTENT}}', JSON.stringify(nlpContent, null, 2))
     .replace('{{COACHING_FRAMEWORKS}}', JSON.stringify(coachingFrameworks, null, 2))
     .replace('{{USER_PROFILE}}', profile ? JSON.stringify(profile, null, 2) : 'No profile data yet — this is a new user.')
-    .replace('{{MEMORY_CONTEXT}}', memoryContext);
+    .replace('{{MEMORY_CONTEXT}}', memoryContext)
+    .replace('{{IDENTITY_CONTEXT}}', identityContext);
 
   if (phase === 'coaching') {
     prompt += '\n\nYou are in COACHING phase. Conduct the daily coaching conversation. Ask ONE question at a time. Respond in the COACHING JSON format.';
@@ -193,6 +197,22 @@ router.post('/chat', async (req, res) => {
 
       if (Object.keys(profileUpdate).length > 0) {
         updateProfile(userId, profileUpdate);
+      }
+    }
+
+    // Process identity data
+    if (parsed.valueDetections) {
+      try {
+        processValueDetections(userId, currentSessionId, parsed.valueDetections);
+      } catch (err) {
+        console.warn('Value detection processing error:', err.message);
+      }
+    }
+    if (parsed.identityStatements) {
+      try {
+        processIdentityStatements(userId, currentSessionId, parsed.identityStatements);
+      } catch (err) {
+        console.warn('Identity statement processing error:', err.message);
       }
     }
 

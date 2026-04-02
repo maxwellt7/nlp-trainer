@@ -89,6 +89,69 @@ db.exec(`
     last_session_date TEXT DEFAULT NULL,
     total_sessions INTEGER DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS values_detected (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id),
+    value_name      TEXT NOT NULL,
+    rank            INTEGER DEFAULT NULL,
+    confidence       REAL DEFAULT 0.5,
+    purity_score     REAL DEFAULT 5.0,
+    expression       TEXT DEFAULT 'mixed',
+    pure_expression  TEXT DEFAULT '',
+    distorted_expression TEXT DEFAULT '',
+    evidence_count   INTEGER DEFAULT 1,
+    first_detected   TEXT DEFAULT (datetime('now')),
+    last_updated     TEXT DEFAULT (datetime('now')),
+    UNIQUE(user_id, value_name)
+  );
+
+  CREATE TABLE IF NOT EXISTS value_evidence (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id),
+    value_name      TEXT NOT NULL,
+    session_id      TEXT REFERENCES sessions(id),
+    evidence_type   TEXT DEFAULT 'conversation',
+    quote           TEXT DEFAULT '',
+    interpretation  TEXT DEFAULT '',
+    detected_at     TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS value_conflicts (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id),
+    value_a         TEXT NOT NULL,
+    value_b         TEXT NOT NULL,
+    conflict_type   TEXT DEFAULT 'direct',
+    description     TEXT DEFAULT '',
+    detected_at     TEXT DEFAULT (datetime('now')),
+    resolved        INTEGER DEFAULT 0,
+    UNIQUE(user_id, value_a, value_b)
+  );
+
+  CREATE TABLE IF NOT EXISTS identity_statements (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL REFERENCES users(id),
+    statement_type  TEXT NOT NULL,
+    content         TEXT NOT NULL,
+    confidence       REAL DEFAULT 0.5,
+    session_id      TEXT REFERENCES sessions(id),
+    detected_at     TEXT DEFAULT (datetime('now')),
+    active          INTEGER DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS identity_scores (
+    user_id              TEXT PRIMARY KEY REFERENCES users(id),
+    value_clarity        REAL DEFAULT 0,
+    value_alignment      REAL DEFAULT 0,
+    hierarchy_stability  REAL DEFAULT 0,
+    purity_ratio         REAL DEFAULT 0,
+    conflict_awareness   REAL DEFAULT 0,
+    worthiness_independence REAL DEFAULT 0,
+    decision_speed       REAL DEFAULT 0,
+    overall_congruence   REAL DEFAULT 0,
+    updated_at           TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 export default db;
