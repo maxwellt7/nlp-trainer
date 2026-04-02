@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import anthropic from '../config/anthropic.js';
 import { ensureDefaultUser, getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
 import { createSession, updateSessionMessages, updateSessionMetadata, buildMemoryContext, getTodaySession } from '../services/memory.js';
-import { buildIdentityContext, processValueDetections, upsertIdentityStatement } from '../services/identity.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -52,13 +51,10 @@ function buildSystemPrompt(userId, phase) {
   const profile = getProfileForPrompt(userId);
   const memoryContext = buildMemoryContext(userId);
 
-  const identityContext = buildIdentityContext(userId);
-
   let prompt = template
     .replace('{{NLP_CONTENT}}', JSON.stringify(nlpContent, null, 2))
     .replace('{{COACHING_FRAMEWORKS}}', JSON.stringify(coachingFrameworks, null, 2))
     .replace('{{USER_PROFILE}}', profile ? JSON.stringify(profile, null, 2) : 'No profile data yet — this is a new user.')
-    .replace('{{IDENTITY_CONTEXT}}', identityContext)
     .replace('{{MEMORY_CONTEXT}}', memoryContext);
 
   if (phase === 'coaching') {
@@ -197,28 +193,6 @@ router.post('/chat', async (req, res) => {
 
       if (Object.keys(profileUpdate).length > 0) {
         updateProfile(userId, profileUpdate);
-      }
-    }
-
-    // Process value detections from AI
-    if (parsed.valueDetections && Array.isArray(parsed.valueDetections) && parsed.valueDetections.length > 0) {
-      try {
-        processValueDetections(userId, currentSessionId, parsed.valueDetections);
-      } catch (err) {
-        console.warn('Value detection processing error:', err.message);
-      }
-    }
-
-    // Process identity statements from AI
-    if (parsed.identityStatements && Array.isArray(parsed.identityStatements) && parsed.identityStatements.length > 0) {
-      try {
-        for (const stmt of parsed.identityStatements) {
-          if (stmt.statement_type && stmt.content) {
-            upsertIdentityStatement(userId, stmt);
-          }
-        }
-      } catch (err) {
-        console.warn('Identity statement processing error:', err.message);
       }
     }
 

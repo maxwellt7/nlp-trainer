@@ -5,7 +5,5 @@ server/node_modules/
 *.local
 .DS_Store
 .vercel
-server/data/*.db
-server/data/*.db-wal
-server/data/*.db-shm
-storage/
+server/data/alignment-engine.db*
+server/data/audio/*.mp3

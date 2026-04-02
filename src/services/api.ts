@@ -82,17 +82,4 @@ export const api = {
 
   // ── Reference ──
   getReference: () => request<any>('/learn/reference'),
-
-  // ── Identity & Values ──
-  getIdentity: () => request<any>('/identity'),
-  getIdentityScoreHistory: (limit = 30) =>
-    request<any>(`/identity/score/history?limit=${limit}`),
-  upsertValue: (data: { value_name: string; rank?: number; pure_expression?: string; distorted_expression?: string; behavioral_commitment?: string; source?: string }) =>
-    request<any>('/identity/values', { method: 'PUT', body: JSON.stringify(data) }),
-  deleteValue: (valueId: string) =>
-    request<any>(`/identity/values/${valueId}`, { method: 'DELETE' }),
-  getValueEvidence: (valueId: string) =>
-    request<any>(`/identity/values/${valueId}/evidence`),
-  upsertStatement: (data: { statement_type: string; content: string; confidence?: number }) =>
-    request<any>('/identity/statements', { method: 'PUT', body: JSON.stringify(data) }),
 };

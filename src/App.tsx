@@ -9,7 +9,6 @@ import Hypnosis from './pages/Hypnosis';
 import Audios from './pages/Audios';
 import Sessions from './pages/Sessions';
 import Insights from './pages/Insights';
-import Identity from './pages/Identity';
 
 function App() {
   return (
@@ -20,7 +19,6 @@ function App() {
           <Route path="/hypnosis" element={<Hypnosis />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/insights" element={<Insights />} />
-          <Route path="/identity" element={<Identity />} />
           <Route path="/audios" element={<Audios />} />
           <Route path="/learn" element={<Learn />} />
           <Route path="/learn/:lessonId" element={<Lesson />} />
