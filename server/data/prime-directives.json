@@ -1,0 +1,171 @@
+{
+  "whatIsNlp": {
+    "title": "What is NLP?",
+    "summary": "NLP is how to use the language of the mind to consistently achieve our specific and desired outcomes.",
+    "components": {
+      "neuro": {
+        "definition": "The nervous system (the mind), through which our experience is processed via five senses.",
+        "senses": ["Visual", "Auditory", "Kinesthetic", "Olfactory", "Gustatory"]
+      },
+      "linguistic": {
+        "definition": "Language and other non-verbal communication systems through which our neural representations are coded, ordered and given meaning.",
+        "includes": ["Pictures", "Sounds", "Feelings", "Tastes", "Smells", "Words (Self Talk)"]
+      },
+      "programming": {
+        "definition": "The ability to discover and utilize the programs that we run (our communication to ourselves and others) in our neurological systems to achieve our specific and desired outcomes."
+      }
+    }
+  },
+  "whatIsItReally": {
+    "title": "What Is It Really?",
+    "attitude": {
+      "label": "An Attitude",
+      "qualities": ["Curiosity", "Willingness to Experiment"]
+    },
+    "methodology": {
+      "label": "A Methodology",
+      "methods": ["Modeling", "De-nominalization", "Continual Experimentation"]
+    },
+    "techniques": {
+      "label": "A Trail of Techniques",
+      "description": "The Techniques That Are Taught as NLP"
+    }
+  },
+  "primeDirectives": {
+    "title": "Prime Directives of the Unconscious Mind",
+    "directives": [
+      {
+        "number": 1,
+        "title": "Stores memories",
+        "description": "Temporal (in relationship to time) and Atemporal (not in relationship to time)"
+      },
+      {
+        "number": 2,
+        "title": "Makes Associations and Learns Quickly",
+        "description": "Links similar things and ideas"
+      },
+      {
+        "number": 3,
+        "title": "Organizes all your memories",
+        "description": "Uses the Time Line. Mechanics is the Gestalt"
+      },
+      {
+        "number": 4,
+        "title": "Represses memories with unresolved negative emotion",
+        "description": ""
+      },
+      {
+        "number": 5,
+        "title": "Presents repressed memories for resolution",
+        "description": "To make rational and to release emotions"
+      },
+      {
+        "number": 6,
+        "title": "May keep the repressed emotions repressed for protection",
+        "description": ""
+      },
+      {
+        "number": 7,
+        "title": "Runs the body",
+        "description": "Has a blueprint: of body now, and of perfect health (in the Higher Self)"
+      },
+      {
+        "number": 8,
+        "title": "Preserves the body",
+        "description": "Maintain the integrity of the body"
+      },
+      {
+        "number": 9,
+        "title": "Is the domain of the emotions",
+        "description": ""
+      },
+      {
+        "number": 10,
+        "title": "Is a highly moral being",
+        "description": "The morality you were taught and accepted"
+      },
+      {
+        "number": 11,
+        "title": "Enjoys serving, needs clear orders to follow",
+        "description": ""
+      },
+      {
+        "number": 12,
+        "title": "Controls and maintain all perceptions",
+        "description": "Regular and Telepathic. Receives and transmits perceptions to the conscious mind"
+      },
+      {
+        "number": 13,
+        "title": "Generates, stores, distributes and transmits energy",
+        "description": ""
+      },
+      {
+        "number": 14,
+        "title": "Maintains instincts and generate habits",
+        "description": ""
+      },
+      {
+        "number": 15,
+        "title": "Needs repetition until a habit is installed",
+        "description": ""
+      },
+      {
+        "number": 16,
+        "title": "Is programmed to continually seek more and more",
+        "description": "There is always more to discover"
+      },
+      {
+        "number": 17,
+        "title": "Functions best as a whole integrated unit",
+        "description": "Does not need parts to function"
+      },
+      {
+        "number": 18,
+        "title": "Is symbolic",
+        "description": "Uses and responds to symbols"
+      },
+      {
+        "number": 19,
+        "title": "Takes everything personally",
+        "description": "The basis of Perception is Projection"
+      },
+      {
+        "number": 20,
+        "title": "Works on the principle of least effort",
+        "description": "Path of least resistance"
+      },
+      {
+        "number": 21,
+        "title": "Does not process negatives",
+        "description": ""
+      }
+    ]
+  },
+  "communicationModel": {
+    "title": "NLP Communication Model",
+    "description": "The model describes how an External Event is processed through Filters (Delete, Distort, Generalize) to create an Internal Representation, which affects State, Physiology, and Behavior.",
+    "filters": ["Delete", "Distort", "Generalize"],
+    "filterTypes": [
+      "Time/Space",
+      "Matter/Energy",
+      "Language",
+      "Memories",
+      "Decisions",
+      "Meta Programs",
+      "Values & Beliefs",
+      "Attitudes"
+    ],
+    "flow": ["External Event", "Filters", "Internal Representation", "State", "Physiology", "Behavior"]
+  },
+  "stateVsGoal": {
+    "title": "State vs Goal",
+    "comparisons": [
+      { "state": "Stated ambiguously", "goal": "Stated specifically" },
+      { "state": "Write affirmations", "goal": "Write goals/outcomes" },
+      { "state": "You can have it now", "goal": "Time is involved" },
+      { "state": "No steps", "goal": "Steps needed to get there (Get final step and work backwards)" },
+      { "state": "Infinite", "goal": "Measurable" },
+      { "state": "Stated for self and/or others", "goal": "Stated for self only" }
+    ]
+  }
+}

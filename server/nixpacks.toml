@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["nodejs_18", "npm-9_x", "ffmpeg", "python3", "gcc", "gnumake"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[start]
+cmd = "node index.js"
