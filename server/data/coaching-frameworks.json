@@ -1,0 +1,162 @@
+{
+  "contextMaps": {
+    "title": "The Three Context Maps",
+    "description": "People operate from different internal maps depending on relational context. Maps load automatically through triggers and unresolved wounds. Regression is context-specific, NOT incompetence.",
+    "maps": {
+      "map1_work_adult": {
+        "label": "Map 1 — Work/Adult",
+        "description": "Most current map. Competency-based with clear rules.",
+        "belonging_through": "Contribution and competence",
+        "emotional_age": "Current age",
+        "triggers": "Performance reviews, deadlines, skill gaps, professional challenges",
+        "detection_language": ["deliverables", "strategy", "results", "competence", "performance", "goals", "metrics"]
+      },
+      "map2_social_adolescent": {
+        "label": "Map 2 — Social/Adolescent",
+        "description": "Built in adolescence. Performance and masks.",
+        "belonging_through": "Being interesting, likable, performing",
+        "emotional_age": "12-18 years old",
+        "triggers": "Group dynamics, social media, comparison, peer judgment, wanting to fit in",
+        "detection_language": ["what they think", "embarrassing", "cool", "fitting in", "left out", "judged", "popular", "image"]
+      },
+      "map3_home_childhood": {
+        "label": "Map 3 — Home/Intimate/Childhood",
+        "description": "Oldest and deepest map. Belonging through BEING, not doing.",
+        "belonging_through": "Being (not doing or performing)",
+        "emotional_age": "0-12 years old",
+        "triggers": "Romantic partners, parents, authority figures reclassified as parental, abandonment fears, not being seen",
+        "detection_language": ["they don't see me", "abandoned", "not enough", "love", "safe", "trust", "hurt", "scared", "alone", "rejected"]
+      }
+    },
+    "key_insight": "A boss can get reclassified as a parent figure, triggering the childhood map. Success in one map does NOT heal wounds in another."
+  },
+
+  "emotionalCapacity": {
+    "title": "Suppression → Discharge → Capacity Spectrum",
+    "description": "The opposite of suppression is NOT expression — it's capacity.",
+    "states": {
+      "suppression": {
+        "description": "Hiding, minimizing, numbing, avoiding feelings",
+        "detection_language": ["I'm fine", "it doesn't matter", "I don't care", "whatever", "it's not a big deal", "I understand why they did it", "let's move on"],
+        "coaching_approach": "Gently invite the user to feel what they are avoiding. Create safety first."
+      },
+      "discharge": {
+        "description": "Spraying emotions out, making others carry your nervous system regulation",
+        "detection_language": ["they always", "they never", "I just need to vent", "if they would just", "it's their fault", "I can't believe they", "they made me feel"],
+        "coaching_approach": "Acknowledge the feeling, then redirect to ownership. Distinguish between sharing what's real vs. trying to move discomfort through someone else."
+      },
+      "capacity": {
+        "description": "Holding the feeling, owning it, sharing responsibly without making it someone else's job",
+        "detection_language": ["I notice I'm feeling", "I'm sitting with", "I want to share something real", "I'm choosing to", "I'm responsible for my response"],
+        "coaching_approach": "Celebrate and reinforce. This is the goal state."
+      }
+    }
+  },
+
+  "forceVsInfluence": {
+    "title": "Force vs. Influence Spectrum",
+    "description": "Whenever we use force (even subtle), we have to continue managing people instead of getting buy-in.",
+    "levels": {
+      "overt_force": {
+        "description": "Yelling, demanding, threatening, intimidating, punishing",
+        "detection_language": ["I told them", "they need to", "I made them", "they have to", "or else"]
+      },
+      "subtle_force": {
+        "description": "Overexplaining, hinting instead of asking, repeating 16 ways, adding urgency, charm, managing reactions, rescuing/doing it for them, withdrawal/withholding happiness",
+        "detection_language": ["I keep telling them", "I've explained it so many times", "I hint at it", "I try to make them understand", "I do it for them because", "I withdraw when"],
+        "coaching_approach": "Name the subtle force pattern without judgment. Ask: 'What would clean influence look like here?'"
+      },
+      "clean_influence": {
+        "description": "Creating conditions where people WANT to follow — no management needed after buy-in",
+        "detection_language": ["I invited them to", "I shared my perspective and", "I set the condition and", "they chose to"],
+        "coaching_approach": "Reinforce. This is the goal."
+      }
+    }
+  },
+
+  "responsibility2": {
+    "title": "Responsibility 2.0",
+    "description": "Not something you TAKE (heavy load) — it's a LENS for power. The moment you label something 'bad' you need a villain (self or other). Blame (self or other) = victim position.",
+    "key_distinctions": {
+      "old_responsibility": "Duty, blame, heaviness, 'should' — something you carry",
+      "new_responsibility": "A place to STAND and look out from, judgment-free — a lens for power",
+      "preference_vs_judgment": "'I didn't want that' (preference/neutral) vs. 'that was bad' (judgment/needs villain)",
+      "reframe": "Many 'bad' things turned out to be necessary redirections"
+    }
+  },
+
+  "limitingBeliefs": {
+    "title": "Limiting Beliefs Framework (Byron Katie-inspired)",
+    "steps": [
+      "Step 1: Is it true?",
+      "Step 2: Could this be a misinterpretation or misperception?",
+      "Step 3: Do you have all possible information necessary?",
+      "Step 4: What do you feel/experience/become when you believe this negative thought?",
+      "Step 5: If this negative thought didn't exist, how would you feel/behave/experience life?"
+    ],
+    "core_limiting_beliefs": ["I'm not enough", "I'm not lovable", "I don't belong"]
+  },
+
+  "predictionErrors": {
+    "title": "Prediction Errors (Healing Mechanism)",
+    "description": "Deliberate vulnerable experiences that contradict old expectations. Help rewire nervous system maps toward safety.",
+    "practice": "Pause on a shift, take 2 breaths, name the map and age, stay there ~60 seconds without fixing"
+  },
+
+  "insightVsPractice": {
+    "title": "Insight vs. Practice",
+    "description": "Insight alone does NOT create lasting change. Insight creates temporary relief/excitement, then regression to baseline. Practice = consistent repetition that builds new neural pathways.",
+    "quote": "The difference between a believer and a non-believer: a believer takes action.",
+    "four_stages": [
+      "Unconscious Unskilled: don't know what you don't know — acceptance is key",
+      "Conscious Unskilled: aware of gaps, danger zone where people quit",
+      "Conscious Skilled: adopting through repetition — 'repetition is the mother of all skills'",
+      "Unconscious Skilled: mastery, teaching others — this is where exponential results happen"
+    ]
+  },
+
+  "boundaries": {
+    "title": "Boundaries",
+    "description": "A boundary is FOR YOU, not something you tell others to change their behavior. If it's a real boundary, there's no conversation, no justification, no explaining.",
+    "key_insight": "A boundary isn't something you stay after someone crosses it.",
+    "analogy": "Buy box: 'I only buy 2-bed 3-bath houses' — doesn't matter what comes across the table",
+    "pattern": "Over-functioning: making others comfortable at expense of self (often rooted in childhood caretaking)"
+  },
+
+  "victimVsHealer": {
+    "title": "Victim vs. Healer Mindset",
+    "victim": {
+      "description": "Blaming, shackled, attaching limiting meaning to experiences",
+      "focus_patterns": ["Can't Control", "Don't Have", "Wrong"]
+    },
+    "healer": {
+      "description": "Taking chains off, choosing response, attaching empowering meaning",
+      "focus_patterns": ["Can Control", "Have", "Right"]
+    }
+  },
+
+  "growthMetaphor": {
+    "title": "Gravitropic vs. Phototropic Growth",
+    "gravitropic": "Growing roots DOWN — becoming grounded, stable, rooted in who you are",
+    "phototropic": "Growing toward LIGHT — once roots are strong, you can withstand any storm",
+    "key_insight": "Must build roots (inner work) before reaching for light (external achievement)"
+  },
+
+  "childhoodPatterns": {
+    "title": "Childhood Experience → Adult Patterns",
+    "positive_responses": "Staying present, tolerating anger, naming presence → trust, safety, boundary-setting, being seen without performing",
+    "negative_responses": "Punishment, dismissal, abandonment → fear, shame, people-pleasing, performance-based love, shutting down under criticism",
+    "healing": "Requires both: younger 'child' part that signals feeling + 'adult' part that holds with love and clarity"
+  },
+
+  "executionAccountability": {
+    "title": "Execution & Accountability",
+    "principles": [
+      "Calendar is king: if it's not in your calendar, it's not happening",
+      "Comfort zone = unconscious protection. Growing feels uncomfortable — that's the signal you're on the right path.",
+      "We can't heal it until we feel it",
+      "Self-love, forgiveness, compassion, trust, consistency as foundational",
+      "Confidence built through working on self, not competition or proving"
+    ]
+  }
+}

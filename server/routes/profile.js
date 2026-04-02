@@ -1,0 +1,109 @@
+import { Router } from 'express';
+import { ensureDefaultUser, getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
+import { getAllSessions, getRecentSessions, getTodaySession, getSession, updateSessionMetadata } from '../services/memory.js';
+
+const router = Router();
+
+// GET /api/profile — get user profile and streak
+router.get('/', (req, res) => {
+  try {
+    const userId = ensureDefaultUser();
+    const profile = getProfileForPrompt(userId);
+    const streak = getStreak(userId);
+    const todaySession = getTodaySession(userId);
+
+    res.json({
+      userId,
+      profile,
+      streak,
+      hasSessionToday: !!todaySession,
+      todaySessionId: todaySession?.id || null,
+    });
+  } catch (error) {
+    console.error('Error getting profile:', error.message);
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
+});
+
+// PUT /api/profile — update profile fields
+router.put('/', (req, res) => {
+  try {
+    const userId = ensureDefaultUser();
+    const updated = updateProfile(userId, req.body);
+    res.json({ profile: getProfileForPrompt(userId) });
+  } catch (error) {
+    console.error('Error updating profile:', error.message);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// GET /api/profile/sessions — get session history
+router.get('/sessions', (req, res) => {
+  try {
+    const userId = ensureDefaultUser();
+    const limit = parseInt(req.query.limit) || 30;
+    const offset = parseInt(req.query.offset) || 0;
+    const sessions = getAllSessions(userId, limit, offset);
+
+    // Parse JSON fields
+    const parsed = sessions.map(s => ({
+      ...s,
+      key_themes: JSON.parse(s.key_themes || '[]'),
+    }));
+
+    res.json({ sessions: parsed });
+  } catch (error) {
+    console.error('Error getting sessions:', error.message);
+    res.status(500).json({ error: 'Failed to get sessions' });
+  }
+});
+
+// GET /api/profile/sessions/:sessionId — get a specific session
+router.get('/sessions/:sessionId', (req, res) => {
+  try {
+    const session = getSession(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    res.json({
+      ...session,
+      chat_messages: JSON.parse(session.chat_messages || '[]'),
+      key_themes: JSON.parse(session.key_themes || '[]'),
+    });
+  } catch (error) {
+    console.error('Error getting session:', error.message);
+    res.status(500).json({ error: 'Failed to get session' });
+  }
+});
+
+// POST /api/profile/sessions/:sessionId/rate — rate a session
+router.post('/sessions/:sessionId/rate', (req, res) => {
+  try {
+    const { rating, feedback } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+    updateSessionMetadata(req.params.sessionId, {
+      user_rating: rating,
+      user_feedback: feedback || '',
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error rating session:', error.message);
+    res.status(500).json({ error: 'Failed to rate session' });
+  }
+});
+
+// GET /api/profile/streak — get streak info
+router.get('/streak', (req, res) => {
+  try {
+    const userId = ensureDefaultUser();
+    const streak = getStreak(userId);
+    res.json(streak);
+  } catch (error) {
+    console.error('Error getting streak:', error.message);
+    res.status(500).json({ error: 'Failed to get streak' });
+  }
+});
+
+export default router;

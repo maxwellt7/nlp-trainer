@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+server/node_modules/
+*.local
+.DS_Store
+.vercel
+server/data/alignment-engine.db*
+server/data/audio/*.mp3

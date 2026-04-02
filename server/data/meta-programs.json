@@ -1,0 +1,306 @@
+{
+  "title": "The Complex Meta Programs",
+  "subtitle": "MPVI Training",
+  "description": "19 filters through which we process information, make decisions, and motivate ourselves. Understanding these filters allows you to communicate more effectively by matching the other person's processing style.",
+  "filters": [
+    {
+      "id": "direction",
+      "name": "Direction Filter",
+      "number": 1,
+      "elicitationQuestion": "What do you want in a car (job/relationship)? What's important to you about ___?",
+      "options": [
+        { "id": "A", "label": "Toward" },
+        { "id": "B", "label": "Toward with a little Away" },
+        { "id": "C", "label": "Both Toward and Away equally" },
+        { "id": "D", "label": "Away with a little Toward" },
+        { "id": "E", "label": "Away" }
+      ],
+      "linguisticMarkers": {
+        "Away": "Here's what we want to avoid. This will reduce our potential problems and liabilities.",
+        "Away With Toward": "Here's what we want to avoid... here are our goals.",
+        "Both Toward And Away": "Here are our goals... and just as important, here is what we want to avoid.",
+        "Toward": "Here are our goals and objectives.",
+        "Toward With Some Away": "Here are our goals and objectives... here's what we want to be to be careful to avoid."
+      }
+    },
+    {
+      "id": "reason",
+      "name": "Reason Filter",
+      "number": 2,
+      "elicitationQuestion": "Why are you choosing to do what you're doing?",
+      "options": [
+        { "id": "A", "label": "Possibility" },
+        { "id": "B", "label": "Necessity" },
+        { "id": "C", "label": "Both" }
+      ],
+      "linguisticMarkers": {
+        "Both": "As you consider the possibilities of this project, also consider what obligations we have...",
+        "Necessity": "Consider the obligations we have... We really must do this.",
+        "Possibility": "Consider the possibilities in this project... we really can do this."
+      }
+    },
+    {
+      "id": "frame-of-reference",
+      "name": "Frame of Reference Filter",
+      "number": 3,
+      "elicitationQuestion": "How do you know when you're doing a good job?",
+      "options": [
+        { "id": "A", "label": "Internal" },
+        { "id": "B", "label": "External" },
+        { "id": "C", "label": "Balanced" },
+        { "id": "D", "label": "Internal with External Check" },
+        { "id": "E", "label": "External with Internal Check" }
+      ],
+      "linguisticMarkers": {
+        "Balanced": "As you consider what you think, and what others think...",
+        "External": "Consider what others in this project think...",
+        "Internal": "I can't convince you of anything. Only you will know for sure.",
+        "Internal With External Check": "As you check inside you will know that the evidence indicates..."
+      }
+    },
+    {
+      "id": "convincer-representational",
+      "name": "Convincer Representational Filter",
+      "number": 4,
+      "elicitationQuestion": "How do you know when someone else is good at what they do?",
+      "options": [
+        { "id": "A", "label": "See" },
+        { "id": "B", "label": "Hear" },
+        { "id": "C", "label": "Read" },
+        { "id": "D", "label": "Do" }
+      ],
+      "linguisticMarkers": {}
+    },
+    {
+      "id": "convincer-demonstration",
+      "name": "Convincer Demonstration Filter",
+      "number": 5,
+      "elicitationQuestion": "How often does someone have to demonstrate competence to you before you're convinced?",
+      "options": [
+        { "id": "A", "label": "Automatic" },
+        { "id": "B", "label": "Number of Times" },
+        { "id": "C", "label": "Period of Time" },
+        { "id": "D", "label": "Consistent" }
+      ],
+      "linguisticMarkers": {
+        "Automatic": "(There is no need to convince this person, they will be, automatically)",
+        "Consistent": "I know you will never be completely convinced, and that's the reason why you'll have to do this to find out.",
+        "A Number of Times": "Here are ___ (a number of) options. I'm sure that you will find one of them is right for you.",
+        "One Time": "Here is the option which makes the most sense.",
+        "A Period of Time": "(Call the person in a period of time which is no less than 10% of the total period of time, and say:) I've been so busy since the last time we talked, it almost seems like ___ (total period)."
+      }
+    },
+    {
+      "id": "management-direction",
+      "name": "Management Direction Filter",
+      "number": 6,
+      "elicitationQuestion": "a. Do you know what you need to do to be a success on a job? b. Do you know what someone else needs to do? c. Do you find it easy or not so easy to tell him?",
+      "options": [
+        { "id": "A", "label": "Self and Others" },
+        { "id": "B", "label": "Self Only" },
+        { "id": "C", "label": "Others Only" },
+        { "id": "D", "label": "Self but Not Others" }
+      ],
+      "linguisticMarkers": {
+        "Self Only": "You know that what other people do in this project is not important to you, and that is why...",
+        "Self but Not Others": "Who are we to tell them what to do? But that's why we must.",
+        "Others Only": "The boss knows what we need to do, so that's why we should..."
+      }
+    },
+    {
+      "id": "action",
+      "name": "Action Filter",
+      "number": 7,
+      "elicitationQuestion": "When you come into a situation do you usually act quickly after sizing it up, or do you do a complete study of all the consequences and then act?",
+      "options": [
+        { "id": "A", "label": "Active" },
+        { "id": "B", "label": "Reflective" },
+        { "id": "C", "label": "Both" },
+        { "id": "D", "label": "Inactive" }
+      ],
+      "linguisticMarkers": {
+        "Both": "You've had all the time you need to study this, and now is the time for action",
+        "Active": "Let's go and do this project. There's no need to wait.",
+        "Reflective": "I know you want to study this. It's OK. Take all the time you need to make the decision now."
+      }
+    },
+    {
+      "id": "affiliation",
+      "name": "Affiliation Filter",
+      "number": 8,
+      "elicitationQuestion": "Tell me about a work situation in which you were the happiest, a one-time event.",
+      "options": [
+        { "id": "A", "label": "Independent Player" },
+        { "id": "B", "label": "Team Player" },
+        { "id": "C", "label": "Management Player" }
+      ],
+      "linguisticMarkers": {
+        "Independent Player": "You have a high need to be independent, and that is why it is important to foster teamwork in this situation.",
+        "Management Player": "I know you want to be in charge...",
+        "Team Player": "I know that you want a team to play with..."
+      }
+    },
+    {
+      "id": "work-preference",
+      "name": "The Work Preference Filter",
+      "number": 9,
+      "elicitationQuestion": "Tell me about a work situation in which you were the happiest, a one-time event.",
+      "options": [
+        { "id": "A", "label": "Things" },
+        { "id": "B", "label": "Systems" },
+        { "id": "C", "label": "People" }
+      ],
+      "linguisticMarkers": {
+        "People": "Let me tell you about the people who will be working on this project.",
+        "Things": "Let me tell you about what we'll be working with.",
+        "Systems": "Let me tell you how the system works."
+      }
+    },
+    {
+      "id": "primary-interest",
+      "name": "Primary Interest Filter",
+      "number": 10,
+      "elicitationQuestion": "What's your favorite restaurant? Tell me about it.",
+      "options": [
+        { "id": "A", "label": "People" },
+        { "id": "B", "label": "Place" },
+        { "id": "C", "label": "Things" },
+        { "id": "D", "label": "Activity" },
+        { "id": "E", "label": "Information" }
+      ],
+      "linguisticMarkers": {
+        "Activity": "Interested in 'how'. Let me tell you how this will work.",
+        "Information": "Interested in 'why' or 'what' information is available. Let me tell you what you need to know, and why.",
+        "People": "Who they are with is important. Let me tell you who you will be working with on this project.",
+        "Place": "Location is important. Let me tell you where this project is...",
+        "Things": "Interested in 'what'. Let me tell you what we'll need."
+      }
+    },
+    {
+      "id": "chunk-size",
+      "name": "Chunk Size Filter",
+      "number": 11,
+      "elicitationQuestion": "If we were going to do a project together, would you want to know the big picture first, or the details first. Would you really need to know the... (ask other)?",
+      "options": [
+        { "id": "A", "label": "Specific" },
+        { "id": "B", "label": "Global" },
+        { "id": "C", "label": "Specific to Global" },
+        { "id": "D", "label": "Global to Specific" }
+      ],
+      "linguisticMarkers": {
+        "Global": "Here's the big picture... (Don't give too many details, stay abstract.)",
+        "Global to Specific": "Here's the big picture...now here are the details.",
+        "Specific": "Here are the details. (Be specific. Don't use abstractions.)",
+        "Specific to Global": "Here are the details...and here's the big picture. (Perhaps they will develop the big picture on their own.)"
+      }
+    },
+    {
+      "id": "relationship",
+      "name": "Relationship Filter",
+      "number": 12,
+      "elicitationQuestion": "What is the relationship between these three coins? What is the relationship between what you're doing this year on the job and what you did at this time last year?",
+      "options": [
+        { "id": "A", "label": "Sameness" },
+        { "id": "B", "label": "Sameness with Exception" },
+        { "id": "C", "label": "Sameness and Differences Equally" },
+        { "id": "D", "label": "Differences with Exception" },
+        { "id": "E", "label": "Differences" }
+      ],
+      "linguisticMarkers": {
+        "Differences": "You probably won't believe this...",
+        "Difference with Exception": "I don't know if you will believe this or not...",
+        "Sameness": "This is the same as what you already know (or 'are doing').",
+        "Sameness with Exception": "As you consider what I've said you'll find it is the same as what you already know. Then as you consider it, you will probably find the reasons why it's different, and those are the reasons why you will want to do it."
+      }
+    },
+    {
+      "id": "emotional-stress-response",
+      "name": "Emotional Stress Response",
+      "number": 13,
+      "elicitationQuestion": "Tell me about a situation (context-related) that gave you trouble, a one-time event.",
+      "options": [
+        { "id": "A", "label": "Thinking" },
+        { "id": "B", "label": "Feeling" },
+        { "id": "C", "label": "Choice" }
+      ],
+      "linguisticMarkers": {
+        "Choice": "You have the choice to react or not in this situation...",
+        "Associated": "I know this situation upsets you, but...",
+        "Dissociated": "I know that this situation doesn't upset you at all, and perhaps you need to show some feeling in this situation."
+      }
+    },
+    {
+      "id": "time-storage",
+      "name": "Time Storage Filter",
+      "number": 14,
+      "elicitationQuestion": "What direction is the past and what direction is the future for you?",
+      "options": [
+        { "id": "A", "label": "Through Time" },
+        { "id": "B", "label": "In Time" }
+      ],
+      "linguisticMarkers": {
+        "In Time": "You know that we are apt to lose track of time, so let's keep track of what time it is. Keeping our options open.",
+        "Client is Unsure of Time Line": "No linguistic marker, continue with Time Line elicitation.",
+        "Through Time": "Time is of the essence, as you know, so let's... Let's take this step by step."
+      }
+    },
+    {
+      "id": "modal-operator-sequence",
+      "name": "Modal Operator Sequence",
+      "number": 15,
+      "elicitationQuestion": "What was the last thing you said to yourself just before you got out of bed this morning?",
+      "options": [],
+      "linguisticMarkers": {
+        "General": "Use their Modal Operator in a sentence."
+      }
+    },
+    {
+      "id": "attention-direction",
+      "name": "Attention Direction",
+      "number": 16,
+      "elicitationQuestion": "(No question, just observe -- you are looking for the compulsive Others person.)",
+      "options": [
+        { "id": "A", "label": "Self" },
+        { "id": "B", "label": "Others" }
+      ],
+      "linguisticMarkers": {
+        "General": "Is not about language, it's about physiology."
+      }
+    },
+    {
+      "id": "information-processing",
+      "name": "Information Processing Style",
+      "number": 17,
+      "elicitationQuestion": "When you need to work through a problem or a challenge in your life, is it absolutely necessary for you to: Talk about it with someone else, or Think about it by yourself only?",
+      "options": [
+        { "id": "A", "label": "External" },
+        { "id": "B", "label": "Internal" }
+      ],
+      "linguisticMarkers": {}
+    },
+    {
+      "id": "listening-style",
+      "name": "Listening Style",
+      "number": 18,
+      "elicitationQuestion": "If someone you knew quite well said to you, 'I'm thirsty,' would you: Find the comment interesting, but probably do nothing about it, or Would you feel really compelled to do something about it?",
+      "options": [
+        { "id": "A", "label": "Literal" },
+        { "id": "B", "label": "Inferential" }
+      ],
+      "linguisticMarkers": {
+        "notes": ["A Literal Listener may not know when an Inferential Speaker complements them.", "An Inferential Listener may think that any question is a request for action."]
+      }
+    },
+    {
+      "id": "speaking-style",
+      "name": "Speaking Style",
+      "number": 19,
+      "elicitationQuestion": "If you felt that someone around you was not performing as well as they should, would you: Come to the point and tell them directly, or would you Hint, imply and give them clues.",
+      "options": [
+        { "id": "A", "label": "Literal" },
+        { "id": "B", "label": "Inferential" }
+      ],
+      "linguisticMarkers": {}
+    }
+  ]
+}
