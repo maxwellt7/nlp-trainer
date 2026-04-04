@@ -29,6 +29,8 @@ export const api = {
   getStreak: () => request<any>('/profile/streak'),
 
   // ── Coaching & Hypnosis ──
+  hypnosisInit: () =>
+    request<any>('/hypnosis/init', { method: 'POST' }),
   hypnosisChat: (messages: any[], sessionId?: string, moodBefore?: number) =>
     request<any>('/hypnosis/chat', {
       method: 'POST',
