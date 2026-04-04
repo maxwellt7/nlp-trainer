@@ -82,6 +82,66 @@ function parseJsonResponse(text) {
   }
 }
 
+// POST /init — generate the AI's opening message to start the session
+router.post('/init', async (req, res) => {
+  try {
+    const userId = ensureDefaultUser();
+
+    // Check if there's already a session today with messages
+    const existing = getTodaySession(userId);
+    if (existing && existing.chat_messages) {
+      try {
+        const msgs = JSON.parse(typeof existing.chat_messages === 'string' ? existing.chat_messages : JSON.stringify(existing.chat_messages));
+        if (msgs.length > 0) {
+          return res.json({
+            reply: null,
+            sessionId: existing.id,
+            resumeMessages: msgs,
+          });
+        }
+      } catch { /* continue to create new */ }
+    }
+
+    // Create a new session
+    const newSession = createSession(userId, null);
+    const systemPrompt = buildSystemPrompt(userId, 'coaching');
+
+    // Send a synthetic seed message to get the AI's opening
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      system: systemPrompt + '\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally, reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.',
+      messages: [
+        { role: 'user', content: '[SESSION_START] The user has opened the app for their daily session.' }
+      ],
+    });
+
+    const text = response.content[0].text;
+    let parsed;
+    try {
+      parsed = parseJsonResponse(text);
+    } catch {
+      parsed = { reply: text, readyToGenerate: false, profileUpdates: {} };
+    }
+
+    const openingMessage = parsed.reply || text;
+
+    // Save the opening message to the session (with the seed hidden)
+    updateSessionMessages(newSession.id, [
+      { role: 'assistant', content: openingMessage }
+    ]);
+
+    res.json({
+      reply: openingMessage,
+      sessionId: newSession.id,
+      resumeMessages: null,
+    });
+  } catch (error) {
+    console.error('Hypnosis init error:', error.message);
+    res.status(500).json({ error: 'Failed to start session' });
+  }
+});
+
 // POST /chat — daily coaching conversation
 router.post('/chat', async (req, res) => {
   try {
