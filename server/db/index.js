@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
+import initSqlJs from 'sql.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -14,145 +14,231 @@ if (!existsSync(storageRoot)) {
   mkdirSync(storageRoot, { recursive: true });
 }
 
-const db = new Database(dbPath);
+// Initialize sql.js synchronously by blocking on the promise
+let SQL;
+let rawDb;
 
-// Enable WAL mode for better concurrent read performance
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+const initPromise = initSqlJs().then(sqlJs => {
+  SQL = sqlJs;
+  // Load existing DB or create new
+  if (existsSync(dbPath)) {
+    try {
+      const buffer = readFileSync(dbPath);
+      rawDb = new SQL.Database(buffer);
+    } catch {
+      rawDb = new SQL.Database();
+    }
+  } else {
+    rawDb = new SQL.Database();
+  }
 
-// Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id            TEXT PRIMARY KEY,
-    created_at    TEXT DEFAULT (datetime('now')),
-    onboarding    TEXT DEFAULT '{}'
-  );
+  // Create tables
+  rawDb.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id            TEXT PRIMARY KEY,
+      created_at    TEXT DEFAULT (datetime('now')),
+      onboarding    TEXT DEFAULT '{}'
+    );
 
-  CREATE TABLE IF NOT EXISTS profiles (
-    id            TEXT PRIMARY KEY,
-    user_id       TEXT NOT NULL REFERENCES users(id),
-    updated_at    TEXT DEFAULT (datetime('now')),
-    context_maps  TEXT DEFAULT '{"map1_health":5,"map2_health":5,"map3_health":5}',
-    meta_programs TEXT DEFAULT '{"direction":"unknown","frame":"unknown","chunk":"unknown","relationship":"unknown","action":"unknown","rep_system":"unknown"}',
-    capacity_index TEXT DEFAULT '{"suppression":5,"discharge":5,"capacity":5}',
-    force_audit   TEXT DEFAULT '{"overt":0,"subtle":5,"clean":5}',
-    victim_healer TEXT DEFAULT '{"score":0,"trending":"stable"}',
-    nervous_system TEXT DEFAULT '{"dominant_state":"unknown"}',
-    congruence    TEXT DEFAULT '{"career":5,"finance":5,"health":5,"relationships":5,"personal_growth":5,"fun":5,"spirituality":5}',
-    rep_system    TEXT DEFAULT 'unknown'
-  );
+    CREATE TABLE IF NOT EXISTS profiles (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      updated_at    TEXT DEFAULT (datetime('now')),
+      context_maps  TEXT DEFAULT '{"map1_health":5,"map2_health":5,"map3_health":5}',
+      meta_programs TEXT DEFAULT '{"direction":"unknown","frame":"unknown","chunk":"unknown","relationship":"unknown","action":"unknown","rep_system":"unknown"}',
+      capacity_index TEXT DEFAULT '{"suppression":5,"discharge":5,"capacity":5}',
+      force_audit   TEXT DEFAULT '{"overt":0,"subtle":5,"clean":5}',
+      victim_healer TEXT DEFAULT '{"score":0,"trending":"stable"}',
+      nervous_system TEXT DEFAULT '{"dominant_state":"unknown"}',
+      congruence    TEXT DEFAULT '{"career":5,"finance":5,"health":5,"relationships":5,"personal_growth":5,"fun":5,"spirituality":5}',
+      rep_system    TEXT DEFAULT 'unknown'
+    );
 
-  CREATE TABLE IF NOT EXISTS sessions (
-    id            TEXT PRIMARY KEY,
-    user_id       TEXT NOT NULL REFERENCES users(id),
-    created_at    TEXT DEFAULT (datetime('now')),
-    date_key      TEXT DEFAULT (date('now')),
-    chat_messages TEXT DEFAULT '[]',
-    chat_summary  TEXT DEFAULT '',
-    detected_map  TEXT DEFAULT '',
-    detected_state TEXT DEFAULT '',
-    key_themes    TEXT DEFAULT '[]',
-    script_id     TEXT DEFAULT NULL,
-    audio_file    TEXT DEFAULT NULL,
-    user_rating   INTEGER DEFAULT NULL,
-    user_feedback TEXT DEFAULT '',
-    mood_before   INTEGER DEFAULT NULL,
-    mood_after    INTEGER DEFAULT NULL
-  );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      created_at    TEXT DEFAULT (datetime('now')),
+      date_key      TEXT DEFAULT (date('now')),
+      chat_messages TEXT DEFAULT '[]',
+      chat_summary  TEXT DEFAULT '',
+      detected_map  TEXT DEFAULT '',
+      detected_state TEXT DEFAULT '',
+      key_themes    TEXT DEFAULT '[]',
+      script_id     TEXT DEFAULT NULL,
+      audio_file    TEXT DEFAULT NULL,
+      user_rating   INTEGER DEFAULT NULL,
+      user_feedback TEXT DEFAULT '',
+      mood_before   INTEGER DEFAULT NULL,
+      mood_after    INTEGER DEFAULT NULL
+    );
 
-  CREATE TABLE IF NOT EXISTS scripts (
-    id                TEXT PRIMARY KEY,
-    session_id        TEXT REFERENCES sessions(id),
-    user_id           TEXT NOT NULL REFERENCES users(id),
-    title             TEXT NOT NULL,
-    duration          TEXT DEFAULT 'full',
-    estimated_minutes INTEGER DEFAULT 20,
-    script_text       TEXT NOT NULL,
-    audio_file        TEXT DEFAULT NULL,
-    music_track       TEXT DEFAULT NULL,
-    created_at        TEXT DEFAULT (datetime('now'))
-  );
+    CREATE TABLE IF NOT EXISTS scripts (
+      id                TEXT PRIMARY KEY,
+      session_id        TEXT,
+      user_id           TEXT NOT NULL,
+      title             TEXT NOT NULL,
+      duration          TEXT DEFAULT 'full',
+      estimated_minutes INTEGER DEFAULT 20,
+      script_text       TEXT NOT NULL,
+      audio_file        TEXT DEFAULT NULL,
+      music_track       TEXT DEFAULT NULL,
+      created_at        TEXT DEFAULT (datetime('now'))
+    );
 
-  CREATE TABLE IF NOT EXISTS memory_summaries (
-    id            TEXT PRIMARY KEY,
-    user_id       TEXT NOT NULL REFERENCES users(id),
-    period        TEXT NOT NULL,
-    summary       TEXT NOT NULL,
-    key_patterns  TEXT DEFAULT '[]',
-    created_at    TEXT DEFAULT (datetime('now'))
-  );
+    CREATE TABLE IF NOT EXISTS memory_summaries (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      period        TEXT NOT NULL,
+      summary       TEXT NOT NULL,
+      key_patterns  TEXT DEFAULT '[]',
+      created_at    TEXT DEFAULT (datetime('now'))
+    );
 
-  CREATE TABLE IF NOT EXISTS streaks (
-    user_id       TEXT PRIMARY KEY REFERENCES users(id),
-    current_streak INTEGER DEFAULT 0,
-    longest_streak INTEGER DEFAULT 0,
-    last_session_date TEXT DEFAULT NULL,
-    total_sessions INTEGER DEFAULT 0
-  );
+    CREATE TABLE IF NOT EXISTS streaks (
+      user_id       TEXT PRIMARY KEY,
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      last_session_date TEXT DEFAULT NULL,
+      total_sessions INTEGER DEFAULT 0
+    );
 
-  CREATE TABLE IF NOT EXISTS values_detected (
-    id              TEXT PRIMARY KEY,
-    user_id         TEXT NOT NULL REFERENCES users(id),
-    value_name      TEXT NOT NULL,
-    rank            INTEGER DEFAULT NULL,
-    confidence       REAL DEFAULT 0.5,
-    purity_score     REAL DEFAULT 5.0,
-    expression       TEXT DEFAULT 'mixed',
-    pure_expression  TEXT DEFAULT '',
-    distorted_expression TEXT DEFAULT '',
-    evidence_count   INTEGER DEFAULT 1,
-    first_detected   TEXT DEFAULT (datetime('now')),
-    last_updated     TEXT DEFAULT (datetime('now')),
-    UNIQUE(user_id, value_name)
-  );
+    CREATE TABLE IF NOT EXISTS values_detected (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL,
+      value_name      TEXT NOT NULL,
+      rank            INTEGER DEFAULT NULL,
+      confidence       REAL DEFAULT 0.5,
+      purity_score     REAL DEFAULT 5.0,
+      expression       TEXT DEFAULT 'mixed',
+      pure_expression  TEXT DEFAULT '',
+      distorted_expression TEXT DEFAULT '',
+      evidence_count   INTEGER DEFAULT 1,
+      first_detected   TEXT DEFAULT (datetime('now')),
+      last_updated     TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, value_name)
+    );
 
-  CREATE TABLE IF NOT EXISTS value_evidence (
-    id              TEXT PRIMARY KEY,
-    user_id         TEXT NOT NULL REFERENCES users(id),
-    value_name      TEXT NOT NULL,
-    session_id      TEXT REFERENCES sessions(id),
-    evidence_type   TEXT DEFAULT 'conversation',
-    quote           TEXT DEFAULT '',
-    interpretation  TEXT DEFAULT '',
-    detected_at     TEXT DEFAULT (datetime('now'))
-  );
+    CREATE TABLE IF NOT EXISTS value_evidence (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL,
+      value_name      TEXT NOT NULL,
+      session_id      TEXT,
+      evidence_type   TEXT DEFAULT 'conversation',
+      quote           TEXT DEFAULT '',
+      interpretation  TEXT DEFAULT '',
+      detected_at     TEXT DEFAULT (datetime('now'))
+    );
 
-  CREATE TABLE IF NOT EXISTS value_conflicts (
-    id              TEXT PRIMARY KEY,
-    user_id         TEXT NOT NULL REFERENCES users(id),
-    value_a         TEXT NOT NULL,
-    value_b         TEXT NOT NULL,
-    conflict_type   TEXT DEFAULT 'direct',
-    description     TEXT DEFAULT '',
-    detected_at     TEXT DEFAULT (datetime('now')),
-    resolved        INTEGER DEFAULT 0,
-    UNIQUE(user_id, value_a, value_b)
-  );
+    CREATE TABLE IF NOT EXISTS value_conflicts (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL,
+      value_a         TEXT NOT NULL,
+      value_b         TEXT NOT NULL,
+      conflict_type   TEXT DEFAULT 'direct',
+      description     TEXT DEFAULT '',
+      detected_at     TEXT DEFAULT (datetime('now')),
+      resolved        INTEGER DEFAULT 0,
+      UNIQUE(user_id, value_a, value_b)
+    );
 
-  CREATE TABLE IF NOT EXISTS identity_statements (
-    id              TEXT PRIMARY KEY,
-    user_id         TEXT NOT NULL REFERENCES users(id),
-    statement_type  TEXT NOT NULL,
-    content         TEXT NOT NULL,
-    confidence       REAL DEFAULT 0.5,
-    session_id      TEXT REFERENCES sessions(id),
-    detected_at     TEXT DEFAULT (datetime('now')),
-    active          INTEGER DEFAULT 1
-  );
+    CREATE TABLE IF NOT EXISTS identity_statements (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL,
+      statement_type  TEXT NOT NULL,
+      content         TEXT NOT NULL,
+      confidence       REAL DEFAULT 0.5,
+      session_id      TEXT,
+      detected_at     TEXT DEFAULT (datetime('now')),
+      active          INTEGER DEFAULT 1
+    );
 
-  CREATE TABLE IF NOT EXISTS identity_scores (
-    user_id              TEXT PRIMARY KEY REFERENCES users(id),
-    value_clarity        REAL DEFAULT 0,
-    value_alignment      REAL DEFAULT 0,
-    hierarchy_stability  REAL DEFAULT 0,
-    purity_ratio         REAL DEFAULT 0,
-    conflict_awareness   REAL DEFAULT 0,
-    worthiness_independence REAL DEFAULT 0,
-    decision_speed       REAL DEFAULT 0,
-    overall_congruence   REAL DEFAULT 0,
-    updated_at           TEXT DEFAULT (datetime('now'))
-  );
-`);
+    CREATE TABLE IF NOT EXISTS identity_scores (
+      user_id              TEXT PRIMARY KEY,
+      value_clarity        REAL DEFAULT 0,
+      value_alignment      REAL DEFAULT 0,
+      hierarchy_stability  REAL DEFAULT 0,
+      purity_ratio         REAL DEFAULT 0,
+      conflict_awareness   REAL DEFAULT 0,
+      worthiness_independence REAL DEFAULT 0,
+      decision_speed       REAL DEFAULT 0,
+      overall_congruence   REAL DEFAULT 0,
+      updated_at           TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  save();
+});
+
+function save() {
+  if (rawDb) {
+    try {
+      const data = rawDb.export();
+      const buffer = Buffer.from(data);
+      writeFileSync(dbPath, buffer);
+    } catch (err) {
+      console.error('DB save error:', err.message);
+    }
+  }
+}
+
+// Wrapper that provides a better-sqlite3-compatible API
+const db = {
+  _ready: false,
+
+  async waitReady() {
+    if (this._ready) return;
+    await initPromise;
+    this._ready = true;
+  },
+
+  prepare(sql) {
+    return {
+      run(...params) {
+        if (!rawDb) throw new Error('DB not initialized');
+        rawDb.run(sql, params);
+        save();
+        return { changes: rawDb.getRowsModified() };
+      },
+      get(...params) {
+        if (!rawDb) throw new Error('DB not initialized');
+        const stmt = rawDb.prepare(sql);
+        stmt.bind(params);
+        if (stmt.step()) {
+          const row = stmt.getAsObject();
+          stmt.free();
+          return row;
+        }
+        stmt.free();
+        return undefined;
+      },
+      all(...params) {
+        if (!rawDb) throw new Error('DB not initialized');
+        const results = [];
+        const stmt = rawDb.prepare(sql);
+        stmt.bind(params);
+        while (stmt.step()) {
+          results.push(stmt.getAsObject());
+        }
+        stmt.free();
+        return results;
+      },
+    };
+  },
+
+  exec(sql) {
+    if (!rawDb) throw new Error('DB not initialized');
+    rawDb.run(sql);
+    save();
+  },
+
+  pragma(str) {
+    // sql.js doesn't support pragmas the same way, silently ignore
+  },
+};
+
+// Wait for init before exporting
+await initPromise;
+db._ready = true;
 
 export default db;
 export { storageRoot };
