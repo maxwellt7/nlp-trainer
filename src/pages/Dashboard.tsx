@@ -49,6 +49,15 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
+function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {
+  return (
+    <div className="brand-card p-4 text-center">
+      <div className="stat-value text-2xl">{value}</div>
+      <div className="stat-label mt-1">{label}</div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
@@ -65,8 +74,6 @@ export default function Dashboard() {
         ]);
         setData(profileData);
         setSessions(sessionData.sessions || []);
-
-        // Load gamification data
         try {
           const [boxData, achData] = await Promise.all([
             api.getUnopenedBoxes(),
@@ -90,11 +97,11 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center" style={{ height: '100%' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'var(--color-accent-cyan)', borderTopColor: 'transparent' }} />
-          <span style={{ color: 'var(--color-text-muted)' }}>Loading...</span>
+      <div className="flex items-center justify-center" style={{ height: '100%' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-6 h-6 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'var(--color-accent-gold)', borderTopColor: 'transparent' }} />
+          <span className="text-xs font-mono-brand" style={{ color: 'var(--color-text-dim)' }}>LOADING</span>
         </div>
       </div>
     );
@@ -106,19 +113,34 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto pb-24">
-      {/* Greeting */}
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-white">{getGreeting()}</h1>
-        <p style={{ color: 'var(--color-text-secondary)' }}>
-          {data?.hasSessionToday
-            ? "You've already checked in today. You can continue your session or review your insights."
-            : "Ready for today's session? Let's explore what's alive for you."}
-        </p>
+      {/* ── Hero Section ── */}
+      <div className="relative rounded-xl overflow-hidden mb-6" style={{ minHeight: 180 }}>
+        <div className="absolute inset-0"
+          style={{
+            backgroundImage: 'url(/brand/session-card-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center 30%',
+            opacity: 0.4,
+          }} />
+        <div className="absolute inset-0" style={{
+          background: 'linear-gradient(180deg, rgba(11,15,25,0.3) 0%, rgba(11,15,25,0.95) 100%)',
+        }} />
+        <div className="relative p-5 sm:p-6 flex flex-col justify-end" style={{ minHeight: 180 }}>
+          <p className="text-uppercase-spaced mb-1" style={{ color: 'var(--color-accent-gold)' }}>
+            {new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="font-display text-2xl sm:text-3xl text-white mb-1">{getGreeting()}</h1>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+            {data?.hasSessionToday
+              ? "Session complete. Review your intel or continue exploring."
+              : "Your next session awaits. Step into the work."}
+          </p>
+        </div>
       </div>
 
-      {/* XP Bar */}
+      {/* ── XP Bar ── */}
       {xp && (
-        <div className="mb-6">
+        <div className="mb-5">
           <XpBar
             level={xp.level}
             title={xp.title}
@@ -129,28 +151,29 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* CTA Button with breathing animation */}
+      {/* ── CTA Button ── */}
       <Link
         to="/hypnosis"
-        className={`block w-full rounded-2xl p-5 mb-6 text-center font-semibold text-lg transition-all haptic-tap ${
+        className={`block w-full rounded-xl p-4 mb-6 text-center font-bold text-base transition-all haptic-tap ${
           data?.hasSessionToday ? '' : 'animate-breathe'
         }`}
         style={{
           background: data?.hasSessionToday
             ? 'var(--color-brand-card)'
-            : 'linear-gradient(135deg, var(--color-accent-cyan-dim), var(--color-accent-cyan))',
-          border: `1px solid ${data?.hasSessionToday ? 'var(--color-brand-border)' : 'transparent'}`,
-          color: 'white',
+            : 'linear-gradient(135deg, var(--color-accent-gold-dim), var(--color-accent-gold))',
+          border: `1px solid ${data?.hasSessionToday ? 'var(--color-brand-border)' : 'rgba(212,168,83,0.3)'}`,
+          color: data?.hasSessionToday ? 'var(--color-text-secondary)' : 'var(--color-brand-midnight)',
+          letterSpacing: '0.03em',
         }}
       >
-        {data?.hasSessionToday ? 'Continue Today\'s Session' : 'Start Today\'s Session'}
+        {data?.hasSessionToday ? 'Continue Session' : 'Begin Session'}
       </Link>
 
-      {/* Unopened Mystery Boxes */}
+      {/* ── Unopened Mystery Boxes ── */}
       {unopenedBoxes.length > 0 && (
         <div className="mb-6 space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-            Sealed Insights ({unopenedBoxes.length})
+          <h2 className="text-uppercase-spaced" style={{ color: 'var(--color-text-dim)' }}>
+            Sealed Intel ({unopenedBoxes.length})
           </h2>
           {unopenedBoxes.map(box => (
             <MysteryBox key={box.id} box={box} onOpened={handleBoxOpened} />
@@ -158,65 +181,41 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats Row + Living Avatar */}
+      {/* ── Stats Grid + Living Avatar ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="glass-card p-3 text-center">
-            <div className="text-2xl font-bold" style={{ color: 'var(--color-accent-cyan)' }}>
-              {streak?.current_streak || 0}
-            </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--color-text-dim)' }}>Day Streak</div>
-          </div>
-          <div className="glass-card p-3 text-center">
-            <div className="text-2xl font-bold" style={{ color: 'var(--color-status-success)' }}>
-              {streak?.total_sessions || 0}
-            </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--color-text-dim)' }}>Sessions</div>
-          </div>
-          <div className="glass-card p-3 text-center">
-            <div className="text-2xl font-bold" style={{ color: 'var(--color-accent-violet)' }}>
-              {streak?.longest_streak || 0}
-            </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--color-text-dim)' }}>Best Streak</div>
-          </div>
+          <StatCard value={streak?.current_streak || 0} label="Streak" color="var(--color-accent-gold)" />
+          <StatCard value={streak?.total_sessions || 0} label="Sessions" color="var(--color-accent-blue)" />
+          <StatCard value={streak?.longest_streak || 0} label="Record" color="var(--color-accent-slate)" />
 
-          {/* Streak multiplier */}
           {xp && xp.streak_multiplier > 1 && (
-            <div className="col-span-3 glass-card p-3 text-center">
+            <div className="col-span-3 brand-card-gold p-3 text-center">
               <div className="flex items-center justify-center gap-2">
-                <span className="text-sm font-bold" style={{ color: 'var(--color-accent-gold)' }}>
-                  {xp.streak_multiplier}x XP Multiplier
+                <span className="font-mono-brand text-sm font-bold" style={{ color: 'var(--color-accent-gold)' }}>
+                  {xp.streak_multiplier}x
                 </span>
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Active</span>
+                <span className="text-uppercase-spaced" style={{ color: 'var(--color-text-muted)' }}>XP Multiplier</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Living Avatar */}
         {profile?.congruence && (
-          <div className="glass-card p-4 flex items-center justify-center">
-            <LivingAvatar
-              congruence={profile.congruence}
-              level={xp?.level || 1}
-              size={160}
-            />
+          <div className="brand-card p-4 flex items-center justify-center">
+            <LivingAvatar congruence={profile.congruence} level={xp?.level || 1} size={160} />
           </div>
         )}
       </div>
 
-      {/* Profile Insights */}
+      {/* ── Profile Insights ── */}
       {profile && profile.capacity_index && (
-        <div className="glass-card p-5 mb-6">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-            Your Profile Insights
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="brand-card p-5 mb-6">
+          <h2 className="text-uppercase-spaced mb-4" style={{ color: 'var(--color-text-dim)' }}>Operational Profile</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Capacity Index */}
             <div>
-              <div className="text-xs mb-2" style={{ color: 'var(--color-text-dim)' }}>Emotional Capacity</div>
-              <div className="space-y-2">
+              <div className="text-xs font-semibold mb-2.5" style={{ color: 'var(--color-text-muted)' }}>Emotional Capacity</div>
+              <div className="space-y-2.5">
                 {(['suppression', 'discharge', 'capacity'] as const).map(key => {
                   const val = profile.capacity_index[key] || 5;
                   const colors: Record<string, string> = {
@@ -225,12 +224,14 @@ export default function Dashboard() {
                     capacity: 'var(--color-status-success)',
                   };
                   return (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="text-xs w-24 capitalize" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
-                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-brand-surface)' }}>
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${val * 10}%`, background: colors[key] }} />
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs capitalize" style={{ color: 'var(--color-text-muted)' }}>{key}</span>
+                        <span className="font-mono-brand text-xs" style={{ color: colors[key] }}>{val.toFixed(1)}</span>
                       </div>
-                      <span className="text-xs w-6 text-right" style={{ color: 'var(--color-text-dim)' }}>{val.toFixed(1)}</span>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-brand-surface)' }}>
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${val * 10}%`, background: colors[key] }} />
+                      </div>
                     </div>
                   );
                 })}
@@ -239,49 +240,51 @@ export default function Dashboard() {
 
             {/* Meta-Programs */}
             <div>
-              <div className="text-xs mb-2" style={{ color: 'var(--color-text-dim)' }}>Detected Patterns</div>
-              <div className="space-y-1">
+              <div className="text-xs font-semibold mb-2.5" style={{ color: 'var(--color-text-muted)' }}>Detected Patterns</div>
+              <div className="space-y-1.5">
                 {profile.meta_programs && Object.entries(profile.meta_programs)
                   .filter(([, v]) => v && v !== 'unknown')
                   .map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="text-xs capitalize" style={{ color: 'var(--color-text-dim)' }}>{key.replace('_', ' ')}:</span>
-                      <span className="text-xs capitalize" style={{ color: 'var(--color-accent-cyan)' }}>{String(value)}</span>
+                    <div key={key} className="flex items-center justify-between py-1 border-b" style={{ borderColor: 'var(--color-brand-border)' }}>
+                      <span className="text-xs capitalize" style={{ color: 'var(--color-text-dim)' }}>{key.replace('_', ' ')}</span>
+                      <span className="text-xs font-semibold capitalize" style={{ color: 'var(--color-accent-gold)' }}>{String(value)}</span>
                     </div>
                   ))
                 }
                 {profile.meta_programs && Object.values(profile.meta_programs).every(v => !v || v === 'unknown') && (
-                  <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Patterns will emerge as you chat daily</div>
+                  <div className="text-xs" style={{ color: 'var(--color-text-dim)' }}>Patterns emerge through daily sessions</div>
                 )}
               </div>
             </div>
 
             {/* Victim-Healer */}
             <div>
-              <div className="text-xs mb-2" style={{ color: 'var(--color-text-dim)' }}>Victim-Healer Spectrum</div>
+              <div className="text-xs font-semibold mb-2.5" style={{ color: 'var(--color-text-muted)' }}>Victim-Healer Spectrum</div>
               <div className="flex items-center gap-2">
-                <span className="text-xs" style={{ color: 'var(--color-status-error)' }}>Victim</span>
-                <div className="flex-1 h-2 rounded-full overflow-hidden relative" style={{ background: 'var(--color-brand-surface)' }}>
+                <span className="text-[10px] font-mono-brand" style={{ color: 'var(--color-status-error)' }}>V</span>
+                <div className="flex-1 h-1.5 rounded-full overflow-hidden relative" style={{ background: 'var(--color-brand-surface)' }}>
+                  <div className="absolute inset-0 rounded-full"
+                    style={{ background: 'linear-gradient(90deg, var(--color-status-error), var(--color-status-warning), var(--color-status-success))' , opacity: 0.3 }} />
                   <div
-                    className="absolute top-0 h-full w-1.5 rounded-full bg-white"
-                    style={{ left: `${((profile.victim_healer?.score || 0) + 5) * 10}%` }}
+                    className="absolute top-0 h-full w-2 rounded-full"
+                    style={{ left: `${((profile.victim_healer?.score || 0) + 5) * 10}%`, background: 'var(--color-accent-gold)' }}
                   />
                 </div>
-                <span className="text-xs" style={{ color: 'var(--color-status-success)' }}>Healer</span>
+                <span className="text-[10px] font-mono-brand" style={{ color: 'var(--color-status-success)' }}>H</span>
               </div>
-              {profile.victim_healer?.trending && profile.victim_healer.trending !== 'stable' && (
-                <div className="text-xs mt-1" style={{
+              {profile.victim_healer?.trending && (
+                <div className="text-[10px] mt-1.5 font-mono-brand" style={{
                   color: profile.victim_healer.trending === 'improving' ? 'var(--color-status-success)' : 'var(--color-status-warning)'
                 }}>
-                  Trending: {profile.victim_healer.trending}
+                  TREND: {profile.victim_healer.trending.toUpperCase()}
                 </div>
               )}
             </div>
 
             {/* Force Audit */}
             <div>
-              <div className="text-xs mb-2" style={{ color: 'var(--color-text-dim)' }}>Force vs. Influence</div>
-              <div className="space-y-2">
+              <div className="text-xs font-semibold mb-2.5" style={{ color: 'var(--color-text-muted)' }}>Force vs. Influence</div>
+              <div className="space-y-2.5">
                 {(['subtle', 'clean'] as const).map(key => {
                   const val = profile.force_audit?.[key] || 5;
                   const colors: Record<string, string> = {
@@ -289,11 +292,14 @@ export default function Dashboard() {
                     clean: 'var(--color-status-success)',
                   };
                   return (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="text-xs w-20 capitalize" style={{ color: 'var(--color-text-muted)' }}>
-                        {key === 'subtle' ? 'Subtle Force' : 'Clean Influence'}
-                      </span>
-                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-brand-surface)' }}>
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                          {key === 'subtle' ? 'Subtle Force' : 'Clean Influence'}
+                        </span>
+                        <span className="font-mono-brand text-xs" style={{ color: colors[key] }}>{val.toFixed(1)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-brand-surface)' }}>
                         <div className="h-full rounded-full" style={{ width: `${val * 10}%`, background: colors[key] }} />
                       </div>
                     </div>
@@ -305,46 +311,45 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Congruence Wheel */}
+      {/* ── Congruence Wheel ── */}
       {profile?.congruence && (
-        <div className="glass-card p-5 mb-6">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-secondary)' }}>Life Congruence</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="brand-card p-5 mb-6">
+          <h2 className="text-uppercase-spaced mb-4" style={{ color: 'var(--color-text-dim)' }}>Congruence Index</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Object.entries(profile.congruence).map(([domain, score]) => (
               <div key={domain} className="text-center">
-                <div className="relative w-12 h-12 mx-auto mb-1">
-                  <svg viewBox="0 0 36 36" className="w-12 h-12">
+                <div className="relative w-14 h-14 mx-auto mb-2">
+                  <svg viewBox="0 0 36 36" className="w-14 h-14">
                     <path
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="var(--color-brand-surface)"
-                      strokeWidth="3"
+                      fill="none" stroke="var(--color-brand-surface)" strokeWidth="2.5"
                     />
                     <path
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="var(--color-accent-cyan)"
-                      strokeWidth="3"
+                      fill="none" stroke="var(--color-accent-gold)" strokeWidth="2.5"
                       strokeDasharray={`${(Number(score) / 10) * 100}, 100`}
+                      strokeLinecap="round"
                     />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
+                  <span className="absolute inset-0 flex items-center justify-center font-mono-brand text-sm font-bold text-white">
                     {Number(score).toFixed(0)}
                   </span>
                 </div>
-                <div className="text-xs capitalize" style={{ color: 'var(--color-text-dim)' }}>{domain.replace('_', ' ')}</div>
+                <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--color-text-dim)' }}>
+                  {domain.replace('_', ' ')}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Achievements */}
+      {/* ── Achievements ── */}
       {achievements.length > 0 && (
-        <div className="glass-card p-5 mb-6">
+        <div className="brand-card p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Achievements</h2>
-            <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+            <h2 className="text-uppercase-spaced" style={{ color: 'var(--color-text-dim)' }}>Achievements</h2>
+            <span className="font-mono-brand text-xs" style={{ color: 'var(--color-text-dim)' }}>
               {achievements.filter(a => a.unlocked).length}/{achievements.length}
             </span>
           </div>
@@ -354,47 +359,52 @@ export default function Dashboard() {
             ))}
           </div>
           {achievements.length > 9 && (
-            <button className="w-full text-center text-xs mt-3 py-2 rounded-lg transition-colors"
-              style={{ color: 'var(--color-accent-cyan)' }}>
+            <button className="w-full text-center text-xs mt-3 py-2 rounded-lg transition-colors font-semibold"
+              style={{ color: 'var(--color-accent-gold)' }}>
               View all {achievements.length} achievements
             </button>
           )}
         </div>
       )}
 
-      {/* Recent Sessions */}
+      {/* ── Recent Sessions ── */}
       {sessions.length > 0 && (
-        <div className="glass-card p-5">
-          <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--color-text-secondary)' }}>Recent Sessions</h2>
-          <div className="space-y-3">
+        <div className="brand-card p-5">
+          <h2 className="text-uppercase-spaced mb-4" style={{ color: 'var(--color-text-dim)' }}>Session Log</h2>
+          <div className="space-y-2">
             {sessions.map(s => (
-              <div key={s.id} className="flex items-start gap-3 p-3 rounded-xl transition-colors"
-                style={{ background: 'var(--color-brand-surface)' }}>
-                <div className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold"
-                  style={{ background: 'var(--color-accent-cyan-glow)', color: 'var(--color-accent-cyan)' }}>
-                  {new Date(s.date_key + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+              <div key={s.id} className="flex items-start gap-3 p-3 rounded-lg transition-colors"
+                style={{ background: 'var(--color-brand-surface)', border: '1px solid var(--color-brand-border)' }}>
+                <div className="shrink-0 w-10 h-10 rounded-lg flex flex-col items-center justify-center"
+                  style={{ background: 'var(--color-accent-gold-deep)', border: '1px solid rgba(212,168,83,0.15)' }}>
+                  <span className="font-mono-brand text-[10px] font-bold" style={{ color: 'var(--color-accent-gold)' }}>
+                    {new Date(s.date_key + 'T12:00:00').toLocaleDateString('en', { day: 'numeric' })}
+                  </span>
+                  <span className="text-[8px] uppercase" style={{ color: 'var(--color-text-dim)' }}>
+                    {new Date(s.date_key + 'T12:00:00').toLocaleDateString('en', { month: 'short' })}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   {s.chat_summary && (
                     <p className="text-sm line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>{s.chat_summary}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     {s.detected_map && (
-                      <span className="text-xs px-2 py-0.5 rounded"
-                        style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-muted)' }}>
+                      <span className="text-[10px] px-2 py-0.5 rounded font-medium"
+                        style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-muted)', border: '1px solid var(--color-brand-border)' }}>
                         {mapLabels[s.detected_map] || s.detected_map}
                       </span>
                     )}
                     {s.detected_state && stateLabels[s.detected_state] && (
-                      <span className="text-xs" style={{ color: stateLabels[s.detected_state].color }}>
+                      <span className="text-[10px] font-semibold" style={{ color: stateLabels[s.detected_state].color }}>
                         {stateLabels[s.detected_state].label}
                       </span>
                     )}
                     {s.key_themes?.length > 0 && s.key_themes.slice(0, 2).map((t, i) => (
-                      <span key={i} className="text-xs" style={{ color: 'var(--color-text-dim)' }}>#{t}</span>
+                      <span key={i} className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>#{t}</span>
                     ))}
                     {s.user_rating && (
-                      <span className="text-xs" style={{ color: 'var(--color-accent-gold)' }}>{'★'.repeat(s.user_rating)}</span>
+                      <span className="text-[10px]" style={{ color: 'var(--color-accent-gold)' }}>{'★'.repeat(s.user_rating)}</span>
                     )}
                   </div>
                 </div>
@@ -402,9 +412,9 @@ export default function Dashboard() {
             ))}
           </div>
           {sessions.length >= 7 && (
-            <Link to="/sessions" className="block text-center text-sm mt-3 transition-colors"
-              style={{ color: 'var(--color-accent-cyan)' }}>
-              View all sessions
+            <Link to="/sessions" className="block text-center text-xs mt-3 font-semibold transition-colors"
+              style={{ color: 'var(--color-accent-gold)' }}>
+              View full session log
             </Link>
           )}
         </div>

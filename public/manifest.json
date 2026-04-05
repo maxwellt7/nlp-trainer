@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0e1a",
-  "theme_color": "#0a0e1a",
+  "background_color": "#0B0F19",
+  "theme_color": "#0B0F19",
   "categories": ["health", "lifestyle", "productivity"],
   "icons": [
     {
@@ -59,14 +59,14 @@
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "New Session",
+      "name": "Begin Session",
       "short_name": "Session",
       "url": "/hypnosis",
       "description": "Start a new coaching session"
     },
     {
-      "name": "Dashboard",
-      "short_name": "Home",
+      "name": "Command Center",
+      "short_name": "Command",
       "url": "/",
       "description": "View your progress dashboard"
     }

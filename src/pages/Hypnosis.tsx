@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import XpPopup from '../components/XpPopup';
@@ -48,10 +48,10 @@ function renderScript(script: string) {
     } else {
       const seconds = parts[i];
       elements.push(
-        <div key={`b${i}`} className="flex items-center gap-2 my-2">
-          <span className="flex-1 border-t" style={{ borderColor: 'var(--color-brand-border)' }} />
-          <span className="text-[10px] shrink-0" style={{ color: 'var(--color-text-dim)' }}>{seconds}s</span>
-          <span className="flex-1 border-t" style={{ borderColor: 'var(--color-brand-border)' }} />
+        <div key={`b${i}`} className="flex items-center gap-2 my-3">
+          <span className="flex-1 gold-accent-line" />
+          <span className="font-mono-brand text-[10px] shrink-0" style={{ color: 'var(--color-text-dim)' }}>{seconds}s</span>
+          <span className="flex-1 gold-accent-line" />
         </div>
       );
     }
@@ -87,12 +87,10 @@ export default function Hypnosis() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initCalled = useRef(false);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current;
     if (ta) {
@@ -101,11 +99,9 @@ export default function Hypnosis() {
     }
   }, [input]);
 
-  // Auto-init: call /init on mount to get the AI's opening message
   useEffect(() => {
     if (initCalled.current) return;
     initCalled.current = true;
-
     async function initSession() {
       setInitializing(true);
       try {
@@ -133,7 +129,6 @@ export default function Hypnosis() {
     setMessages(updated);
     setLoading(true);
     setError(null);
-
     try {
       const data = await api.hypnosisChat(
         updated.map(m => ({ role: m.role, content: m.content })),
@@ -156,13 +151,10 @@ export default function Hypnosis() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading || generating || readyToGenerate) return;
-    // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(20);
     sendMessage(input.trim());
     setInput('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const generateScript = async () => {
@@ -184,22 +176,14 @@ export default function Hypnosis() {
         setMusicTracks(musicData.tracks || []);
         if (musicData.tracks?.length > 0) setSelectedMusic(musicData.tracks[0].filename);
       } catch { /* music is optional */ }
-
-      // Handle gamification results
       if (data.gamification) {
         const gam = data.gamification;
         if (gam.xpEvents && gam.xpEvents.length > 0) {
-          setXpPopupData({
-            xpEvents: gam.xpEvents,
-            levelUp: gam.levelUp,
-          });
+          setXpPopupData({ xpEvents: gam.xpEvents, levelUp: gam.levelUp });
           setShowXpPopup(true);
         }
-        if (gam.mysteryBox) {
-          setMysteryBoxData(gam.mysteryBox);
-        }
+        if (gam.mysteryBox) setMysteryBoxData(gam.mysteryBox);
       }
-
       setState('script');
     } catch (err: any) {
       setError(err.message || 'Failed to generate script');
@@ -288,65 +272,55 @@ export default function Hypnosis() {
   if (state === 'script' && scriptResult) {
     return (
       <div className="p-4 sm:p-8 max-w-3xl mx-auto pb-24">
-        {/* XP Popup */}
         {showXpPopup && xpPopupData && (
-          <XpPopup
-            xpEvents={xpPopupData.xpEvents}
-            levelUp={xpPopupData.levelUp}
-            onDismiss={() => setShowXpPopup(false)}
-          />
+          <XpPopup xpEvents={xpPopupData.xpEvents} levelUp={xpPopupData.levelUp} onDismiss={() => setShowXpPopup(false)} />
         )}
 
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-white">{scriptResult.title}</h1>
-        {scriptResult.sessionSummary && (
-          <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>{scriptResult.sessionSummary}</p>
-        )}
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <span className="px-3 py-1 rounded-full text-sm"
-            style={{
-              background: scriptResult.duration === 'full' ? 'var(--color-accent-cyan-glow)' : 'rgba(52, 211, 153, 0.15)',
-              color: scriptResult.duration === 'full' ? 'var(--color-accent-cyan)' : 'var(--color-status-success)',
-            }}>
-            {scriptResult.duration === 'full' ? 'Full Session' : 'Short Script'} &mdash; ~{scriptResult.estimatedMinutes} min
+        <div className="mb-6">
+          <p className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-accent-gold)' }}>Session Complete</p>
+          <h1 className="font-display text-2xl sm:text-3xl text-white mb-2">{scriptResult.title}</h1>
+          {scriptResult.sessionSummary && (
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{scriptResult.sessionSummary}</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          <span className="pill pill-active font-mono-brand text-xs">
+            {scriptResult.duration === 'full' ? 'FULL' : 'SHORT'} &mdash; ~{scriptResult.estimatedMinutes}m
           </span>
           {scriptResult.keyThemes?.map((t, i) => (
-            <span key={i} className="px-2 py-1 rounded-full text-xs"
-              style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-muted)' }}>#{t}</span>
+            <span key={i} className="pill pill-inactive text-xs">#{t}</span>
           ))}
         </div>
 
-        {/* Mystery Box Reward */}
         {mysteryBoxData && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-muted)' }}>
-              Session Reward
-            </h3>
+            <h3 className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-text-dim)' }}>Session Reward</h3>
             <MysteryBox box={mysteryBoxData} />
           </div>
         )}
 
         {(profileInsights.detected_map || profileInsights.detected_state) && (
-          <div className="glass-card p-4 mb-6">
-            <div className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-muted)' }}>Session Insights</div>
-            <div className="flex gap-3 flex-wrap">
+          <div className="brand-card p-4 mb-6">
+            <div className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-text-dim)' }}>Intel Detected</div>
+            <div className="flex gap-2 flex-wrap">
               {profileInsights.detected_map && (
-                <span className="text-xs px-2 py-1 rounded"
-                  style={{ background: 'var(--color-accent-cyan-glow)', color: 'var(--color-accent-cyan)' }}>
-                  Active Map: {mapLabels[profileInsights.detected_map] || profileInsights.detected_map}
+                <span className="pill pill-inactive text-xs">
+                  Map: {mapLabels[profileInsights.detected_map] || profileInsights.detected_map}
                 </span>
               )}
               {profileInsights.detected_state && (
-                <span className="text-xs px-2 py-1 rounded"
+                <span className="text-xs px-3 py-1.5 rounded-full font-semibold"
                   style={{
-                    background: profileInsights.detected_state === 'capacity' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(251, 191, 36, 0.15)',
+                    background: profileInsights.detected_state === 'capacity' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(245, 158, 11, 0.12)',
                     color: profileInsights.detected_state === 'capacity' ? 'var(--color-status-success)' : 'var(--color-status-warning)',
+                    border: `1px solid ${profileInsights.detected_state === 'capacity' ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)'}`,
                   }}>
                   State: {profileInsights.detected_state}
                 </span>
               )}
               {profileInsights.force_pattern && (
-                <span className="text-xs px-2 py-1 rounded"
-                  style={{ background: 'var(--color-accent-gold-glow)', color: 'var(--color-accent-gold)' }}>
+                <span className="pill pill-inactive text-xs" style={{ color: 'var(--color-accent-gold)', borderColor: 'rgba(212,168,83,0.2)' }}>
                   Pattern: {profileInsights.force_pattern} force
                 </span>
               )}
@@ -354,32 +328,31 @@ export default function Hypnosis() {
           </div>
         )}
 
-        <div className="glass-card p-4 sm:p-8 mb-6 text-sm sm:text-base leading-loose font-serif"
-          style={{ color: 'var(--color-text-primary)' }}>
+        <div className="brand-card p-5 sm:p-8 mb-6 text-sm sm:text-base leading-loose"
+          style={{ color: 'var(--color-text-primary)', fontFamily: 'Georgia, serif' }}>
           {renderScript(scriptResult.script)}
         </div>
 
         {error && (
-          <div className="rounded-xl px-6 py-3 text-sm mb-4"
-            style={{ background: 'rgba(248, 113, 113, 0.1)', border: '1px solid rgba(248, 113, 113, 0.3)', color: 'var(--color-status-error)' }}>
+          <div className="rounded-lg px-5 py-3 text-sm mb-4"
+            style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--color-status-error)' }}>
             {error}
           </div>
         )}
 
         {!ratingSubmitted && (
-          <div className="glass-card p-4 mb-6">
-            <div className="text-sm mb-2" style={{ color: 'var(--color-text-secondary)' }}>How was this session?</div>
+          <div className="brand-card p-4 mb-6">
+            <div className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-muted)' }}>Rate this session</div>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map(n => (
                 <button key={n} onClick={() => { setSessionRating(n); if (navigator.vibrate) navigator.vibrate(15); }}
-                  className="text-2xl transition-all"
+                  className="text-2xl transition-all haptic-tap"
                   style={{ color: n <= sessionRating ? 'var(--color-accent-gold)' : 'var(--color-brand-border)' }}>
                   ★
                 </button>
               ))}
               {sessionRating > 0 && (
-                <button onClick={submitRating}
-                  className="ml-3 text-sm rounded-lg px-3 py-1 btn-primary">
+                <button onClick={submitRating} className="ml-3 text-sm rounded-lg px-4 py-1.5 btn-primary">
                   Submit
                 </button>
               )}
@@ -387,29 +360,28 @@ export default function Hypnosis() {
           </div>
         )}
         {ratingSubmitted && (
-          <div className="rounded-xl px-4 py-2 text-sm mb-6"
-            style={{ background: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.3)', color: 'var(--color-status-success)' }}>
-            Thank you for your feedback!
+          <div className="rounded-lg px-4 py-2 text-sm mb-6"
+            style={{ background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.2)', color: 'var(--color-status-success)' }}>
+            Rating recorded.
           </div>
         )}
 
         <div className="flex gap-3 flex-wrap">
           <button onClick={copyScript}
-            className="rounded-xl px-6 py-3 font-medium transition-colors haptic-tap"
+            className="rounded-lg px-5 py-2.5 font-semibold text-sm transition-colors haptic-tap"
             style={{
-              background: copied ? 'var(--color-status-success)' : 'linear-gradient(135deg, var(--color-accent-cyan-dim), var(--color-accent-cyan))',
+              background: copied ? 'var(--color-status-success)' : 'linear-gradient(135deg, var(--color-accent-blue-dim), var(--color-accent-blue))',
               color: 'white',
             }}>
-            {copied ? 'Copied!' : 'Copy Script'}
+            {copied ? 'Copied' : 'Copy Script'}
           </button>
           {savedScriptId && !audioGenerated && (
             <div className="flex items-center gap-3 flex-wrap">
               {musicTracks.length > 0 && (
                 <>
                   <select value={selectedMusic} onChange={e => setSelectedMusic(e.target.value)}
-                    className="rounded-lg px-3 py-2 text-sm"
-                    style={{ background: 'var(--color-brand-card)', border: '1px solid var(--color-brand-border)', color: 'var(--color-text-primary)' }}>
-                    <option value="">No background music</option>
+                    className="brand-input text-sm rounded-lg">
+                    <option value="">No music</option>
                     {musicTracks.map((t: any) => (
                       <option key={t.filename} value={t.filename}>{t.name}</option>
                     ))}
@@ -419,32 +391,26 @@ export default function Hypnosis() {
                       Vol
                       <input type="range" min="0.05" max="0.4" step="0.05" value={musicVolume}
                         onChange={e => setMusicVolume(parseFloat(e.target.value))}
-                        className="w-20" style={{ accentColor: 'var(--color-accent-violet)' }} />
+                        className="w-20" style={{ accentColor: 'var(--color-accent-gold)' }} />
                       {Math.round(musicVolume * 100)}%
                     </label>
                   )}
                 </>
               )}
               <button onClick={generateAudio} disabled={generatingAudio}
-                className="rounded-xl px-6 py-3 font-medium transition-colors haptic-tap disabled:opacity-50"
-                style={{
-                  background: generatingAudio ? 'var(--color-brand-card)' : 'linear-gradient(135deg, var(--color-accent-violet-dim), var(--color-accent-violet))',
-                  color: 'white',
-                }}>
-                {generatingAudio ? 'Generating Audio...' : 'Generate Audio'}
+                className="rounded-lg px-5 py-2.5 font-semibold text-sm transition-colors haptic-tap disabled:opacity-50 btn-primary">
+                {generatingAudio ? 'Generating...' : 'Generate Audio'}
               </button>
             </div>
           )}
           {audioGenerated && (
             <Link to="/audios"
-              className="rounded-xl px-6 py-3 font-medium transition-colors inline-block"
+              className="rounded-lg px-5 py-2.5 font-semibold text-sm inline-block"
               style={{ background: 'var(--color-status-success)', color: 'white' }}>
-              View in Audios
+              View in Audio
             </Link>
           )}
-          <button onClick={reset}
-            className="rounded-xl px-6 py-3 font-medium transition-colors haptic-tap"
-            style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-primary)', border: '1px solid var(--color-brand-border)' }}>
+          <button onClick={reset} className="rounded-lg px-5 py-2.5 font-semibold text-sm btn-ghost haptic-tap">
             New Session
           </button>
         </div>
@@ -452,54 +418,58 @@ export default function Hypnosis() {
     );
   }
 
-  // ── Coaching Chat (main view — fills available space) ──
+  // ── Coaching Chat ──
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Minimal header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ flexShrink: 0, background: 'var(--color-brand-deep)', borderColor: 'var(--color-brand-border)' }}>
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm text-white">Daily Coaching</span>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5"
+        style={{
+          flexShrink: 0,
+          background: 'var(--color-brand-deep)',
+          borderBottom: '1px solid var(--color-brand-border)',
+        }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-2 h-2 rounded-full animate-breathe-subtle" style={{ background: 'var(--color-accent-gold)' }} />
+          <span className="text-sm font-semibold text-white">Session Active</span>
           {profileInsights.detected_map && (
-            <span className="text-xs px-2 py-0.5 rounded"
-              style={{ background: 'var(--color-accent-cyan-glow)', color: 'var(--color-accent-cyan)' }}>
+            <span className="pill pill-inactive text-[10px] py-0.5 px-2">
               {mapLabels[profileInsights.detected_map] || profileInsights.detected_map}
             </span>
           )}
         </div>
         <button onClick={reset}
-          className="rounded-lg px-3 py-1 text-xs font-medium transition-colors haptic-tap"
-          style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-brand-border)' }}>
-          New
+          className="rounded-md px-3 py-1 text-xs font-semibold transition-colors haptic-tap btn-ghost">
+          Reset
         </button>
       </div>
 
-      {/* Messages area */}
+      {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="p-3 space-y-3">
         {initializing && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-[85%]"
+            <div className="rounded-xl rounded-tl-sm px-4 py-3 text-sm max-w-[85%]"
               style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-muted)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 rounded-full animate-spin"
-                  style={{ borderColor: 'var(--color-accent-cyan)', borderTopColor: 'transparent' }} />
-                <span>Starting your session...</span>
+                  style={{ borderColor: 'var(--color-accent-gold)', borderTopColor: 'transparent' }} />
+                <span>Initializing session...</span>
               </div>
             </div>
           </div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
             <div
-              className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+              className="max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed"
               style={{
                 background: msg.role === 'user'
-                  ? 'linear-gradient(135deg, var(--color-accent-cyan-dim), rgba(34, 211, 238, 0.4))'
+                  ? 'linear-gradient(135deg, var(--color-accent-gold-dim), rgba(212, 168, 83, 0.35))'
                   : 'var(--color-brand-card)',
-                color: 'var(--color-text-primary)',
+                color: msg.role === 'user' ? 'var(--color-text-primary)' : 'var(--color-text-primary)',
                 borderTopRightRadius: msg.role === 'user' ? '4px' : undefined,
                 borderTopLeftRadius: msg.role === 'assistant' ? '4px' : undefined,
+                border: msg.role === 'user' ? '1px solid rgba(212,168,83,0.2)' : '1px solid var(--color-brand-border)',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 overflowWrap: 'anywhere',
@@ -512,12 +482,12 @@ export default function Hypnosis() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm max-w-[85%]"
-              style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-muted)' }}>
+            <div className="rounded-xl rounded-tl-sm px-4 py-3 text-sm max-w-[85%]"
+              style={{ background: 'var(--color-brand-card)', color: 'var(--color-text-muted)', border: '1px solid var(--color-brand-border)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 border-2 rounded-full animate-spin"
-                  style={{ borderColor: 'var(--color-accent-cyan)', borderTopColor: 'transparent' }} />
-                <span>Thinking...</span>
+                  style={{ borderColor: 'var(--color-accent-gold)', borderTopColor: 'transparent' }} />
+                <span>Processing...</span>
               </div>
             </div>
           </div>
@@ -526,20 +496,16 @@ export default function Hypnosis() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Create Audio CTA — appears when coaching is complete, with breathing animation */}
+      {/* Generate CTA */}
       {readyToGenerate && !generating && (
-        <div className="px-4 py-3 border-t"
+        <div className="px-4 py-3"
           style={{
             flexShrink: 0,
-            background: 'linear-gradient(135deg, var(--color-brand-deep), rgba(14, 116, 144, 0.2))',
-            borderColor: 'var(--color-accent-cyan-dim)',
+            background: 'linear-gradient(135deg, var(--color-brand-deep), rgba(160, 125, 58, 0.1))',
+            borderTop: '1px solid var(--color-accent-gold-dim)',
           }}>
           <button onClick={generateScript}
-            className="w-full rounded-xl px-6 py-3.5 font-semibold text-base transition-all active:scale-[0.98] animate-breathe haptic-tap"
-            style={{
-              background: 'linear-gradient(135deg, var(--color-accent-cyan-dim), var(--color-accent-cyan))',
-              color: 'white',
-            }}>
+            className="w-full rounded-xl px-6 py-3.5 font-bold text-base transition-all active:scale-[0.98] animate-breathe haptic-tap btn-primary">
             Create Audio
           </button>
         </div>
@@ -547,21 +513,21 @@ export default function Hypnosis() {
 
       {/* Generating state */}
       {generating && (
-        <div className="border-t px-4 py-3"
-          style={{ flexShrink: 0, background: 'var(--color-brand-deep)', borderColor: 'var(--color-brand-border)' }}>
+        <div className="px-4 py-3"
+          style={{ flexShrink: 0, background: 'var(--color-brand-deep)', borderTop: '1px solid var(--color-brand-border)' }}>
           <div className="flex items-center justify-center gap-3" style={{ color: 'var(--color-text-secondary)' }}>
             <div className="w-5 h-5 border-2 rounded-full animate-spin"
-              style={{ borderColor: 'var(--color-accent-cyan)', borderTopColor: 'transparent' }} />
-            <span className="text-sm font-medium">Creating your personalized hypnosis script...</span>
+              style={{ borderColor: 'var(--color-accent-gold)', borderTopColor: 'transparent' }} />
+            <span className="text-sm font-medium">Generating your personalized script...</span>
           </div>
         </div>
       )}
 
-      {/* Input area */}
+      {/* Input */}
       {!readyToGenerate && !generating && (
         <form onSubmit={handleSubmit}
-          className="border-t px-3 py-2 flex gap-2 items-end"
-          style={{ flexShrink: 0, background: 'var(--color-brand-midnight)', borderColor: 'var(--color-brand-border)' }}>
+          className="px-3 py-2.5 flex gap-2 items-end"
+          style={{ flexShrink: 0, background: 'var(--color-brand-midnight)', borderTop: '1px solid var(--color-brand-border)' }}>
           <textarea
             ref={textareaRef}
             value={input}
@@ -569,25 +535,18 @@ export default function Hypnosis() {
             placeholder={initializing ? 'Starting session...' : 'Type your message...'}
             disabled={loading || initializing}
             rows={1}
-            className="flex-1 rounded-xl px-4 py-2.5 text-sm placeholder-opacity-50 focus:outline-none disabled:opacity-50 resize-none leading-relaxed"
-            style={{
-              background: 'var(--color-brand-card)',
-              border: '1px solid var(--color-brand-border)',
-              color: 'var(--color-text-primary)',
-              minHeight: '42px',
-              maxHeight: '120px',
-              wordBreak: 'break-word',
-              overflowWrap: 'anywhere',
-            }}
+            className="brand-input flex-1 resize-none leading-relaxed"
+            style={{ minHeight: '42px', maxHeight: '120px', borderRadius: 'var(--radius-button)' }}
           />
           <button type="submit"
             disabled={!input.trim() || loading || initializing}
-            className="rounded-xl px-4 py-2.5 text-sm font-medium transition-colors shrink-0 disabled:opacity-30 haptic-tap"
+            className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors shrink-0 disabled:opacity-30 haptic-tap"
             style={{
               background: !input.trim() || loading || initializing
                 ? 'var(--color-brand-card)'
-                : 'linear-gradient(135deg, var(--color-accent-cyan-dim), var(--color-accent-cyan))',
-              color: 'white',
+                : 'linear-gradient(135deg, var(--color-accent-gold-dim), var(--color-accent-gold))',
+              color: !input.trim() || loading || initializing ? 'var(--color-text-dim)' : 'var(--color-brand-midnight)',
+              border: '1px solid var(--color-brand-border)',
             }}>
             Send
           </button>
@@ -595,11 +554,11 @@ export default function Hypnosis() {
       )}
 
       {error && (
-        <div className="border-t px-4 py-2 text-sm"
+        <div className="px-4 py-2 text-sm"
           style={{
             flexShrink: 0,
-            background: 'rgba(248, 113, 113, 0.1)',
-            borderColor: 'rgba(248, 113, 113, 0.3)',
+            background: 'rgba(239, 68, 68, 0.08)',
+            borderTop: '1px solid rgba(239, 68, 68, 0.2)',
             color: 'var(--color-status-error)',
           }}>
           {error}

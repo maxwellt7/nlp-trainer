@@ -14,41 +14,40 @@ interface MysteryBoxProps {
   onOpened?: (box: any) => void;
 }
 
-const rarityConfig: Record<string, { label: string; color: string; bg: string; glow: string; icon: string }> = {
+const rarityConfig: Record<string, { label: string; color: string; bg: string; glow: string; border: string }> = {
   common: {
     label: 'Common',
     color: 'var(--color-rarity-common)',
-    bg: 'rgba(148, 163, 184, 0.1)',
-    glow: 'rgba(148, 163, 184, 0.15)',
-    icon: '✧',
+    bg: 'rgba(100, 116, 139, 0.08)',
+    glow: 'rgba(100, 116, 139, 0.12)',
+    border: 'rgba(100, 116, 139, 0.25)',
   },
   uncommon: {
     label: 'Uncommon',
     color: 'var(--color-rarity-uncommon)',
-    bg: 'rgba(34, 211, 238, 0.1)',
-    glow: 'rgba(34, 211, 238, 0.2)',
-    icon: '✦',
+    bg: 'rgba(59, 130, 246, 0.08)',
+    glow: 'rgba(59, 130, 246, 0.15)',
+    border: 'rgba(59, 130, 246, 0.25)',
   },
   rare: {
     label: 'Rare',
     color: 'var(--color-rarity-rare)',
-    bg: 'rgba(167, 139, 250, 0.1)',
-    glow: 'rgba(167, 139, 250, 0.25)',
-    icon: '◆',
+    bg: 'rgba(139, 92, 246, 0.08)',
+    glow: 'rgba(139, 92, 246, 0.2)',
+    border: 'rgba(139, 92, 246, 0.3)',
   },
   legendary: {
     label: 'Legendary',
     color: 'var(--color-rarity-legendary)',
-    bg: 'rgba(251, 191, 36, 0.1)',
-    glow: 'rgba(251, 191, 36, 0.3)',
-    icon: '★',
+    bg: 'rgba(212, 168, 83, 0.08)',
+    glow: 'rgba(212, 168, 83, 0.25)',
+    border: 'rgba(212, 168, 83, 0.35)',
   },
 };
 
 function parseRewardContent(content: string, type: string) {
   try {
-    const parsed = JSON.parse(content);
-    return parsed;
+    return JSON.parse(content);
   } catch {
     return content;
   }
@@ -64,10 +63,7 @@ export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
   const handleOpen = async () => {
     if (opening || revealed) return;
     setOpening(true);
-
-    // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(50);
-
     try {
       const result = await api.openMysteryBox(box.id);
       setTimeout(() => {
@@ -90,33 +86,37 @@ export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
         className={`w-full text-left transition-all duration-300 haptic-tap ${opening ? 'animate-mystery-glow' : ''}`}
         style={{
           background: config.bg,
-          border: `1px solid ${config.color}`,
+          border: `1px solid ${config.border}`,
           borderRadius: 'var(--radius-card)',
-          padding: '16px',
-          boxShadow: `0 0 ${opening ? '30px' : '15px'} ${config.glow}`,
+          padding: '14px 16px',
+          boxShadow: `0 0 ${opening ? '25px' : '12px'} ${config.glow}`,
         }}
       >
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${opening ? 'animate-mystery-glow' : 'animate-breathe-subtle'}`}
-            style={{ background: config.bg, border: `1px solid ${config.color}` }}>
-            {opening ? '✨' : '🔮'}
+          <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${opening ? 'animate-mystery-glow' : 'animate-breathe-subtle'}`}
+            style={{ background: config.bg, border: `1px solid ${config.border}` }}>
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+              style={{ color: config.color }}>
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-sm font-semibold" style={{ color: config.color }}>
-                Sealed Insight
-              </span>
-              <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}` }}>
-                {config.icon} {config.label}
+              <span className="text-sm font-semibold" style={{ color: config.color }}>Sealed Intel</span>
+              <span className="text-uppercase-spaced px-1.5 py-0.5 rounded"
+                style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}`, fontSize: '0.55rem' }}>
+                {config.label}
               </span>
             </div>
-            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              {opening ? 'Revealing your insight...' : 'Tap to reveal your reward'}
+            <p className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+              {opening ? 'Decrypting...' : 'Tap to decrypt'}
             </p>
           </div>
           {!opening && (
-            <span className="text-2xl animate-breathe-subtle">🎁</span>
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
+              className="animate-breathe-subtle" style={{ color: config.color }}>
+              <path d="M9 5l7 7-7 7" />
+            </svg>
           )}
         </div>
       </button>
@@ -128,22 +128,18 @@ export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
     <div className="animate-float-up"
       style={{
         background: config.bg,
-        border: `1px solid ${config.color}`,
+        border: `1px solid ${config.border}`,
         borderRadius: 'var(--radius-card)',
         padding: '16px',
         boxShadow: `0 0 20px ${config.glow}`,
       }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-lg">{config.icon}</span>
-        <span className="text-sm font-semibold" style={{ color: config.color }}>
-          {box.reward_title}
-        </span>
-        <span className="text-xs px-1.5 py-0.5 rounded-full"
-          style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}` }}>
+        <span className="text-sm font-semibold" style={{ color: config.color }}>{box.reward_title}</span>
+        <span className="text-uppercase-spaced px-1.5 py-0.5 rounded"
+          style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}`, fontSize: '0.55rem' }}>
           {config.label}
         </span>
       </div>
-
       <div className="text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
         {renderRewardContent(rewardContent, box.reward_type)}
       </div>
@@ -154,43 +150,39 @@ export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
 function renderRewardContent(content: any, type: string) {
   if (!content) return <p style={{ color: 'var(--color-text-muted)' }}>Content unavailable</p>;
 
-  // String content (affirmation, reflection, deep_pattern, breakthrough)
   if (typeof content === 'string') {
-    return <p className="italic">{content}</p>;
+    return <p className="italic" style={{ color: 'var(--color-text-secondary)' }}>{content}</p>;
   }
 
-  // Quote object
   if (content.text && content.author) {
     return (
       <div>
-        <p className="italic mb-2">"{content.text}"</p>
-        <p className="text-xs text-right" style={{ color: 'var(--color-text-muted)' }}>— {content.author}</p>
+        <p className="italic mb-2" style={{ color: 'var(--color-text-secondary)' }}>"{content.text}"</p>
+        <p className="text-xs text-right font-mono-brand" style={{ color: 'var(--color-text-dim)' }}>— {content.author}</p>
       </div>
     );
   }
 
-  // Micro-framework
   if (content.name && content.content) {
     return (
       <div>
-        <p className="font-semibold mb-1" style={{ color: 'var(--color-accent-cyan)' }}>{content.name}</p>
-        <p>{content.content}</p>
+        <p className="font-semibold mb-1" style={{ color: 'var(--color-accent-gold)' }}>{content.name}</p>
+        <p style={{ color: 'var(--color-text-secondary)' }}>{content.content}</p>
         {content.duration && (
-          <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>{content.duration}</p>
+          <p className="text-xs mt-2 font-mono-brand" style={{ color: 'var(--color-text-dim)' }}>{content.duration}</p>
         )}
       </div>
     );
   }
 
-  // Value constellation
   if (content.type === 'value_constellation') {
     return (
       <div>
-        <p className="mb-2">{content.description}</p>
+        <p className="mb-2" style={{ color: 'var(--color-text-secondary)' }}>{content.description}</p>
         <div className="flex gap-2 flex-wrap">
           {content.values?.map((v: string, i: number) => (
-            <span key={i} className="text-xs px-2 py-1 rounded-full"
-              style={{ background: 'var(--color-accent-violet-glow)', color: 'var(--color-accent-violet)' }}>
+            <span key={i} className="text-xs px-2 py-1 rounded font-medium"
+              style={{ background: 'var(--color-accent-gold-deep)', color: 'var(--color-accent-gold)', border: '1px solid rgba(212,168,83,0.2)' }}>
               {v}
             </span>
           ))}
@@ -199,19 +191,17 @@ function renderRewardContent(content: any, type: string) {
     );
   }
 
-  // Masterclass
   if (content.type === 'masterclass') {
     return (
       <div>
         <p className="font-semibold mb-1" style={{ color: 'var(--color-accent-gold)' }}>{content.title}</p>
-        <p>{content.content}</p>
+        <p style={{ color: 'var(--color-text-secondary)' }}>{content.content}</p>
         {content.duration && (
-          <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>{content.duration}</p>
+          <p className="text-xs mt-2 font-mono-brand" style={{ color: 'var(--color-text-dim)' }}>{content.duration}</p>
         )}
       </div>
     );
   }
 
-  // Fallback
-  return <p>{JSON.stringify(content)}</p>;
+  return <p style={{ color: 'var(--color-text-secondary)' }}>{JSON.stringify(content)}</p>;
 }
