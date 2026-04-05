@@ -14,6 +14,8 @@ import Insights from './pages/Insights';
 import Identity from './pages/Identity';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
+import OfflineBanner from './components/OfflineBanner';
 
 function ProtectedRoutes() {
   return (
@@ -102,7 +104,9 @@ const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 function App() {
   return (
     <BrowserRouter>
+      <OfflineBanner />
       {HAS_CLERK ? <ClerkAppContent /> : <UnauthenticatedApp />}
+      <PwaInstallPrompt />
     </BrowserRouter>
   );
 }
