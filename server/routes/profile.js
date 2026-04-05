@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ensureDefaultUser, getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
+import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
 import { getAllSessions, getRecentSessions, getTodaySession, getSession, updateSessionMetadata } from '../services/memory.js';
 
 const router = Router();
@@ -12,12 +13,22 @@ router.get('/', (req, res) => {
     const streak = getStreak(userId);
     const todaySession = getTodaySession(userId);
 
+    // Get gamification data
+    let xp = null;
+    let unopenedBoxes = 0;
+    try {
+      xp = getUserXp(userId);
+      unopenedBoxes = getUnopenedBoxes(userId).length;
+    } catch { /* gamification optional */ }
+
     res.json({
       userId,
       profile,
       streak,
       hasSessionToday: !!todaySession,
       todaySessionId: todaySession?.id || null,
+      xp,
+      unopenedBoxes,
     });
   } catch (error) {
     console.error('Error getting profile:', error.message);

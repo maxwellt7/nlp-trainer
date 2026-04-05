@@ -6,6 +6,7 @@ import anthropic from '../config/anthropic.js';
 import { ensureDefaultUser, getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
 import { createSession, updateSessionMessages, updateSessionMetadata, buildMemoryContext, getTodaySession } from '../services/memory.js';
 import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
+import { onSessionComplete, updateStreakMultiplier } from '../services/gamification.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -326,6 +327,7 @@ router.post('/generate', async (req, res) => {
     }
 
     // Update session with summary and themes
+    let gamificationResults = null;
     if (sessionId) {
       updateSessionMetadata(sessionId, {
         chat_summary: parsed.sessionSummary || '',
@@ -333,7 +335,21 @@ router.post('/generate', async (req, res) => {
       });
 
       // Update streak
-      updateStreak(userId);
+      const streakResult = updateStreak(userId);
+      
+      // Update streak multiplier for XP
+      if (streakResult) {
+        updateStreakMultiplier(userId, streakResult.current_streak);
+      }
+
+      // Award XP, generate mystery box, check achievements
+      try {
+        gamificationResults = onSessionComplete(userId, sessionId, {
+          vulnerabilityDetected: parsed.vulnerabilityDetected || false,
+        });
+      } catch (err) {
+        console.warn('Gamification processing error:', err.message);
+      }
     }
 
     res.json({
@@ -343,6 +359,7 @@ router.post('/generate', async (req, res) => {
       script: parsed.script || text,
       sessionSummary: parsed.sessionSummary || '',
       keyThemes: parsed.keyThemes || [],
+      gamification: gamificationResults,
     });
   } catch (error) {
     console.error('Hypnosis generate error:', error.message);

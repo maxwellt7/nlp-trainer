@@ -164,6 +164,54 @@ const initPromise = initSqlJs().then(sqlJs => {
       overall_congruence   REAL DEFAULT 0,
       updated_at           TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS user_xp (
+      user_id          TEXT PRIMARY KEY,
+      total_xp         INTEGER DEFAULT 0,
+      level            INTEGER DEFAULT 1,
+      title            TEXT DEFAULT 'Seeker',
+      xp_to_next       INTEGER DEFAULT 100,
+      sessions_completed INTEGER DEFAULT 0,
+      scripts_generated INTEGER DEFAULT 0,
+      audios_generated  INTEGER DEFAULT 0,
+      vulnerability_bonus INTEGER DEFAULT 0,
+      streak_multiplier REAL DEFAULT 1.0,
+      updated_at       TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS xp_events (
+      id               TEXT PRIMARY KEY,
+      user_id          TEXT NOT NULL,
+      event_type       TEXT NOT NULL,
+      xp_amount        INTEGER NOT NULL,
+      description      TEXT DEFAULT '',
+      session_id       TEXT,
+      created_at       TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS mystery_boxes (
+      id               TEXT PRIMARY KEY,
+      user_id          TEXT NOT NULL,
+      session_id       TEXT,
+      rarity           TEXT NOT NULL DEFAULT 'common',
+      reward_type      TEXT NOT NULL,
+      reward_title     TEXT NOT NULL,
+      reward_content   TEXT NOT NULL,
+      opened           INTEGER DEFAULT 0,
+      created_at       TEXT DEFAULT (datetime('now')),
+      opened_at        TEXT DEFAULT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS achievements (
+      id               TEXT PRIMARY KEY,
+      user_id          TEXT NOT NULL,
+      achievement_key  TEXT NOT NULL,
+      title            TEXT NOT NULL,
+      description      TEXT DEFAULT '',
+      icon             TEXT DEFAULT '',
+      unlocked_at      TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, achievement_key)
+    );
   `);
 
   save();

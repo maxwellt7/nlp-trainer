@@ -113,4 +113,14 @@ export const api = {
 
   // ── Reference ──
   getReference: () => request<any>('/learn/reference'),
+
+  // ── Gamification ──
+  getXp: () => request<any>('/gamification/xp'),
+  getXpHistory: (limit = 20) => request<any>(`/gamification/xp/history?limit=${limit}`),
+  getMysteryBoxes: (limit = 20) => request<any>(`/gamification/mystery-boxes?limit=${limit}`),
+  getUnopenedBoxes: () => request<any>('/gamification/mystery-boxes/unopened'),
+  openMysteryBox: (boxId: string) =>
+    request<any>(`/gamification/mystery-boxes/${boxId}/open`, { method: 'POST' }),
+  getAchievements: () => request<any>('/gamification/achievements'),
+  getGamificationSummary: () => request<any>('/gamification/summary'),
 };
