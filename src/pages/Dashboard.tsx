@@ -51,9 +51,9 @@ function getGreeting(): string {
 
 function StatCard({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="brand-card p-4 text-center">
-      <div className="stat-value text-2xl">{value}</div>
-      <div className="stat-label mt-1">{label}</div>
+    <div className="brand-card p-3 text-center">
+      <div className="stat-value text-xl">{value}</div>
+      <div className="stat-label mt-0.5">{label}</div>
     </div>
   );
 }
@@ -114,7 +114,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto pb-24">
       {/* ── Hero Section ── */}
-      <div className="relative rounded-xl overflow-hidden mb-6" style={{ minHeight: 180 }}>
+      <div className="relative rounded-xl overflow-hidden mb-4" style={{ minHeight: 150 }}>
         <div className="absolute inset-0"
           style={{
             backgroundImage: 'url(/brand/session-card-bg.jpg)',
@@ -125,7 +125,7 @@ export default function Dashboard() {
         <div className="absolute inset-0" style={{
           background: 'linear-gradient(180deg, rgba(11,15,25,0.3) 0%, rgba(11,15,25,0.95) 100%)',
         }} />
-        <div className="relative p-5 sm:p-6 flex flex-col justify-end" style={{ minHeight: 180 }}>
+        <div className="relative p-5 sm:p-6 flex flex-col justify-end" style={{ minHeight: 150 }}>
           <p className="text-uppercase-spaced mb-1" style={{ color: 'var(--color-accent-gold)' }}>
             {new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
@@ -140,7 +140,7 @@ export default function Dashboard() {
 
       {/* ── XP Bar ── */}
       {xp && (
-        <div className="mb-5">
+        <div className="mb-4">
           <XpBar
             level={xp.level}
             title={xp.title}
@@ -154,16 +154,15 @@ export default function Dashboard() {
       {/* ── CTA Button ── */}
       <Link
         to="/hypnosis"
-        className={`block w-full rounded-xl p-4 mb-6 text-center font-bold text-base transition-all haptic-tap ${
+        className={`block w-full rounded-xl p-4 mb-4 text-center font-bold text-base transition-all haptic-tap ${
           data?.hasSessionToday ? '' : 'animate-breathe'
         }`}
         style={{
-          background: data?.hasSessionToday
-            ? 'var(--color-brand-card)'
-            : 'linear-gradient(135deg, var(--color-accent-gold-dim), var(--color-accent-gold))',
-          border: `1px solid ${data?.hasSessionToday ? 'var(--color-brand-border)' : 'rgba(212,168,83,0.3)'}`,
-          color: data?.hasSessionToday ? 'var(--color-text-secondary)' : 'var(--color-brand-midnight)',
+          background: 'linear-gradient(135deg, var(--color-accent-gold-dim), var(--color-accent-gold))',
+          border: '1px solid rgba(212,168,83,0.3)',
+          color: 'var(--color-brand-midnight)',
           letterSpacing: '0.03em',
+          boxShadow: '0 4px 20px rgba(212, 168, 83, 0.25)',
         }}
       >
         {data?.hasSessionToday ? 'Continue Session' : 'Begin Session'}
@@ -181,31 +180,30 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Stats Grid + Living Avatar ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard value={streak?.current_streak || 0} label="Streak" />
-          <StatCard value={streak?.total_sessions || 0} label="Sessions" />
-          <StatCard value={streak?.longest_streak || 0} label="Record" />
-
-          {xp && xp.streak_multiplier > 1 && (
-            <div className="col-span-3 brand-card-gold p-3 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <span className="font-mono-brand text-sm font-bold" style={{ color: 'var(--color-accent-gold)' }}>
-                  {xp.streak_multiplier}x
-                </span>
-                <span className="text-uppercase-spaced" style={{ color: 'var(--color-text-muted)' }}>XP Multiplier</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {profile?.congruence && (
-          <div className="brand-card p-4 flex items-center justify-center">
-            <LivingAvatar congruence={profile.congruence} level={xp?.level || 1} size={160} />
-          </div>
-        )}
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <StatCard value={streak?.current_streak || 0} label="Streak" />
+        <StatCard value={streak?.total_sessions || 0} label="Sessions" />
+        <StatCard value={streak?.longest_streak || 0} label="Record" />
       </div>
+
+      {xp && xp.streak_multiplier > 1 && (
+        <div className="brand-card-gold p-3 text-center mb-4">
+          <div className="flex items-center justify-center gap-2">
+            <span className="font-mono-brand text-sm font-bold" style={{ color: 'var(--color-accent-gold)' }}>
+              {xp.streak_multiplier}x
+            </span>
+            <span className="text-uppercase-spaced" style={{ color: 'var(--color-text-muted)' }}>XP Multiplier</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Living Avatar ── */}
+      {profile?.congruence && (
+        <div className="brand-card p-4 mb-6 flex items-center justify-center">
+          <LivingAvatar congruence={profile.congruence} level={xp?.level || 1} size={140} />
+        </div>
+      )}
 
       {/* ── Profile Insights ── */}
       {profile && profile.capacity_index && (

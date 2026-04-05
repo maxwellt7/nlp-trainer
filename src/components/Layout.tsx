@@ -56,9 +56,11 @@ export default function Layout() {
       style={{ height: '100dvh', overflow: 'hidden', background: 'var(--color-brand-midnight)' }}>
 
       {/* ── Mobile Header ── */}
-      <header className="md:hidden flex items-center justify-between px-4 py-2.5"
+      <header className="md:hidden flex items-center justify-between px-4"
         style={{
           flexShrink: 0,
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 10px)',
+          paddingBottom: '10px',
           background: 'var(--color-brand-deep)',
           borderBottom: '1px solid var(--color-brand-border)',
         }}>

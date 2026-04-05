@@ -17,6 +17,9 @@ const titleColors: Record<string, string> = {
 
 export default function XpBar({ level, title, totalXp, progressToNext, maxLevel, compact }: XpBarProps) {
   const titleColor = titleColors[title] || 'var(--color-accent-gold)';
+  const pct = maxLevel ? 100 : Math.round(progressToNext * 100);
+  // Ensure at least 3% visible fill so the bar never looks completely empty
+  const fillWidth = maxLevel ? 100 : Math.max(pct, totalXp > 0 ? 3 : 0);
 
   if (compact) {
     return (
@@ -26,7 +29,7 @@ export default function XpBar({ level, title, totalXp, progressToNext, maxLevel,
           L{level}
         </div>
         <div className="flex-1 xp-bar-track">
-          <div className="xp-bar-fill" style={{ width: `${Math.round(progressToNext * 100)}%` }} />
+          <div className="xp-bar-fill" style={{ width: `${fillWidth}%` }} />
         </div>
         <span className="font-mono-brand text-[10px]" style={{ color: 'var(--color-text-dim)' }}>{totalXp}xp</span>
       </div>
@@ -35,31 +38,39 @@ export default function XpBar({ level, title, totalXp, progressToNext, maxLevel,
 
   return (
     <div className="brand-card p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center font-mono-brand text-sm font-bold"
-            style={{ background: 'var(--color-accent-gold-deep)', color: 'var(--color-accent-gold)', border: '1px solid rgba(212,168,83,0.2)' }}>
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center font-mono-brand text-base font-bold"
+            style={{
+              background: 'linear-gradient(135deg, var(--color-accent-gold-deep), rgba(212,168,83,0.15))',
+              color: 'var(--color-accent-gold)',
+              border: '1px solid rgba(212,168,83,0.25)',
+            }}>
             {level}
           </div>
           <div>
-            <div className="text-sm font-semibold" style={{ color: titleColor }}>{title}</div>
-            <div className="font-mono-brand text-[10px]" style={{ color: 'var(--color-text-dim)' }}>
-              {totalXp} XP {maxLevel ? '(MAX)' : ''}
+            <div className="text-sm font-bold" style={{ color: titleColor }}>{title}</div>
+            <div className="font-mono-brand text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              {totalXp} XP {maxLevel ? '· MAX LEVEL' : ''}
             </div>
           </div>
         </div>
-        <div className="font-mono-brand text-xs font-bold" style={{ color: 'var(--color-accent-gold)' }}>
-          {maxLevel ? 'MAX' : `${Math.round(progressToNext * 100)}%`}
+        <div className="font-mono-brand text-sm font-bold" style={{ color: 'var(--color-accent-gold)' }}>
+          {maxLevel ? 'MAX' : `${pct}%`}
         </div>
       </div>
 
       <div className="xp-bar-track">
-        <div className="xp-bar-fill" style={{ width: `${maxLevel ? 100 : Math.round(progressToNext * 100)}%` }} />
+        <div className="xp-bar-fill" style={{ width: `${fillWidth}%` }} />
       </div>
 
-      <div className="flex items-center justify-between mt-1.5">
-        <span className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>
-          {maxLevel ? 'Maximum level reached' : `${Math.round(progressToNext * 100)}% to next level`}
+      <div className="mt-2">
+        <span className="text-[11px] font-medium" style={{ color: 'var(--color-text-dim)' }}>
+          {maxLevel
+            ? 'Maximum level reached'
+            : totalXp === 0
+              ? 'Complete a session to earn XP'
+              : `${pct}% to next level`}
         </span>
       </div>
     </div>

@@ -115,11 +115,14 @@ export default function LivingAvatar({ congruence, level, size = 200 }: LivingAv
       </svg>
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="font-mono-brand text-2xl font-bold" style={{ color: visuals.innerGlow }}>
+        <div className="text-center px-3 py-2 rounded-xl" style={{
+          background: 'rgba(11, 15, 25, 0.75)',
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div className="font-mono-brand text-2xl font-bold" style={{ color: visuals.innerGlow, textShadow: `0 0 12px ${visuals.outerGlow}` }}>
             {avgCongruence.toFixed(1)}
           </div>
-          <div className="text-uppercase-spaced" style={{ color: 'var(--color-text-dim)', fontSize: '0.55rem' }}>
+          <div className="text-uppercase-spaced" style={{ color: 'var(--color-text-muted)', fontSize: '0.6rem' }}>
             Congruence
           </div>
         </div>
