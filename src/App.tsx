@@ -68,45 +68,41 @@ function UnauthenticatedApp() {
   );
 }
 
-function AppContent() {
-  // Check if Clerk is available
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { isLoaded } = useAuth();
+// Clerk-aware content: only rendered inside ClerkProvider
+function ClerkAppContent() {
+  const { isLoaded } = useAuth();
 
-    if (!isLoaded) {
-      return (
-        <div style={{
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          height: '100dvh', background: '#0a0a1a', color: '#a78bfa', fontSize: 18
-        }}>
-          Loading...
-        </div>
-      );
-    }
-
+  if (!isLoaded) {
     return (
-      <>
-        <SignedIn>
-          <AuthProvider>
-            <ProtectedRoutes />
-          </AuthProvider>
-        </SignedIn>
-        <SignedOut>
-          <PublicRoutes />
-        </SignedOut>
-      </>
+      <div style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        height: '100dvh', background: '#0a0e1a', color: '#22d3ee', fontSize: 18
+      }}>
+        Loading...
+      </div>
     );
-  } catch {
-    // Clerk not available — render without auth
-    return <UnauthenticatedApp />;
   }
+
+  return (
+    <>
+      <SignedIn>
+        <AuthProvider>
+          <ProtectedRoutes />
+        </AuthProvider>
+      </SignedIn>
+      <SignedOut>
+        <PublicRoutes />
+      </SignedOut>
+    </>
+  );
 }
+
+const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      {HAS_CLERK ? <ClerkAppContent /> : <UnauthenticatedApp />}
     </BrowserRouter>
   );
 }
