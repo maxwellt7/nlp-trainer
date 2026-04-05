@@ -159,12 +159,8 @@ export default function Hypnosis() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
+  // Enter key creates a new line (default textarea behavior)
+  // Message is only submitted when the user clicks the Send button
 
   const generateScript = async () => {
     setGenerating(true);
@@ -487,7 +483,6 @@ export default function Hypnosis() {
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder={initializing ? 'Starting session...' : 'Type your message...'}
             disabled={loading || initializing}
             rows={1}

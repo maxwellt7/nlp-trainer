@@ -49,12 +49,8 @@ export default function Chat({ messages, onSend, loading, coached, disabled }: P
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
+  // Enter key creates a new line (default textarea behavior)
+  // Message is only submitted when the user clicks the Send button
 
   return (
     <div className="flex flex-col h-full">
@@ -112,7 +108,6 @@ export default function Chat({ messages, onSend, loading, coached, disabled }: P
           ref={textareaRef}
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           disabled={loading || disabled}
           rows={1}
