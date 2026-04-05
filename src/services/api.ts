@@ -1,9 +1,33 @@
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
+// Token getter function — set by the auth hook
+let getToken: (() => Promise<string | null>) | null = null;
+
+export function setAuthTokenGetter(fn: (() => Promise<string | null>) | null) {
+  getToken = fn;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> || {}),
+  };
+
+  // Attach Clerk auth token if available
+  if (getToken) {
+    try {
+      const token = await getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch {
+      // No token available — continue without auth
+    }
+  }
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));

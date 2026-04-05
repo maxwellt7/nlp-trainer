@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { UserButton } from '@clerk/clerk-react';
 
 const navItems = [
   { to: '/', label: 'Today', icon: '◉' },
@@ -24,13 +25,23 @@ export default function Layout() {
       <header className="md:hidden flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800"
         style={{ flexShrink: 0 }}>
         <h1 className="text-base font-bold text-white">Alignment Engine</h1>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-          aria-label="Toggle menu"
-        >
-          {sidebarOpen ? '✕' : '☰'}
-        </button>
+        <div className="flex items-center gap-3">
+          <UserButton
+            afterSignOutUrl="/sign-in"
+            appearance={{
+              elements: {
+                avatarBox: { width: 28, height: 28 },
+              },
+            }}
+          />
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
+        </div>
       </header>
 
       {/* Backdrop */}
@@ -45,7 +56,19 @@ export default function Layout() {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0 md:static md:z-auto
       `} style={{ flexShrink: 0 }}>
-        <h1 className="text-lg font-bold mb-2 px-3 text-white hidden md:block">Alignment Engine</h1>
+        <div className="flex items-center justify-between mb-2 px-3">
+          <h1 className="text-lg font-bold text-white hidden md:block">Alignment Engine</h1>
+          <div className="hidden md:block">
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{
+                elements: {
+                  avatarBox: { width: 28, height: 28 },
+                },
+              }}
+            />
+          </div>
+        </div>
         <p className="text-xs text-gray-500 mb-4 px-3 hidden md:block">Daily coaching & hypnosis</p>
         <div className="flex items-center justify-between mb-6 px-3 md:hidden">
           <span className="text-lg font-bold text-white">Alignment Engine</span>
@@ -79,7 +102,7 @@ export default function Layout() {
         ))}
       </nav>
 
-      {/* Main content — flex-1 with overflow hidden so children can control their own scroll */}
+      {/* Main content */}
       <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
         <Outlet />
       </main>
