@@ -49,7 +49,7 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function StatCard({ value, label, color }: { value: string | number; label: string; color: string }) {
+function StatCard({ value, label }: { value: string | number; label: string }) {
   return (
     <div className="brand-card p-4 text-center">
       <div className="stat-value text-2xl">{value}</div>
@@ -184,9 +184,9 @@ export default function Dashboard() {
       {/* ── Stats Grid + Living Avatar ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="grid grid-cols-3 gap-3">
-          <StatCard value={streak?.current_streak || 0} label="Streak" color="var(--color-accent-gold)" />
-          <StatCard value={streak?.total_sessions || 0} label="Sessions" color="var(--color-accent-blue)" />
-          <StatCard value={streak?.longest_streak || 0} label="Record" color="var(--color-accent-slate)" />
+          <StatCard value={streak?.current_streak || 0} label="Streak" />
+          <StatCard value={streak?.total_sessions || 0} label="Sessions" />
+          <StatCard value={streak?.longest_streak || 0} label="Record" />
 
           {xp && xp.streak_multiplier > 1 && (
             <div className="col-span-3 brand-card-gold p-3 text-center">

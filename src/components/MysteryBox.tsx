@@ -45,7 +45,7 @@ const rarityConfig: Record<string, { label: string; color: string; bg: string; g
   },
 };
 
-function parseRewardContent(content: string, type: string) {
+function parseRewardContent(content: string, _type: string) {
   try {
     return JSON.parse(content);
   } catch {
@@ -147,7 +147,7 @@ export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
   );
 }
 
-function renderRewardContent(content: any, type: string) {
+function renderRewardContent(content: any, _type: string) {
   if (!content) return <p style={{ color: 'var(--color-text-muted)' }}>Content unavailable</p>;
 
   if (typeof content === 'string') {
