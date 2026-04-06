@@ -250,11 +250,11 @@ function QuestionCard({
   onAnswer: (value: number) => void;
   animating: boolean;
 }) {
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  const handleSelect = (value: number) => {
-    if (selected !== null) return;
-    setSelected(value);
+  const handleSelect = (idx: number, value: number) => {
+    if (selectedIdx !== null) return;
+    setSelectedIdx(idx);
     setTimeout(() => onAnswer(value), 400);
   };
 
@@ -271,22 +271,22 @@ function QuestionCard({
         {question.options.map((opt, idx) => (
           <button
             key={idx}
-            onClick={() => handleSelect(opt.value)}
+            onClick={() => handleSelect(idx, opt.value)}
             className={`w-full text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer ${
-              selected === opt.value
+              selectedIdx === idx
                 ? 'border-accent-gold bg-accent-gold-deep shadow-lg shadow-accent-gold/10'
-                : selected !== null
+                : selectedIdx !== null
                 ? 'border-brand-border bg-brand-surface/30 opacity-40'
                 : 'border-brand-border-light bg-brand-card hover:border-accent-gold-dim hover:bg-brand-card-hover'
             }`}
           >
             <div className="flex items-center gap-3">
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                selected === opt.value
+                selectedIdx === idx
                   ? 'border-accent-gold bg-accent-gold'
                   : 'border-brand-border-light'
               }`}>
-                {selected === opt.value && (
+                {selectedIdx === idx && (
                   <svg className="w-3 h-3 text-brand-midnight" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
@@ -303,7 +303,7 @@ function QuestionCard({
         ))}
       </div>
 
-      {question.insight && selected !== null && (
+      {question.insight && selectedIdx !== null && (
         <div className="mt-6 p-4 rounded-xl border border-accent-gold-dim bg-accent-gold-deep animate-fade-in">
           <p className="text-sm text-accent-gold-bright leading-relaxed italic">
             {question.insight}
