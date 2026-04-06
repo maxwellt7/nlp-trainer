@@ -14,6 +14,7 @@ import Insights from './pages/Insights';
 import Identity from './pages/Identity';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
+import Quiz from './pages/Quiz';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 
@@ -42,6 +43,7 @@ function ProtectedRoutes() {
 function PublicRoutes() {
   return (
     <Routes>
+      <Route path="/quiz" element={<Quiz />} />
       <Route path="/sign-in/*" element={<SignInPage />} />
       <Route path="/sign-up/*" element={<SignUpPage />} />
       {/* Redirect everything else to sign-in */}
@@ -54,6 +56,7 @@ function PublicRoutes() {
 function UnauthenticatedApp() {
   return (
     <Routes>
+      <Route path="/quiz" element={<Quiz />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
@@ -104,9 +107,16 @@ const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 function App() {
   return (
     <BrowserRouter>
-      <OfflineBanner />
-      {HAS_CLERK ? <ClerkAppContent /> : <UnauthenticatedApp />}
-      <PwaInstallPrompt />
+      <Routes>
+        <Route path="/quiz" element={<Quiz />} />
+        <Route path="*" element={
+          <>
+            <OfflineBanner />
+            {HAS_CLERK ? <ClerkAppContent /> : <UnauthenticatedApp />}
+            <PwaInstallPrompt />
+          </>
+        } />
+      </Routes>
     </BrowserRouter>
   );
 }
