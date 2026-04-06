@@ -94,10 +94,14 @@ router.post('/init', async (req, res) => {
       try {
         const msgs = JSON.parse(typeof existing.chat_messages === 'string' ? existing.chat_messages : JSON.stringify(existing.chat_messages));
         if (msgs.length > 0) {
+          // Check if session is already completed (has a chat_summary from /generate)
+          const isCompleted = !!(existing.chat_summary && existing.chat_summary.trim() !== '');
           return res.json({
             reply: null,
             sessionId: existing.id,
             resumeMessages: msgs,
+            completed: isCompleted,
+            sessionSummary: isCompleted ? existing.chat_summary : null,
           });
         }
       } catch { /* continue to create new */ }

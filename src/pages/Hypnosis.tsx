@@ -60,7 +60,8 @@ function renderScript(script: string) {
 }
 
 export default function Hypnosis() {
-  const [state, setState] = useState<'coaching' | 'script'>('coaching');
+  const [state, setState] = useState<'coaching' | 'script' | 'completed'>('coaching');
+  const [completedSummary, setCompletedSummary] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -106,7 +107,11 @@ export default function Hypnosis() {
       setInitializing(true);
       try {
         const data = await api.hypnosisInit();
-        if (data.resumeMessages) {
+        if (data.completed) {
+          setSessionId(data.sessionId);
+          setCompletedSummary(data.sessionSummary || 'Session completed.');
+          setState('completed');
+        } else if (data.resumeMessages) {
           setMessages(data.resumeMessages);
           setSessionId(data.sessionId);
         } else if (data.reply) {
@@ -252,11 +257,16 @@ export default function Hypnosis() {
     setShowXpPopup(false);
     setXpPopupData(null);
     setMysteryBoxData(null);
+    setCompletedSummary(null);
     setInitializing(true);
     setTimeout(async () => {
       try {
         const data = await api.hypnosisInit();
-        if (data.resumeMessages) {
+        if (data.completed) {
+          setSessionId(data.sessionId);
+          setCompletedSummary(data.sessionSummary || 'Session completed.');
+          setState('completed');
+        } else if (data.resumeMessages) {
           setMessages(data.resumeMessages);
           setSessionId(data.sessionId);
         } else if (data.reply) {
@@ -267,6 +277,37 @@ export default function Hypnosis() {
       setInitializing(false);
     }, 100);
   };
+
+  // ── Completed State (session already done today) ──
+  if (state === 'completed') {
+    return (
+      <div className="p-4 sm:p-8 max-w-3xl mx-auto pb-24">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-status-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <p className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-accent-gold)' }}>Mission Complete</p>
+          <h1 className="font-display text-2xl sm:text-3xl text-white mb-3">Today's Session is Done</h1>
+          <p className="text-sm mb-8 max-w-md mx-auto" style={{ color: 'var(--color-text-secondary)' }}>
+            {completedSummary || 'You\'ve completed your session for today. Return tomorrow for your next alignment.'}
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Link to="/"
+              className="rounded-xl px-6 py-3 font-bold text-sm transition-all haptic-tap btn-primary">
+              Back to Dashboard
+            </Link>
+            <Link to="/audios"
+              className="rounded-xl px-6 py-3 font-bold text-sm transition-all haptic-tap btn-ghost">
+              View Audios
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Script Display ──
   if (state === 'script' && scriptResult) {

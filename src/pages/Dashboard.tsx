@@ -11,6 +11,8 @@ interface ProfileData {
   profile: any;
   streak: { current_streak: number; longest_streak: number; total_sessions: number; last_session_date: string | null };
   hasSessionToday: boolean;
+  sessionCompleted: boolean;
+  sessionInProgress: boolean;
   todaySessionId: string | null;
   xp: any;
   unopenedBoxes: number;
@@ -131,9 +133,11 @@ export default function Dashboard() {
           </p>
           <h1 className="font-display text-2xl sm:text-3xl text-white mb-1">{getGreeting()}</h1>
           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-            {data?.hasSessionToday
+            {data?.sessionCompleted
               ? "Session complete. Review your intel or continue exploring."
-              : "Your next session awaits. Step into the work."}
+              : data?.sessionInProgress
+                ? "You have an open session. Pick up where you left off."
+                : "Your next session awaits. Step into the work."}
           </p>
         </div>
       </div>
@@ -155,17 +159,23 @@ export default function Dashboard() {
       <Link
         to="/hypnosis"
         className={`block w-full rounded-xl p-4 mb-4 text-center font-bold text-base transition-all haptic-tap ${
-          data?.hasSessionToday ? '' : 'animate-breathe'
+          data?.sessionCompleted ? '' : 'animate-breathe'
         }`}
         style={{
-          background: 'linear-gradient(135deg, var(--color-accent-gold-dim), var(--color-accent-gold))',
-          border: '1px solid rgba(212,168,83,0.3)',
-          color: 'var(--color-brand-midnight)',
+          background: data?.sessionCompleted
+            ? 'var(--color-brand-card)'
+            : 'linear-gradient(135deg, var(--color-accent-gold-dim), var(--color-accent-gold))',
+          border: data?.sessionCompleted
+            ? '1px solid var(--color-brand-border-light)'
+            : '1px solid rgba(212,168,83,0.3)',
+          color: data?.sessionCompleted
+            ? 'var(--color-text-secondary)'
+            : 'var(--color-brand-midnight)',
           letterSpacing: '0.03em',
-          boxShadow: '0 4px 20px rgba(212, 168, 83, 0.25)',
+          boxShadow: data?.sessionCompleted ? 'none' : '0 4px 20px rgba(212, 168, 83, 0.25)',
         }}
       >
-        {data?.hasSessionToday ? 'Continue Session' : 'Begin Session'}
+        {data?.sessionCompleted ? 'Review Session' : data?.sessionInProgress ? 'Continue Session' : 'Begin Session'}
       </Link>
 
       {/* ── Unopened Mystery Boxes ── */}

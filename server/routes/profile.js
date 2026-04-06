@@ -21,11 +21,17 @@ router.get('/', (req, res) => {
       unopenedBoxes = getUnopenedBoxes(userId).length;
     } catch { /* gamification optional */ }
 
+    // Determine session state: completed (has chat_summary), in-progress, or none
+    const sessionCompleted = !!(todaySession && todaySession.chat_summary && todaySession.chat_summary.trim() !== '');
+    const sessionInProgress = !!(todaySession && !sessionCompleted);
+
     res.json({
       userId,
       profile,
       streak,
       hasSessionToday: !!todaySession,
+      sessionCompleted,
+      sessionInProgress,
       todaySessionId: todaySession?.id || null,
       xp,
       unopenedBoxes,
