@@ -607,6 +607,7 @@ export default function Quiz() {
             <div className="max-w-lg mx-auto w-full">
               <ProgressBar current={currentQ + 1} total={QUESTIONS.length} />
               <QuestionCard
+                key={currentQ}
                 question={QUESTIONS[currentQ]}
                 onAnswer={handleAnswer}
                 animating={animating}
