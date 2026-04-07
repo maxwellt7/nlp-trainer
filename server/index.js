@@ -56,38 +56,47 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 
 // Clerk middleware — makes auth available on all routes but doesn't enforce it
+let clerkEnabled = false;
 if (process.env.CLERK_SECRET_KEY) {
-  app.use(clerkMiddleware());
-  console.log('Clerk authentication enabled');
+  try {
+    app.use(clerkMiddleware({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    }));
+    clerkEnabled = true;
+    console.log('Clerk authentication enabled');
+  } catch (err) {
+    console.error('Clerk middleware initialization failed:', err.message);
+    console.warn('Falling back to unauthenticated mode');
+  }
 } else {
   console.warn('CLERK_SECRET_KEY not set — authentication disabled');
 }
 
 // Health check (public, no auth required)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', auth: !!process.env.CLERK_SECRET_KEY });
+  res.json({ status: 'ok', auth: clerkEnabled });
 });
 
 // Middleware to extract userId from Clerk auth and ensure user exists in DB
 const extractUserId = (req, res, next) => {
-  if (process.env.CLERK_SECRET_KEY) {
+  if (clerkEnabled) {
     try {
       const auth = getAuth(req);
       if (auth && auth.userId) {
         req.userId = auth.userId;
         // Auto-create user record if this is a new Clerk user
-        ensureUser(auth.userId);
+        try { ensureUser(auth.userId); } catch (e) { console.error('ensureUser error:', e.message); }
       } else {
-        // Not authenticated — reject for protected routes, allow for public ones
         req.userId = null;
       }
-    } catch {
+    } catch (err) {
+      console.error('extractUserId error:', err.message);
       req.userId = null;
     }
   } else {
     // No Clerk configured — local dev fallback
     req.userId = 'default-user';
-    ensureUser('default-user');
+    try { ensureUser('default-user'); } catch (e) { console.error('ensureUser fallback error:', e.message); }
   }
   next();
 };
