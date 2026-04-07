@@ -10,7 +10,7 @@ const CAPI_URL = `https://graph.facebook.com/v19.0/${PIXEL_ID}/events`;
 
 // ── In-memory lead storage (persists in SQLite below) ──
 
-import { db } from '../db/index.js';
+import db from '../db/index.js';
 
 // Ensure quiz_leads table exists
 try {
