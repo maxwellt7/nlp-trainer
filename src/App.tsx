@@ -20,6 +20,7 @@ import OfflineBanner from './components/OfflineBanner';
 import SignupTracker from './components/SignupTracker';
 import Admin from './pages/Admin';
 import AnalyticsTracker from './components/AnalyticsTracker';
+import PaywallGate from './components/PaywallGate';
 
 function ProtectedRoutes() {
   return (
@@ -105,9 +106,11 @@ function ClerkAppContent() {
     <>
       <SignedIn>
         <SignupTracker />
-        <AuthProvider>
-          <ProtectedRoutes />
-        </AuthProvider>
+        <PaywallGate>
+          <AuthProvider>
+            <ProtectedRoutes />
+          </AuthProvider>
+        </PaywallGate>
       </SignedIn>
       <SignedOut>
         <PublicRoutes />
