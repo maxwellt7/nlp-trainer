@@ -17,6 +17,7 @@ import SignUpPage from './pages/SignUp';
 import Quiz from './pages/Quiz';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
+import SignupTracker from './components/SignupTracker';
 
 function ProtectedRoutes() {
   return (
@@ -102,6 +103,7 @@ function ClerkAppContent() {
   return (
     <>
       <SignedIn>
+        <SignupTracker />
         <AuthProvider>
           <ProtectedRoutes />
         </AuthProvider>
