@@ -80,10 +80,21 @@ function ClerkAppContent() {
   if (!isLoaded) {
     return (
       <div style={{
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100dvh', background: '#0a0e1a', color: '#22d3ee', fontSize: 18
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+        height: '100dvh', background: '#0B0F19', color: '#D4A853', fontSize: 16, gap: '24px'
       }}>
-        Loading...
+        <img src="/icons/icon-192x192.png" alt="" style={{ width: 64, height: 64, borderRadius: 16, opacity: 0.9 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: 40, height: 40, border: '3px solid rgba(212,168,83,0.2)',
+            borderTopColor: '#D4A853', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 300, letterSpacing: '0.1em', fontSize: 13, color: '#94a3b8' }}>
+            INITIALIZING
+          </span>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
   }
@@ -110,11 +121,11 @@ function App() {
       <Routes>
         <Route path="/quiz" element={<Quiz />} />
         <Route path="*" element={
-          <>
+          <div style={{ height: '100dvh', overflow: 'hidden' }}>
             <OfflineBanner />
             {HAS_CLERK ? <ClerkAppContent /> : <UnauthenticatedApp />}
             <PwaInstallPrompt />
-          </>
+          </div>
         } />
       </Routes>
     </BrowserRouter>

@@ -592,7 +592,7 @@ export default function Quiz() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-brand-midnight relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-brand-midnight relative" style={{ overflow: step === 'results' ? 'auto' : 'hidden', height: step === 'results' ? 'auto' : '100dvh' }}>
       {/* Background gradient */}
       <div className="fixed inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(212, 168, 83, 0.03) 0%, transparent 60%)' }} />
