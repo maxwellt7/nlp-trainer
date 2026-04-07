@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { clerkMiddleware, requireAuth, getAuth } from '@clerk/express';
 import learnRoutes from './routes/learn.js';
 import practiceRoutes from './routes/practice.js';
 import hypnosisRoutes from './routes/hypnosis.js';
@@ -55,21 +54,145 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 
-// Clerk middleware — makes auth available on all routes but doesn't enforce it
-let clerkEnabled = false;
-if (process.env.CLERK_SECRET_KEY) {
-  try {
-    app.use(clerkMiddleware({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    }));
-    clerkEnabled = true;
-    console.log('Clerk authentication enabled');
-  } catch (err) {
-    console.error('Clerk middleware initialization failed:', err.message);
-    console.warn('Falling back to unauthenticated mode');
+// ─── Manual Clerk JWT verification (no @clerk/express dependency) ───
+// Decode the publishable key to get the Clerk Frontend API URL
+let clerkFrontendApi = null;
+const clerkEnabled = !!process.env.CLERK_SECRET_KEY;
+
+if (clerkEnabled) {
+  // The publishable key is base64-encoded: "clerk.<domain>$"
+  // We can also derive the JWKS URL from the secret key's issuer
+  // Clerk JWKS endpoint: https://<clerk-frontend-api>/.well-known/jwks.json
+  const pk = process.env.CLERK_PUBLISHABLE_KEY || process.env.VITE_CLERK_PUBLISHABLE_KEY || '';
+  if (pk.startsWith('pk_')) {
+    try {
+      const encoded = pk.replace(/^pk_(live|test)_/, '');
+      const decoded = Buffer.from(encoded, 'base64').toString('utf-8').replace(/\$$/, '');
+      clerkFrontendApi = `https://${decoded}`;
+      console.log(`Clerk auth enabled — Frontend API: ${clerkFrontendApi}`);
+    } catch (e) {
+      console.error('Failed to decode Clerk publishable key:', e.message);
+    }
   }
-} else {
-  console.warn('CLERK_SECRET_KEY not set — authentication disabled');
+  if (!clerkFrontendApi) {
+    console.warn('Could not derive Clerk Frontend API URL — will try to verify JWTs without issuer check');
+  }
+}
+
+// JWKS cache
+let jwksCache = null;
+let jwksCacheTime = 0;
+const JWKS_CACHE_TTL = 3600000; // 1 hour
+
+async function getJwks() {
+  const now = Date.now();
+  if (jwksCache && (now - jwksCacheTime) < JWKS_CACHE_TTL) return jwksCache;
+
+  if (!clerkFrontendApi) return null;
+
+  try {
+    const resp = await fetch(`${clerkFrontendApi}/.well-known/jwks.json`);
+    if (!resp.ok) throw new Error(`JWKS fetch failed: ${resp.status}`);
+    jwksCache = await resp.json();
+    jwksCacheTime = now;
+    return jwksCache;
+  } catch (err) {
+    console.error('Failed to fetch JWKS:', err.message);
+    return jwksCache; // return stale cache if available
+  }
+}
+
+// Convert JWK to PEM for verification
+function jwkToPem(jwk) {
+  // For RSA keys, construct PEM from n and e
+  const n = Buffer.from(jwk.n, 'base64url');
+  const e = Buffer.from(jwk.e, 'base64url');
+
+  // DER encode the RSA public key
+  function encodeLengthHex(n) {
+    if (n <= 127) return Buffer.from([n]);
+    const hex = n.toString(16);
+    const len = Math.ceil(hex.length / 2);
+    const buf = Buffer.alloc(len + 1);
+    buf[0] = 0x80 | len;
+    Buffer.from(hex.padStart(len * 2, '0'), 'hex').copy(buf, 1);
+    return buf;
+  }
+
+  function derSequence(...items) {
+    const content = Buffer.concat(items);
+    return Buffer.concat([Buffer.from([0x30]), encodeLengthHex(content.length), content]);
+  }
+
+  function derInteger(buf) {
+    // Prepend 0x00 if high bit set
+    const needsPad = buf[0] & 0x80;
+    const content = needsPad ? Buffer.concat([Buffer.from([0x00]), buf]) : buf;
+    return Buffer.concat([Buffer.from([0x02]), encodeLengthHex(content.length), content]);
+  }
+
+  function derBitString(buf) {
+    const content = Buffer.concat([Buffer.from([0x00]), buf]);
+    return Buffer.concat([Buffer.from([0x03]), encodeLengthHex(content.length), content]);
+  }
+
+  function derOid(oid) {
+    return Buffer.from(oid, 'hex');
+  }
+
+  // RSA OID: 1.2.840.113549.1.1.1
+  const rsaOid = derOid('06092a864886f70d010101');
+  const nullParam = Buffer.from([0x05, 0x00]);
+  const algorithmIdentifier = derSequence(rsaOid, nullParam);
+
+  const publicKeyInner = derSequence(derInteger(n), derInteger(e));
+  const publicKeyInfo = derSequence(algorithmIdentifier, derBitString(publicKeyInner));
+
+  const pem = `-----BEGIN PUBLIC KEY-----\n${publicKeyInfo.toString('base64').match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
+  return pem;
+}
+
+async function verifyClerkJwt(token) {
+  if (!token) return null;
+
+  try {
+    // Decode header to get kid
+    const [headerB64] = token.split('.');
+    const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString());
+
+    // Get JWKS
+    const jwks = await getJwks();
+    if (!jwks || !jwks.keys) return null;
+
+    // Find matching key
+    const key = jwks.keys.find(k => k.kid === header.kid);
+    if (!key) return null;
+
+    // Convert to PEM and verify
+    const pem = jwkToPem(key);
+    const { createVerify } = await import('crypto');
+
+    // Decode payload
+    const parts = token.split('.');
+    const signatureInput = `${parts[0]}.${parts[1]}`;
+    const signature = Buffer.from(parts[2], 'base64url');
+
+    const verifier = createVerify('RSA-SHA256');
+    verifier.update(signatureInput);
+
+    if (!verifier.verify(pem, signature)) return null;
+
+    // Decode and return payload
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+
+    // Check expiration
+    if (payload.exp && payload.exp < Date.now() / 1000) return null;
+
+    return payload;
+  } catch (err) {
+    console.error('JWT verification error:', err.message);
+    return null;
+  }
 }
 
 // Health check (public, no auth required)
@@ -77,15 +200,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', auth: clerkEnabled });
 });
 
-// Middleware to extract userId from Clerk auth and ensure user exists in DB
-const extractUserId = (req, res, next) => {
+// Middleware to extract userId from Clerk JWT and ensure user exists in DB
+const extractUserId = async (req, res, next) => {
   if (clerkEnabled) {
     try {
-      const auth = getAuth(req);
-      if (auth && auth.userId) {
-        req.userId = auth.userId;
-        // Auto-create user record if this is a new Clerk user
-        try { ensureUser(auth.userId); } catch (e) { console.error('ensureUser error:', e.message); }
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const payload = await verifyClerkJwt(token);
+        if (payload && payload.sub) {
+          req.userId = payload.sub;
+          try { ensureUser(payload.sub); } catch (e) { console.error('ensureUser error:', e.message); }
+        } else {
+          req.userId = null;
+        }
       } else {
         req.userId = null;
       }
