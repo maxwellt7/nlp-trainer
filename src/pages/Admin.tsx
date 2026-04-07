@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 
 const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
-// Only these Clerk user IDs can access admin
-const ADMIN_IDS = [
-  'user_2xxxxxxxxxxx', // placeholder — will be replaced with your actual Clerk user ID
-];
-
-// Allow access if user email ends with these domains
+// Allow access if user email matches or ends with these domains
 const ADMIN_EMAILS = ['maxwellmayes@gmail.com', 'maxwell@sovereignty.app'];
+const ADMIN_DOMAINS = ['sovereignty.app', 'maxwellmayes.com'];
 
 interface OverviewData {
   period: { days: number; since: string };
@@ -72,22 +68,27 @@ interface UserData {
 }
 
 export default function Admin() {
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { isLoaded: isAuthLoaded } = useAuth();
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [leads, setLeads] = useState<LeadData[]>([]);
   const [users, setUsers] = useState<UserData[]>([]);
   const [leadsTotal, setLeadsTotal] = useState(0);
   const [usersTotal, setUsersTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'users' | 'ghl'>('overview');
   const [days, setDays] = useState(30);
   const [ghlStatus, setGhlStatus] = useState<{ configured: boolean } | null>(null);
 
-  // Check admin access
-  const isAdmin = user && (
-    ADMIN_IDS.includes(user.id) ||
-    ADMIN_EMAILS.includes(user.primaryEmailAddress?.emailAddress || '')
+  // Check admin access — wait for Clerk to load first
+  const email = user?.primaryEmailAddress?.emailAddress || '';
+  const emailDomain = email.split('@')[1] || '';
+  const isAdmin = isUserLoaded && isAuthLoaded && user && (
+    ADMIN_EMAILS.includes(email) ||
+    ADMIN_DOMAINS.includes(emailDomain)
   );
+  const isStillLoading = !isUserLoaded || !isAuthLoaded;
 
   const fetchOverview = useCallback(async () => {
     try {
@@ -134,7 +135,9 @@ export default function Admin() {
   useEffect(() => {
     if (!isAdmin) return;
     setLoading(true);
+    setError(null);
     Promise.all([fetchOverview(), fetchLeads(), fetchUsers(), fetchGhlStatus()])
+      .catch((err) => setError(err?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
   }, [isAdmin, fetchOverview, fetchLeads, fetchUsers, fetchGhlStatus]);
 
@@ -142,14 +145,39 @@ export default function Admin() {
     if (isAdmin) fetchOverview();
   }, [days, isAdmin, fetchOverview]);
 
-  if (!isAdmin) {
+  // Show loading while Clerk is still initializing
+  if (isStillLoading) {
     return (
       <div style={{
         display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100dvh', background: '#0B0F19', color: '#ef4444',
-        fontFamily: 'Inter, sans-serif', fontSize: 18,
+        height: '100dvh', background: '#0B0F19', color: '#D4A853',
+        fontFamily: 'Inter, sans-serif',
       }}>
-        Access Denied
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 40, height: 40, border: '3px solid rgba(212,168,83,0.2)',
+            borderTopColor: '#D4A853', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite', margin: '0 auto 16px',
+          }} />
+          Loading...
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+        height: '100dvh', background: '#0B0F19', color: '#ef4444',
+        fontFamily: 'Inter, sans-serif', fontSize: 18, gap: 12,
+      }}>
+        <div>Access Denied</div>
+        <div style={{ color: '#64748b', fontSize: 13 }}>
+          Signed in as: {email || 'unknown'}
+        </div>
+        <a href="/" style={{ color: '#D4A853', fontSize: 14, marginTop: 8 }}>← Back to App</a>
       </div>
     );
   }
@@ -170,6 +198,23 @@ export default function Admin() {
           Loading Analytics...
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+        height: '100dvh', background: '#0B0F19', color: '#ef4444',
+        fontFamily: 'Inter, sans-serif', fontSize: 16, gap: 12,
+      }}>
+        <div>Failed to load analytics</div>
+        <div style={{ color: '#64748b', fontSize: 13 }}>{error}</div>
+        <button onClick={() => window.location.reload()} style={{
+          background: '#1e293b', color: '#D4A853', border: '1px solid #334155',
+          borderRadius: 8, padding: '8px 16px', cursor: 'pointer', marginTop: 8,
+        }}>Retry</button>
       </div>
     );
   }
