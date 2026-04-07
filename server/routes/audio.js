@@ -129,15 +129,19 @@ router.get('/music', (req, res) => {
   }
 });
 
-// GET /scripts — list all saved scripts
+// GET /scripts — list saved scripts for the current user
 router.get('/scripts', (req, res) => {
   try {
+    const userId = req.userId;
     const files = readdirSync(scriptsDir).filter(f => f.endsWith('.json'));
     const scripts = [];
     for (const f of files) {
       try {
         const data = JSON.parse(readFileSync(join(scriptsDir, f), 'utf-8'));
-        scripts.push(data);
+        // Only include scripts belonging to this user (or legacy scripts with no userId)
+        if (data.userId === userId || (!data.userId && userId === 'default-user')) {
+          scripts.push(data);
+        }
       } catch (err) {
         console.warn(`Skipping corrupt script file ${f}: ${err.message}`);
       }
@@ -164,6 +168,7 @@ router.post('/scripts', (req, res) => {
     const id = `script-${Date.now()}`;
     const data = {
       id,
+      userId: req.userId,
       title,
       duration: duration || 'full',
       estimatedMinutes: estimatedMinutes || 20,
@@ -194,6 +199,12 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
     }
 
     const scriptData = JSON.parse(readFileSync(scriptPath, 'utf-8'));
+
+    // Verify ownership
+    if (scriptData.userId && scriptData.userId !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to access this script' });
+    }
+
     const apiKey = process.env.ELEVENLABS_API_KEY;
 
     if (!apiKey) {
@@ -478,6 +489,11 @@ router.delete('/scripts/:scriptId', (req, res) => {
     }
 
     const scriptData = JSON.parse(readFileSync(scriptPath, 'utf-8'));
+
+    // Verify ownership
+    if (scriptData.userId && scriptData.userId !== req.userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this script' });
+    }
 
     // Delete audio file if exists
     if (scriptData.audioFile) {

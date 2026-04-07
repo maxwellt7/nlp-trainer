@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import anthropic from '../config/anthropic.js';
-import { ensureDefaultUser, getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
+import { getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
 import { createSession, updateSessionMessages, updateSessionMetadata, buildMemoryContext, getTodaySession } from '../services/memory.js';
 import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
 import { onSessionComplete, updateStreakMultiplier } from '../services/gamification.js';
@@ -86,7 +86,7 @@ function parseJsonResponse(text) {
 // POST /init — generate the AI's opening message to start the session
 router.post('/init', async (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
 
     // Check if there's already a session today with messages
     const existing = getTodaySession(userId);
@@ -155,7 +155,7 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'messages array is required' });
     }
 
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
 
     // Create or retrieve session
     let currentSessionId = sessionId;
@@ -301,7 +301,7 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'messages array is required' });
     }
 
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const systemPrompt = buildSystemPrompt(userId, 'generation');
 
     if (messages.length > 50) {

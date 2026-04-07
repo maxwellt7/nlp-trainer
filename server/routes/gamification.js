@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ensureDefaultUser } from '../services/profile.js';
+// User ID now comes from req.userId (set by extractUserId middleware)
 import {
   getUserXp,
   getXpHistory,
@@ -16,7 +16,7 @@ const router = Router();
 // GET /api/gamification/xp — get user's XP, level, and progress
 router.get('/xp', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const xp = getUserXp(userId);
     res.json(xp);
   } catch (error) {
@@ -28,7 +28,7 @@ router.get('/xp', (req, res) => {
 // GET /api/gamification/xp/history — get XP event history
 router.get('/xp/history', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const limit = parseInt(req.query.limit) || 20;
     const history = getXpHistory(userId, limit);
     res.json({ events: history });
@@ -41,7 +41,7 @@ router.get('/xp/history', (req, res) => {
 // GET /api/gamification/mystery-boxes — get user's mystery boxes
 router.get('/mystery-boxes', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const limit = parseInt(req.query.limit) || 20;
     const boxes = getUserMysteryBoxes(userId, limit);
     // Don't reveal content of unopened boxes
@@ -59,7 +59,7 @@ router.get('/mystery-boxes', (req, res) => {
 // GET /api/gamification/mystery-boxes/unopened — get unopened boxes
 router.get('/mystery-boxes/unopened', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const boxes = getUnopenedBoxes(userId);
     const sanitized = boxes.map(b => ({
       id: b.id,
@@ -78,7 +78,7 @@ router.get('/mystery-boxes/unopened', (req, res) => {
 // POST /api/gamification/mystery-boxes/:boxId/open — open a mystery box
 router.post('/mystery-boxes/:boxId/open', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const result = openMysteryBox(userId, req.params.boxId);
     if (!result) {
       return res.status(404).json({ error: 'Mystery box not found' });
@@ -93,7 +93,7 @@ router.post('/mystery-boxes/:boxId/open', (req, res) => {
 // GET /api/gamification/achievements — get user's unlocked achievements
 router.get('/achievements', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const unlocked = getUserAchievements(userId);
     const allDefs = getAllAchievementDefs();
     
@@ -115,7 +115,7 @@ router.get('/achievements', (req, res) => {
 // GET /api/gamification/summary — get full gamification summary for dashboard
 router.get('/summary', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const xp = getUserXp(userId);
     const unopened = getUnopenedBoxes(userId);
     const achievements = getUserAchievements(userId);

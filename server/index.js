@@ -14,7 +14,7 @@ import gamificationRoutes from './routes/gamification.js';
 import quizRoutes from './routes/quiz.js';
 import ghlRoutes from './routes/ghl.js';
 import analyticsRoutes from './routes/analytics.js';
-import { ensureDefaultUser } from './services/profile.js';
+import { ensureDefaultUser, ensureUser } from './services/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Load .env for local dev; Railway/production injects env vars directly
@@ -67,22 +67,26 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', auth: !!process.env.CLERK_SECRET_KEY });
 });
 
-// Middleware to extract userId from Clerk auth or fall back to default
+// Middleware to extract userId from Clerk auth and ensure user exists in DB
 const extractUserId = (req, res, next) => {
   if (process.env.CLERK_SECRET_KEY) {
     try {
       const auth = getAuth(req);
       if (auth && auth.userId) {
         req.userId = auth.userId;
+        // Auto-create user record if this is a new Clerk user
+        ensureUser(auth.userId);
       } else {
-        // Not authenticated — use default user for now
-        req.userId = 'default-user';
+        // Not authenticated — reject for protected routes, allow for public ones
+        req.userId = null;
       }
     } catch {
-      req.userId = 'default-user';
+      req.userId = null;
     }
   } else {
+    // No Clerk configured — local dev fallback
     req.userId = 'default-user';
+    ensureUser('default-user');
   }
   next();
 };

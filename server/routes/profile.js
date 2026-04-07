@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ensureDefaultUser, getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
+import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
 import { getAllSessions, getRecentSessions, getTodaySession, getSession, updateSessionMetadata } from '../services/memory.js';
 
@@ -8,7 +8,7 @@ const router = Router();
 // GET /api/profile — get user profile and streak
 router.get('/', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const profile = getProfileForPrompt(userId);
     const streak = getStreak(userId);
     const todaySession = getTodaySession(userId);
@@ -45,7 +45,7 @@ router.get('/', (req, res) => {
 // PUT /api/profile — update profile fields
 router.put('/', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const updated = updateProfile(userId, req.body);
     res.json({ profile: getProfileForPrompt(userId) });
   } catch (error) {
@@ -57,7 +57,7 @@ router.put('/', (req, res) => {
 // GET /api/profile/sessions — get session history
 router.get('/sessions', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const limit = parseInt(req.query.limit) || 30;
     const offset = parseInt(req.query.offset) || 0;
     const sessions = getAllSessions(userId, limit, offset);
@@ -114,7 +114,7 @@ router.post('/sessions/:sessionId/rate', (req, res) => {
 // GET /api/profile/streak — get streak info
 router.get('/streak', (req, res) => {
   try {
-    const userId = ensureDefaultUser();
+    const userId = req.userId;
     const streak = getStreak(userId);
     res.json(streak);
   } catch (error) {

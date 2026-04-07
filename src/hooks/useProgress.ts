@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useUser } from '@clerk/clerk-react';
 
 interface LessonProgress {
   completed: boolean;
@@ -17,8 +18,6 @@ interface Progress {
   lastAccessed: string;
 }
 
-const STORAGE_KEY = 'nlp-training-progress';
-
 const defaultProgress: Progress = {
   lessons: {},
   practice: {
@@ -28,18 +27,22 @@ const defaultProgress: Progress = {
   lastAccessed: new Date().toISOString().split('T')[0],
 };
 
-function loadProgress(): Progress {
+function getStorageKey(userId: string | null): string {
+  return userId ? `nlp-training-progress-${userId}` : 'nlp-training-progress';
+}
+
+function loadProgress(userId: string | null): Progress {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(getStorageKey(userId));
     if (stored) return JSON.parse(stored);
   } catch { /* ignore */ }
   return { ...defaultProgress };
 }
 
-function saveProgress(progress: Progress): boolean {
+function saveProgress(userId: string | null, progress: Progress): boolean {
   progress.lastAccessed = new Date().toISOString().split('T')[0];
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(progress));
     return true;
   } catch (e) {
     console.warn('localStorage full:', e);
@@ -48,7 +51,9 @@ function saveProgress(progress: Progress): boolean {
 }
 
 export function useProgress() {
-  const [progress, setProgress] = useState<Progress>(loadProgress);
+  const { user } = useUser();
+  const userId = user?.id || null;
+  const [progress, setProgress] = useState<Progress>(() => loadProgress(userId));
 
   const completeLesson = useCallback((lessonId: string, quizScore: number | null) => {
     setProgress(prev => {
@@ -63,10 +68,10 @@ export function useProgress() {
           },
         },
       };
-      saveProgress(updated);
+      saveProgress(userId, updated);
       return updated;
     });
-  }, []);
+  }, [userId]);
 
   const recordPracticeSession = useCallback((scenario: string) => {
     setProgress(prev => {
@@ -80,16 +85,16 @@ export function useProgress() {
           },
         },
       };
-      saveProgress(updated);
+      saveProgress(userId, updated);
       return updated;
     });
-  }, []);
+  }, [userId]);
 
   const resetProgress = useCallback(() => {
     const fresh = { ...defaultProgress };
-    saveProgress(fresh);
+    saveProgress(userId, fresh);
     setProgress(fresh);
-  }, []);
+  }, [userId]);
 
   return { progress, completeLesson, recordPracticeSession, resetProgress };
 }

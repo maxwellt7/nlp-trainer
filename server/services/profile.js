@@ -1,17 +1,23 @@
 import db from '../db/index.js';
 import { v4 as uuidv4 } from 'uuid';
 
-// Ensure a default user exists (single-user mode)
+// Ensure a default user exists (single-user mode — legacy fallback)
 export function ensureDefaultUser() {
-  const DEFAULT_USER_ID = 'default-user';
-  const existing = db.prepare('SELECT id FROM users WHERE id = ?').get(DEFAULT_USER_ID);
+  return ensureUser('default-user');
+}
+
+// Ensure a user exists in the database — creates user, profile, and streak if new
+export function ensureUser(userId) {
+  if (!userId) return ensureUser('default-user');
+  const existing = db.prepare('SELECT id FROM users WHERE id = ?').get(userId);
   if (!existing) {
-    db.prepare('INSERT INTO users (id) VALUES (?)').run(DEFAULT_USER_ID);
+    db.prepare('INSERT INTO users (id) VALUES (?)').run(userId);
     const profileId = `profile-${uuidv4()}`;
-    db.prepare('INSERT INTO profiles (id, user_id) VALUES (?, ?)').run(profileId, DEFAULT_USER_ID);
-    db.prepare('INSERT INTO streaks (user_id) VALUES (?)').run(DEFAULT_USER_ID);
+    db.prepare('INSERT INTO profiles (id, user_id) VALUES (?, ?)').run(profileId, userId);
+    db.prepare('INSERT INTO streaks (user_id) VALUES (?)').run(userId);
+    console.log(`Created new user record for: ${userId}`);
   }
-  return DEFAULT_USER_ID;
+  return userId;
 }
 
 // Get user profile
