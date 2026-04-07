@@ -48,9 +48,6 @@ function ProtectedRoutes() {
 function PublicRoutes() {
   return (
     <Routes>
-      <Route path="/quiz" element={<Quiz />} />
-      <Route path="/sign-in/*" element={<SignInPage />} />
-      <Route path="/sign-up/*" element={<SignUpPage />} />
       {/* Redirect everything else to sign-in */}
       <Route path="*" element={<Navigate to="/sign-in" replace />} />
     </Routes>
@@ -149,6 +146,28 @@ function AdminWrapper() {
   );
 }
 
+function AuthPageWrapper({ children }: { children: React.ReactNode }) {
+  const { isLoaded } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+        height: '100dvh', background: '#0B0F19', color: '#D4A853', fontSize: 16, gap: '24px'
+      }}>
+        <div style={{
+          width: 40, height: 40, border: '3px solid rgba(212,168,83,0.2)',
+          borderTopColor: '#D4A853', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -156,6 +175,12 @@ function App() {
       <Routes>
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/admin" element={<AdminWrapper />} />
+        <Route path="/sign-up/*" element={
+          <AuthPageWrapper><SignUpPage /></AuthPageWrapper>
+        } />
+        <Route path="/sign-in/*" element={
+          <AuthPageWrapper><SignInPage /></AuthPageWrapper>
+        } />
         <Route path="*" element={
           <div style={{ height: '100dvh', overflow: 'hidden' }}>
             <OfflineBanner />
