@@ -11,6 +11,7 @@ const CAPI_URL = `https://graph.facebook.com/v19.0/${PIXEL_ID}/events`;
 // ── In-memory lead storage (persists in SQLite below) ──
 
 import db from '../db/index.js';
+import { handleQuizLead } from '../services/ghl.js';
 
 // Ensure quiz_leads table exists
 try {
@@ -71,6 +72,11 @@ router.post('/lead', async (req, res) => {
         value: 0,
         currency: 'USD',
       },
+    });
+
+    // Push to GoHighLevel CRM (async, don't block response)
+    handleQuizLead({ email, name, score, tier, answers }).catch(err => {
+      console.error('[GHL] Quiz lead push failed:', err.message);
     });
 
     res.json({ success: true });

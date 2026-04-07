@@ -18,6 +18,8 @@ import Quiz from './pages/Quiz';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import SignupTracker from './components/SignupTracker';
+import Admin from './pages/Admin';
+import AnalyticsTracker from './components/AnalyticsTracker';
 
 function ProtectedRoutes() {
   return (
@@ -34,6 +36,8 @@ function ProtectedRoutes() {
         <Route path="/practice" element={<Practice />} />
         <Route path="/reference" element={<Reference />} />
       </Route>
+      {/* Admin dashboard — outside Layout for full-page view */}
+      <Route path="/admin" element={<Admin />} />
       {/* Redirect sign-in/sign-up to home if already signed in */}
       <Route path="/sign-in/*" element={<Navigate to="/" replace />} />
       <Route path="/sign-up/*" element={<Navigate to="/" replace />} />
@@ -120,6 +124,7 @@ const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 function App() {
   return (
     <BrowserRouter>
+      <AnalyticsTracker />
       <Routes>
         <Route path="/quiz" element={<Quiz />} />
         <Route path="*" element={

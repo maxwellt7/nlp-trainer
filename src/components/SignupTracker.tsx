@@ -38,6 +38,18 @@ export default function SignupTracker() {
         sourceUrl: window.location.href,
       });
 
+      // Push signup to GoHighLevel CRM
+      const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
+      fetch(`${BASE}/ghl/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.primaryEmailAddress?.emailAddress,
+          clerkUserId: user.id,
+          name: [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined,
+        }),
+      }).catch(() => { /* silent */ });
+
       console.log('[Pixel] CompleteRegistration fired for new signup:', user.id);
     }
 

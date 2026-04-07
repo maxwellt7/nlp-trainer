@@ -12,6 +12,8 @@ import profileRoutes from './routes/profile.js';
 import identityRoutes from './routes/identity.js';
 import gamificationRoutes from './routes/gamification.js';
 import quizRoutes from './routes/quiz.js';
+import ghlRoutes from './routes/ghl.js';
+import analyticsRoutes from './routes/analytics.js';
 import { ensureDefaultUser } from './services/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -97,6 +99,8 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/identity', identityRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/ghl', ghlRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Global error handler
 app.use((err, req, res, _next) => {
