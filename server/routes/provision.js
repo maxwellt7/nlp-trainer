@@ -18,6 +18,23 @@ const router = express.Router();
 
 const PROVISION_SECRET = process.env.PROVISION_SECRET || '';
 
+// Admin emails/domains that always have full access
+const ADMIN_EMAILS = [
+  'maxwellmayes@gmail.com',
+  'maxwell@sovereignty.app',
+  'max@maxwellmayes.com',
+];
+const ADMIN_DOMAINS = ['sovereignty.app', 'maxwellmayes.com'];
+
+function isAdminEmail(email) {
+  if (!email) return false;
+  const lower = email.toLowerCase().trim();
+  if (ADMIN_EMAILS.some(e => e.toLowerCase() === lower)) return true;
+  const domain = lower.split('@')[1];
+  if (domain && ADMIN_DOMAINS.some(d => d === domain)) return true;
+  return false;
+}
+
 // Ensure paid_users table exists
 try {
   db.exec(`
@@ -155,6 +172,17 @@ router.get('/check', (req, res) => {
     
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Admin bypass — always grant access for admin emails
+    if (isAdminEmail(email)) {
+      console.log(`[Provision] Admin access granted for: ${email}`);
+      return res.json({
+        hasAccess: true,
+        status: 'admin',
+        plan: 'admin',
+        since: '2024-01-01',
+      });
     }
 
     const paidUser = db.prepare(

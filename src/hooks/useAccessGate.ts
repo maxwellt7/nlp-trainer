@@ -1,14 +1,9 @@
 /**
  * useAccessGate — checks if the current user has paid access
  * 
- * Admin users always get access.
+ * Admin users always get access (checked client-side AND server-side).
  * Calls GET /api/provision-access/check?email=... with the Clerk user's email.
  * Also links the Clerk user ID to the paid record on first check.
- * 
- * Returns:
- *  - hasAccess: boolean — whether the user has paid access
- *  - loading: boolean — whether the check is in progress
- *  - purchaseUrl: string — URL to purchase access (if unpaid)
  */
 
 import { useState, useEffect } from 'react';
@@ -20,6 +15,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://nlp-training-backend-p
 const ADMIN_EMAILS = [
   'maxwellmayes@gmail.com',
   'maxwell@sovereignty.app',
+  'max@maxwellmayes.com',
 ];
 
 // Admin email domains — any email on these domains gets admin access
@@ -28,12 +24,26 @@ const ADMIN_DOMAINS = [
   'maxwellmayes.com',
 ];
 
-function isAdminEmail(email: string): boolean {
-  const lower = email.toLowerCase();
+function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const lower = email.toLowerCase().trim();
   if (ADMIN_EMAILS.some(e => e.toLowerCase() === lower)) return true;
   const domain = lower.split('@')[1];
   if (domain && ADMIN_DOMAINS.some(d => d === domain)) return true;
   return false;
+}
+
+/** Extract the best email from the Clerk user object */
+function getUserEmail(user: any): string | null {
+  // Try primaryEmailAddress first
+  if (user?.primaryEmailAddress?.emailAddress) {
+    return user.primaryEmailAddress.emailAddress;
+  }
+  // Fallback: check emailAddresses array
+  if (user?.emailAddresses && user.emailAddresses.length > 0) {
+    return user.emailAddresses[0].emailAddress;
+  }
+  return null;
 }
 
 interface AccessState {
@@ -56,11 +66,15 @@ export function useAccessGate(): AccessState {
   });
 
   useEffect(() => {
+    console.log('[AccessGate] Effect running. userLoaded:', userLoaded, 'user:', !!user);
+
     if (!userLoaded) {
-      return; // Keep loading: true until Clerk loads
+      console.log('[AccessGate] Clerk not loaded yet, waiting...');
+      return;
     }
 
     if (!user) {
+      console.log('[AccessGate] No user found after Clerk loaded');
       setState({
         hasAccess: false,
         loading: false,
@@ -71,8 +85,13 @@ export function useAccessGate(): AccessState {
       return;
     }
 
-    const email = user.primaryEmailAddress?.emailAddress;
+    const email = getUserEmail(user);
+    console.log('[AccessGate] User email:', email);
+    console.log('[AccessGate] primaryEmailAddress:', user.primaryEmailAddress?.emailAddress);
+    console.log('[AccessGate] emailAddresses:', user.emailAddresses?.map((e: any) => e.emailAddress));
+
     if (!email) {
+      console.log('[AccessGate] No email found on user object');
       setState({
         hasAccess: false,
         loading: false,
@@ -83,8 +102,12 @@ export function useAccessGate(): AccessState {
       return;
     }
 
-    // Admin bypass — always grant access
-    if (isAdminEmail(email)) {
+    // Admin bypass — always grant access immediately
+    const adminCheck = isAdminEmail(email);
+    console.log('[AccessGate] isAdminEmail check:', adminCheck, 'for email:', email);
+    
+    if (adminCheck) {
+      console.log('[AccessGate] ADMIN ACCESS GRANTED for:', email);
       setState({
         hasAccess: true,
         loading: false,
@@ -102,6 +125,7 @@ export function useAccessGate(): AccessState {
       try {
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < 5 * 60 * 1000) {
+          console.log('[AccessGate] Using cached result:', data.status);
           setState({ ...data, loading: false });
           return;
         }
@@ -112,10 +136,12 @@ export function useAccessGate(): AccessState {
 
     const checkAccess = async () => {
       try {
+        console.log('[AccessGate] Calling API for:', email);
         const response = await fetch(
           `${API_BASE}/api/provision-access/check?email=${encodeURIComponent(email)}`
         );
         const data = await response.json();
+        console.log('[AccessGate] API response:', data);
 
         const accessState: AccessState = {
           hasAccess: data.hasAccess === true,
@@ -151,7 +177,7 @@ export function useAccessGate(): AccessState {
         }
       } catch (err) {
         console.error('[AccessGate] Check failed:', err);
-        // On error, default to allowing access (fail open)
+        // On error, default to allowing access (fail open for better UX)
         setState({
           hasAccess: true,
           loading: false,
