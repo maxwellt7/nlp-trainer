@@ -1,6 +1,7 @@
 /**
  * useAccessGate — checks if the current user has paid access
  * 
+ * Admin users always get access.
  * Calls GET /api/provision-access/check?email=... with the Clerk user's email.
  * Also links the Clerk user ID to the paid record on first check.
  * 
@@ -14,6 +15,26 @@ import { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://nlp-training-backend-production.up.railway.app';
+
+// Admin emails that always have full access
+const ADMIN_EMAILS = [
+  'maxwellmayes@gmail.com',
+  'maxwell@sovereignty.app',
+];
+
+// Admin email domains — any email on these domains gets admin access
+const ADMIN_DOMAINS = [
+  'sovereignty.app',
+  'maxwellmayes.com',
+];
+
+function isAdminEmail(email: string): boolean {
+  const lower = email.toLowerCase();
+  if (ADMIN_EMAILS.some(e => e.toLowerCase() === lower)) return true;
+  const domain = lower.split('@')[1];
+  if (domain && ADMIN_DOMAINS.some(d => d === domain)) return true;
+  return false;
+}
 
 interface AccessState {
   hasAccess: boolean;
@@ -35,8 +56,18 @@ export function useAccessGate(): AccessState {
   });
 
   useEffect(() => {
-    if (!userLoaded || !user) {
-      setState(prev => ({ ...prev, loading: !userLoaded }));
+    if (!userLoaded) {
+      return; // Keep loading: true until Clerk loads
+    }
+
+    if (!user) {
+      setState({
+        hasAccess: false,
+        loading: false,
+        status: 'no-user',
+        plan: null,
+        purchaseUrl: 'https://start.sovereignty.app',
+      });
       return;
     }
 
@@ -47,6 +78,18 @@ export function useAccessGate(): AccessState {
         loading: false,
         status: 'no-email',
         plan: null,
+        purchaseUrl: 'https://start.sovereignty.app',
+      });
+      return;
+    }
+
+    // Admin bypass — always grant access
+    if (isAdminEmail(email)) {
+      setState({
+        hasAccess: true,
+        loading: false,
+        status: 'admin',
+        plan: 'admin',
         purchaseUrl: 'https://start.sovereignty.app',
       });
       return;
@@ -108,8 +151,7 @@ export function useAccessGate(): AccessState {
         }
       } catch (err) {
         console.error('[AccessGate] Check failed:', err);
-        // On error, default to allowing access (fail open for now)
-        // You can change this to fail closed by setting hasAccess: false
+        // On error, default to allowing access (fail open)
         setState({
           hasAccess: true,
           loading: false,

@@ -50,6 +50,7 @@ export default function PaywallGate({ children }: PaywallGateProps) {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: '100dvh',
+        overflowY: 'auto',
         background: 'linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)',
         color: '#e8e0d0',
         fontFamily: "'Cinzel', serif",
