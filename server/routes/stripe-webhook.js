@@ -4,8 +4,9 @@
  * Receives Stripe webhook events directly from Stripe Dashboard.
  * On checkout.session.completed:
  *   1. Provisions paid access in the database
- *   2. Fires Meta CAPI Purchase event
- *   3. Updates GHL pipeline (moves opportunity to Subscribed, marks won)
+ *   2. Creates a Clerk account (so they can sign in to heart.sovereignty.app)
+ *   3. Fires Meta CAPI Purchase event
+ *   4. Updates GHL pipeline (moves opportunity to Subscribed, marks won)
  * 
  * Endpoint: POST /api/stripe-webhook
  * 
@@ -24,6 +25,7 @@ const router = express.Router();
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const META_PIXEL_ID = '1917548505548972';
 const META_CAPI_TOKEN = process.env.META_CAPI_TOKEN || '';
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
 
 /**
  * Verify Stripe webhook signature
@@ -75,6 +77,99 @@ function verifyStripeSignature(payload, sigHeader, secret) {
       return false;
     }
   });
+}
+
+/**
+ * Create a Clerk user account via the Backend API.
+ * If the user already exists (same email), returns the existing user.
+ * Uses skip_password_requirement so the user can set their password on first sign-in.
+ */
+async function createClerkUser(email, name) {
+  if (!CLERK_SECRET_KEY) {
+    console.warn('[Stripe Webhook] No CLERK_SECRET_KEY — skipping Clerk user creation');
+    return null;
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Parse name into first/last
+  let firstName = null;
+  let lastName = null;
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    firstName = parts[0];
+    if (parts.length > 1) lastName = parts.slice(1).join(' ');
+  }
+
+  // First, check if user already exists in Clerk
+  try {
+    const searchUrl = `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(normalizedEmail)}&limit=1`;
+    const searchResp = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (searchResp.ok) {
+      const existingUsers = await searchResp.json();
+      if (existingUsers && existingUsers.length > 0) {
+        console.log(`[Stripe Webhook] Clerk user already exists for ${email}: ${existingUsers[0].id}`);
+        return existingUsers[0];
+      }
+    }
+  } catch (err) {
+    console.warn(`[Stripe Webhook] Clerk user search failed (non-blocking):`, err.message);
+  }
+
+  // Create new Clerk user
+  const body = {
+    email_address: [normalizedEmail],
+    skip_password_requirement: true,
+    skip_password_checks: true,
+  };
+
+  if (firstName) body.first_name = firstName;
+  if (lastName) body.last_name = lastName;
+
+  try {
+    const response = await fetch('https://api.clerk.com/v1/users', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      console.log(`[Stripe Webhook] ✅ Clerk user created: ${result.id} (${email})`);
+
+      // Update paid_users table with clerk_user_id
+      try {
+        db.prepare('UPDATE paid_users SET clerk_user_id = ? WHERE email = ?')
+          .run(result.id, normalizedEmail);
+      } catch (dbErr) {
+        console.warn(`[Stripe Webhook] Failed to update clerk_user_id in DB:`, dbErr.message);
+      }
+
+      return result;
+    } else {
+      // Handle duplicate email error gracefully
+      if (result.errors?.some(e => e.code === 'form_identifier_exists')) {
+        console.log(`[Stripe Webhook] Clerk user already exists for ${email} (caught on create)`);
+        return null;
+      }
+      console.error(`[Stripe Webhook] Clerk user creation failed:`, JSON.stringify(result));
+      return null;
+    }
+  } catch (err) {
+    console.error(`[Stripe Webhook] Clerk API error:`, err.message);
+    return null;
+  }
 }
 
 /**
@@ -239,14 +334,24 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       console.error(`[Stripe Webhook] Provision failed:`, err.message);
     }
 
-    // 2. Fire Meta CAPI Purchase event (server-side)
+    // 2. Create Clerk account (so they can sign in to heart.sovereignty.app)
+    try {
+      const clerkUser = await createClerkUser(email, name);
+      if (clerkUser) {
+        console.log(`[Stripe Webhook] Clerk account ready for: ${email}`);
+      }
+    } catch (err) {
+      console.error(`[Stripe Webhook] Clerk creation failed (non-blocking):`, err.message);
+    }
+
+    // 3. Fire Meta CAPI Purchase event (server-side)
     try {
       await sendCapiPurchaseEvent(email, amountTotal);
     } catch (err) {
       console.error(`[Stripe Webhook] CAPI failed:`, err.message);
     }
 
-    // 3. Update GHL pipeline — move to Subscribed stage, mark as won
+    // 4. Update GHL pipeline — move to Subscribed stage, mark as won
     try {
       await handleSubscription({
         email: email.toLowerCase().trim(),
@@ -266,4 +371,3 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 });
 
 export default router;
-// Stripe webhook v1 - 20260409200504
