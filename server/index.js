@@ -14,6 +14,7 @@ import quizRoutes from './routes/quiz.js';
 import ghlRoutes from './routes/ghl.js';
 import analyticsRoutes from './routes/analytics.js';
 import provisionRoutes from './routes/provision.js';
+import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -52,6 +53,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
+// Stripe webhook needs raw body for signature verification — mount BEFORE express.json()
+app.use('/api/stripe-webhook', stripeWebhookRoutes);
+
 app.use(express.json({ limit: '1mb' }));
 
 // ─── Manual Clerk JWT verification (no @clerk/express dependency) ───
