@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+// useNavigate removed — results CTA now redirects to external offer page
 import {
   trackViewContent,
   trackQuizStart,
   trackQuizProgress,
   trackQuizComplete,
   trackEmailCapture,
-  trackStartTrial,
+  trackAddToCart,
+  trackCustom,
   sendServerEvent,
 } from '../utils/pixel';
 
@@ -399,9 +400,7 @@ function EmailCapture({
   );
 }
 
-function ResultsSection({ result, name }: { result: QuizResult; name: string }) {
-  const navigate = useNavigate();
-
+function ResultsSection({ result, name, email }: { result: QuizResult; name: string; email: string }) {
   const tierColors = {
     fractured: { ring: 'border-status-error', glow: 'rgba(239, 68, 68, 0.15)', text: 'text-status-error', bg: 'bg-status-error/10' },
     drifting: { ring: 'border-status-warning', glow: 'rgba(245, 158, 11, 0.15)', text: 'text-status-warning', bg: 'bg-status-warning/10' },
@@ -410,10 +409,30 @@ function ResultsSection({ result, name }: { result: QuizResult; name: string }) 
 
   const colors = tierColors[result.tier];
 
+  // Build the offer URL with email pre-filled
+  const offerUrl = email
+    ? `https://start.sovereignty.app/offer?email=${encodeURIComponent(email)}&score=${result.score}&tier=${result.tier}`
+    : `https://start.sovereignty.app/offer?score=${result.score}&tier=${result.tier}`;
+
   const handleCTA = () => {
-    trackStartTrial({ value: 0, currency: 'USD' });
-    sendServerEvent('StartTrial', { score: result.score, tier: result.tier });
-    navigate('/sign-up');
+    // Fire InitiateCheckout pixel event
+    trackAddToCart({
+      content_name: 'Alignment Engine Full Access',
+      content_ids: ['alignment-engine-full-access'],
+      value: 7,
+      currency: 'USD',
+    });
+    trackCustom('InitiateCheckout', {
+      value: 7,
+      currency: 'USD',
+      content_name: 'Alignment Engine Full Access',
+      score: result.score,
+      tier: result.tier,
+    });
+    sendServerEvent('StartTrial', { score: result.score, tier: result.tier, email });
+
+    // Redirect to the offer/checkout page
+    window.location.href = offerUrl;
   };
 
   return (
@@ -458,10 +477,10 @@ function ResultsSection({ result, name }: { result: QuizResult; name: string }) 
         {/* Bridge to product */}
         <div className="text-center mb-6">
           <h3 className="font-display text-2xl text-text-primary mb-3">
-            The Alignment Engine
+            Your Protocol Is Ready
           </h3>
           <p className="text-text-secondary text-sm leading-relaxed mb-6">
-            AI-personalized hypnosis sessions that target your specific subconscious misalignments.
+            The Alignment Engine uses AI-personalized hypnosis to target your specific subconscious misalignments.
             10 minutes a day. Built around your patterns, your values, your blind spots.
           </p>
 
@@ -469,7 +488,7 @@ function ResultsSection({ result, name }: { result: QuizResult; name: string }) 
             {[
               { icon: '🧠', label: 'AI-Personalized', sub: 'Built for you' },
               { icon: '🎯', label: 'Targeted', sub: 'Your blind spots' },
-              { icon: '⚡', label: '10 Min/Day', sub: 'That\'s all it takes' },
+              { icon: '⚡', label: '10 Min/Day', sub: "That's all it takes" },
             ].map((f, i) => (
               <div key={i} className="brand-card p-3 text-center">
                 <div className="text-2xl mb-1">{f.icon}</div>
@@ -480,17 +499,49 @@ function ResultsSection({ result, name }: { result: QuizResult; name: string }) 
           </div>
         </div>
 
-        {/* CTA */}
+        {/* Pricing anchor + CTA */}
+        <div className="text-center mb-4">
+          <div className="inline-flex items-baseline gap-3 mb-2">
+            <span className="text-text-dim line-through text-lg">$97</span>
+            <span className="text-accent-gold font-display text-4xl font-bold">$7</span>
+          </div>
+          <p className="text-text-muted text-xs mb-4">Limited-time introductory pricing</p>
+        </div>
+
         <button
           onClick={handleCTA}
-          className="btn-primary w-full py-4 text-lg font-bold tracking-wide animate-breathe cursor-pointer mb-4"
+          className="btn-primary w-full py-4 text-lg font-bold tracking-wide animate-breathe cursor-pointer mb-3"
         >
-          Start Your Alignment Protocol — Free
+          Start Your Alignment Protocol&nbsp;&nbsp;→
         </button>
 
-        <p className="text-center text-xs text-text-dim mb-16">
-          No credit card required. Cancel anytime.
+        <p className="text-center text-xs text-text-dim mb-3">
+          Secure checkout powered by Stripe
         </p>
+
+        {/* Trust signals */}
+        <div className="flex items-center justify-center gap-4 text-xs text-text-dim mb-6">
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            30-day guarantee
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            Encrypted
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            Instant access
+          </span>
+        </div>
+
+        {/* Urgency/scarcity nudge */}
+        <div className="brand-card p-4 text-center mb-16">
+          <p className="text-text-secondary text-xs leading-relaxed">
+            <span className="text-accent-gold font-semibold">Your personalized protocol won't wait.</span>{' '}
+            The patterns your assessment revealed are actively running. Every day without intervention is another day your subconscious operates on autopilot.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -551,8 +602,11 @@ export default function Quiz() {
     }
   };
 
+  const [email, setEmail] = useState('');
+
   const handleEmailSubmit = async (submittedEmail: string, submittedName: string) => {
     setName(submittedName);
+    setEmail(submittedEmail);
     setLoading(true);
 
     // Track email capture
@@ -621,7 +675,7 @@ export default function Quiz() {
         )}
 
         {step === 'results' && result && (
-          <ResultsSection result={result} name={name} />
+          <ResultsSection result={result} name={name} email={email} />
         )}
       </div>
     </div>
