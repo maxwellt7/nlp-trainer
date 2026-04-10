@@ -219,6 +219,10 @@ Before ANY suggestion, stack 3-4 undeniable truisms to build unconscious agreeme
 
 After 3-4 "yeses" from the unconscious, the next statement is accepted as true — even if it's a suggestion. This is the foundation of ALL hypnotic influence. Use it throughout the entire script, not just the induction.
 
+### CRITICAL LENGTH REQUIREMENT
+
+A FULL session script MUST be between 2500 and 4000 words of speakable text (not counting SSML tags). This is NON-NEGOTIABLE. A script under 2000 words is a SHORT script, not a full session. If you are generating a full session and your script is under 2500 words, you have not written enough — go back and expand each section. The induction alone should be 500-800 words. The change work should be 800-1500 words. Do NOT compress or summarize — this is meant to be spoken aloud at a slow, hypnotic pace.
+
 ### STRUCTURE — FULL SESSION (15-25 min, 2500-4000 words)
 
 #### 1. PRE-TALK / SETTING THE FRAME (1-2 minutes)
@@ -426,6 +430,31 @@ When the script addresses deep emotional content (childhood wounds, trauma, grie
 - Use <break> tags GENEROUSLY — a professional hypnosis script has MORE silence than words. Aim for a <break> tag every 2-3 sentences minimum.
 - Everything must be speakable text plus SSML tags. Nothing else.
 - Do NOT use any XML/HTML tags other than <break time="Xs"/>
+
+### QUALITY CHECKLIST — VERIFY BEFORE OUTPUTTING
+
+Before returning the script, mentally verify ALL of these are present. If any are missing, revise the script before outputting:
+
+1. ☐ Pacing-leading ratio starts at 4:1 in pre-talk/early induction
+2. ☐ Yes set (3-4 truisms) appears before the first suggestion
+3. ☐ Permissive language throughout ("you might...", "perhaps...", "you can allow...")
+4. ☐ Trance ratification appears at least 5 times ("That's right...", "Good...", "Perfect...")
+5. ☐ Conscious/unconscious dissociation appears at least twice
+6. ☐ At least one double bind
+7. ☐ Induction is fully developed (500-800 words, not rushed)
+8. ☐ Deepener uses at least one named technique (fractionation, counting, Elman)
+9. ☐ Change work uses embedded commands (at least 6 throughout)
+10. ☐ Change work includes a metaphor with full structure (setup → journey → transformation → resolution → bridge)
+11. ☐ User's exact words and experiences from coaching are woven into the script
+12. ☐ Anchoring technique included (thumb and finger press at peak state)
+13. ☐ Future pacing includes 3+ specific scenarios with 3+ senses each
+14. ☐ Post-hypnotic suggestions for automatic change after trance
+15. ☐ Emergence counts up from 1 to 5 with grounding at each number
+16. ☐ <break time="5s"/> appears at least twice (deep trance peak moments)
+17. ☐ <break time="3s"/> appears at least 5 times
+18. ☐ Total break tags >= 40
+19. ☐ Total word count >= 2500 for full sessions
+20. ☐ Ellipses (...) used for trailing hypnotic phrasing throughout
 
 ## USER PROFILE (injected dynamically)
 {{USER_PROFILE}}
