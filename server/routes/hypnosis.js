@@ -88,27 +88,37 @@ router.post('/init', async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Check if there's already a session today with messages
+    // Reuse today's session if one already exists, even if it is still empty.
+    // Production can already have a same-day placeholder row before /init runs,
+    // and creating another session can fail against stricter live schemas.
     const existing = getTodaySession(userId);
-    if (existing && existing.chat_messages) {
-      try {
-        const msgs = JSON.parse(typeof existing.chat_messages === 'string' ? existing.chat_messages : JSON.stringify(existing.chat_messages));
-        if (msgs.length > 0) {
-          // Check if session is already completed (has a chat_summary from /generate)
-          const isCompleted = !!(existing.chat_summary && existing.chat_summary.trim() !== '');
-          return res.json({
-            reply: null,
-            sessionId: existing.id,
-            resumeMessages: msgs,
-            completed: isCompleted,
-            sessionSummary: isCompleted ? existing.chat_summary : null,
-          });
+    if (existing) {
+      const isCompleted = !!(existing.chat_summary && existing.chat_summary.trim() !== '');
+      let resumeMessages = null;
+
+      if (existing.chat_messages) {
+        try {
+          const msgs = JSON.parse(typeof existing.chat_messages === 'string' ? existing.chat_messages : JSON.stringify(existing.chat_messages));
+          if (Array.isArray(msgs) && msgs.length > 0) {
+            resumeMessages = msgs;
+          }
+        } catch {
+          resumeMessages = null;
         }
-      } catch { /* continue to create new */ }
+      }
+
+      if (isCompleted || resumeMessages) {
+        return res.json({
+          reply: null,
+          sessionId: existing.id,
+          resumeMessages,
+          completed: isCompleted,
+          sessionSummary: isCompleted ? existing.chat_summary : null,
+        });
+      }
     }
 
-    // Create a new session
-    const newSession = createSession(userId, null);
+    const session = existing || createSession(userId, null);
     const systemPrompt = buildSystemPrompt(userId, 'coaching');
 
     // Send a synthetic seed message to get the AI's opening
@@ -132,13 +142,13 @@ router.post('/init', async (req, res) => {
     const openingMessage = parsed.reply || text;
 
     // Save the opening message to the session (with the seed hidden)
-    updateSessionMessages(newSession.id, [
+    updateSessionMessages(session.id, [
       { role: 'assistant', content: openingMessage }
     ]);
 
     res.json({
       reply: openingMessage,
-      sessionId: newSession.id,
+      sessionId: session.id,
       resumeMessages: null,
     });
   } catch (error) {
