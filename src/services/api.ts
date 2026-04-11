@@ -94,12 +94,13 @@ export const api = {
 
   // ── Audio / Scripts ──
   listScripts: () => request<any>('/audio/scripts'),
+  listVoices: () => request<any>('/audio/voices'),
   saveScript: (script: { title: string; duration: string; estimatedMinutes: number; script: string }) =>
     request<any>('/audio/scripts', { method: 'POST', body: JSON.stringify(script) }),
-  generateAudio: (scriptId: string, musicTrack?: string, musicVolume?: number) =>
+  generateAudio: (scriptId: string, musicTrack?: string, musicVolume?: number, voiceId?: string) =>
     request<any>(`/audio/generate-audio/${scriptId}`, {
       method: 'POST',
-      body: JSON.stringify({ musicTrack, musicVolume }),
+      body: JSON.stringify({ musicTrack, musicVolume, voiceId }),
     }),
   listMusic: () => request<any>('/audio/music'),
   deleteScript: (scriptId: string) =>

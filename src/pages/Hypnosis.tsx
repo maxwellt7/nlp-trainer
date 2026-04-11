@@ -28,6 +28,14 @@ interface ProfileUpdates {
   victim_healer?: string | null;
 }
 
+interface VoiceOption {
+  id: string;
+  key: string;
+  label: string;
+  description: string;
+  isDefault: boolean;
+}
+
 const mapLabels: Record<string, string> = {
   map1: 'Work / Adult',
   map2: 'Social / Adolescent',
@@ -76,6 +84,8 @@ export default function Hypnosis() {
   const [musicTracks, setMusicTracks] = useState<any[]>([]);
   const [selectedMusic, setSelectedMusic] = useState<string>('');
   const [musicVolume, setMusicVolume] = useState(0.15);
+  const [voices, setVoices] = useState<VoiceOption[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [profileInsights, setProfileInsights] = useState<ProfileUpdates>({});
   const [sessionRating, setSessionRating] = useState<number>(0);
@@ -181,6 +191,13 @@ export default function Hypnosis() {
         setMusicTracks(musicData.tracks || []);
         if (musicData.tracks?.length > 0) setSelectedMusic(musicData.tracks[0].filename);
       } catch { /* music is optional */ }
+      try {
+        const voiceData = await api.listVoices();
+        const availableVoices = voiceData.voices || [];
+        setVoices(availableVoices);
+        const defaultVoice = availableVoices.find((voice: VoiceOption) => voice.isDefault);
+        setSelectedVoice(defaultVoice?.id || availableVoices[0]?.id || '');
+      } catch { /* voices fall back server-side */ }
       if (data.gamification) {
         const gam = data.gamification;
         if (gam.xpEvents && gam.xpEvents.length > 0) {
@@ -202,7 +219,12 @@ export default function Hypnosis() {
     setGeneratingAudio(true);
     setError(null);
     try {
-      await api.generateAudio(savedScriptId, selectedMusic || undefined, selectedMusic ? musicVolume : undefined);
+      await api.generateAudio(
+        savedScriptId,
+        selectedMusic || undefined,
+        selectedMusic ? musicVolume : undefined,
+        selectedVoice || undefined,
+      );
       setAudioGenerated(true);
       if (navigator.vibrate) navigator.vibrate([30, 50, 100]);
     } catch (err: any) {
@@ -249,6 +271,8 @@ export default function Hypnosis() {
     setSavedScriptId(null);
     setGeneratingAudio(false);
     setAudioGenerated(false);
+    setVoices([]);
+    setSelectedVoice('');
     setSessionId(null);
     setProfileInsights({});
     setSessionRating(0);
@@ -418,6 +442,17 @@ export default function Hypnosis() {
           </button>
           {savedScriptId && !audioGenerated && (
             <div className="flex items-center gap-3 flex-wrap">
+              {voices.length > 0 && (
+                <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  Voice
+                  <select value={selectedVoice} onChange={e => setSelectedVoice(e.target.value)}
+                    className="brand-input text-sm rounded-lg min-w-[11rem]">
+                    {voices.map((voice) => (
+                      <option key={voice.id} value={voice.id}>{voice.label}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {musicTracks.length > 0 && (
                 <>
                   <select value={selectedMusic} onChange={e => setSelectedMusic(e.target.value)}

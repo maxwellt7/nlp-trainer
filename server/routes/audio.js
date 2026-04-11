@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { execFileSync } from 'child_process';
 import dotenv from 'dotenv';
 
+import { getConfiguredVoices, resolveVoiceSelection } from '../services/audio-voices.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '..', '.env'), quiet: true });
 
@@ -129,6 +131,17 @@ router.get('/music', (req, res) => {
   }
 });
 
+// GET /voices — list configured ElevenLabs voices
+router.get('/voices', (req, res) => {
+  try {
+    const { voices, defaultVoiceId } = getConfiguredVoices();
+    res.json({ voices, defaultVoiceId });
+  } catch (error) {
+    console.error('Error listing voices:', error.message);
+    res.status(500).json({ error: 'Failed to list voices' });
+  }
+});
+
 // GET /scripts — list saved scripts for the current user
 router.get('/scripts', (req, res) => {
   try {
@@ -211,8 +224,9 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
       return res.status(500).json({ error: 'ELEVENLABS_API_KEY not configured' });
     }
 
-    // Use voice ID from env or default to "Rachel" (a calm, soothing voice)
-    const voiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+    const { voiceId: requestedVoiceId, musicTrack, musicVolume } = req.body || {};
+    const selectedVoice = resolveVoiceSelection(requestedVoiceId);
+    const voiceId = selectedVoice.id;
 
     // Parse script into text segments and pause segments
     const segments = parseScriptSegments(scriptData.script);
@@ -341,7 +355,6 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
       }
 
       // Check if music track was requested
-      const { musicTrack, musicVolume } = req.body || {};
       let finalFileName = `${scriptId}.mp3`;
       const finalPath = join(audioDir, finalFileName);
 
@@ -411,12 +424,16 @@ router.post('/generate-audio/:scriptId', async (req, res) => {
       // Update script record with audio file reference
       scriptData.audioFile = finalFileName;
       scriptData.musicTrack = musicTrack || null;
+      scriptData.voiceId = selectedVoice.id;
+      scriptData.voiceLabel = selectedVoice.label;
       writeFileSync(scriptPath, JSON.stringify(scriptData, null, 2));
 
       res.json({
         success: true,
         audioFile: finalFileName,
         musicTrack: musicTrack || null,
+        voiceId: selectedVoice.id,
+        voiceLabel: selectedVoice.label,
         script: scriptData,
       });
     } catch (genError) {

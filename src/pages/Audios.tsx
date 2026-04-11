@@ -9,7 +9,17 @@ interface SavedScript {
   estimatedMinutes: number;
   script: string;
   audioFile: string | null;
+  voiceId?: string | null;
+  voiceLabel?: string | null;
   createdAt: string;
+}
+
+interface VoiceOption {
+  id: string;
+  key: string;
+  label: string;
+  description: string;
+  isDefault: boolean;
 }
 
 export default function Audios() {
@@ -19,12 +29,24 @@ export default function Audios() {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [voices, setVoices] = useState<VoiceOption[]>([]);
+  const [selectedVoiceByScript, setSelectedVoiceByScript] = useState<Record<string, string>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const loadScripts = async () => {
     try {
       const data = await api.listScripts();
-      setScripts(data.scripts || []);
+      const nextScripts = data.scripts || [];
+      setScripts(nextScripts);
+      setSelectedVoiceByScript((prev) => {
+        const next = { ...prev };
+        for (const script of nextScripts) {
+          if (script.voiceId && !next[script.id]) {
+            next[script.id] = script.voiceId;
+          }
+        }
+        return next;
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -32,8 +54,18 @@ export default function Audios() {
     }
   };
 
+  const loadVoices = async () => {
+    try {
+      const data = await api.listVoices();
+      setVoices(data.voices || []);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   useEffect(() => {
     loadScripts();
+    loadVoices();
 
     return () => {
       // Cleanup audio on unmount to prevent memory leak
@@ -89,7 +121,7 @@ export default function Audios() {
     setGeneratingId(scriptId);
     setError(null);
     try {
-      await api.generateAudio(scriptId);
+      await api.generateAudio(scriptId, undefined, undefined, selectedVoiceByScript[scriptId]);
       await loadScripts();
     } catch (err: any) {
       setError(err.message || 'Failed to generate audio');
@@ -170,13 +202,26 @@ export default function Audios() {
                       {playingId === script.id ? 'Stop' : 'Play'}
                     </button>
                   ) : (
-                    <button
-                      onClick={() => generateAudio(script.id)}
-                      disabled={generatingId === script.id}
-                      className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                    >
-                      {generatingId === script.id ? 'Generating...' : 'Generate Audio'}
-                    </button>
+                    <>
+                      {voices.length > 0 && (
+                        <select
+                          value={selectedVoiceByScript[script.id] || voices.find((voice) => voice.isDefault)?.id || voices[0]?.id || ''}
+                          onChange={(e) => setSelectedVoiceByScript((prev) => ({ ...prev, [script.id]: e.target.value }))}
+                          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm"
+                        >
+                          {voices.map((voice) => (
+                            <option key={voice.id} value={voice.id}>{voice.label}</option>
+                          ))}
+                        </select>
+                      )}
+                      <button
+                        onClick={() => generateAudio(script.id)}
+                        disabled={generatingId === script.id}
+                        className="bg-purple-600 hover:bg-purple-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                      >
+                        {generatingId === script.id ? 'Generating...' : 'Generate Audio'}
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => setExpandedId(expandedId === script.id ? null : script.id)}
