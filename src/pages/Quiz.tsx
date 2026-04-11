@@ -570,7 +570,7 @@ export default function Quiz() {
   const handleStart = () => {
     setStep('quiz');
     trackQuizStart();
-    sendServerEvent('ViewContent', { sourceUrl: window.location.href });
+    sendServerEvent('QuizStart', { sourceUrl: window.location.href, step: 1 });
   };
 
   const handleAnswer = (value: number) => {
@@ -593,10 +593,11 @@ export default function Quiz() {
         const res = calculateResult(newAnswers);
         setResult(res);
         trackQuizComplete(res.score, res.tier);
-        sendServerEvent('ViewContent', {
+        sendServerEvent('QuizComplete', {
           score: res.score,
           tier: res.tier,
           sourceUrl: window.location.href,
+          step: QUESTIONS.length,
         });
       }, 500);
     }

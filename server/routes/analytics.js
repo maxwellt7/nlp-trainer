@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db/index.js';
+import { buildFunnelBreakdown } from '../services/funnel-breakdown.js';
 
 const router = express.Router();
 
@@ -83,6 +84,29 @@ router.get('/overview', (req, res) => {
     const quizLeadsTotal = db.prepare(
       `SELECT COUNT(*) as count FROM quiz_leads`
     ).get();
+
+    const quizPageViews = db.prepare(
+      `SELECT COUNT(*) as count FROM page_views WHERE created_at >= ? AND path LIKE '/quiz%'`
+    ).get(since);
+
+    const offerClicks = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM analytics_events
+      WHERE created_at >= ? AND event_type IN ('StartTrial', 'QuizOfferClick')
+    `).get(since);
+
+    const purchases = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM paid_users
+      WHERE created_at >= ? OR provisioned_at >= ?
+    `).get(since, since);
+
+    const funnelBreakdown = buildFunnelBreakdown({
+      quizPageViews: quizPageViews?.count || 0,
+      quizLeads: quizLeads?.count || 0,
+      offerClicks: offerClicks?.count || 0,
+      purchases: purchases?.count || 0,
+    });
 
     // Quiz leads by day
     const quizLeadsByDay = db.prepare(`
@@ -194,6 +218,10 @@ router.get('/overview', (req, res) => {
         quizLeadsTotal: quizLeadsTotal?.count || 0,
         quizLeadsByDay: quizLeadsByDay || [],
         tierDistribution: tierDistribution || [],
+        breakdown: funnelBreakdown,
+        purchases: purchases?.count || 0,
+        quizTraffic: quizPageViews?.count || 0,
+        offerClicks: offerClicks?.count || 0,
       },
       users: {
         total: totalUsers?.count || 0,

@@ -14,6 +14,18 @@ interface OverviewData {
     quizLeadsTotal: number;
     quizLeadsByDay: { day: string; count: number }[];
     tierDistribution: { tier: string; count: number }[];
+    breakdown: {
+      key: string;
+      label: string;
+      description: string;
+      count: number;
+      conversionFromPrevious: number | null;
+      dropOffFromPrevious: number | null;
+      dropOffRateFromPrevious: number | null;
+    }[];
+    purchases: number;
+    quizTraffic: number;
+    offerClicks: number;
   };
   users: { total: number; recent: number };
   sessions: {
@@ -342,6 +354,93 @@ function MiniChart({ data, label }: { data: { day: string; count: number }[]; la
   );
 }
 
+function FunnelBreakdown({ stages }: { stages: OverviewData['funnel']['breakdown'] }) {
+  if (!stages || stages.length === 0) return null;
+
+  const maxCount = Math.max(...stages.map(stage => stage.count), 1);
+
+  return (
+    <div style={{
+      background: '#111827', border: '1px solid #1e293b', borderRadius: 12,
+      padding: '20px', marginTop: 16,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 500 }}>Funnel Breakdown</div>
+          <div style={{ color: '#475569', fontSize: 12, marginTop: 4 }}>
+            Traffic and conversion through quiz visit, email capture, offer click, and purchase.
+          </div>
+        </div>
+        <div style={{ color: '#64748b', fontSize: 12, maxWidth: 320, textAlign: 'right' }}>
+          Offer-click tracking uses internal quiz events and may undercount historical periods before this update.
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+        {stages.map((stage, index) => (
+          <div key={stage.key} style={{
+            border: '1px solid #1e293b',
+            borderRadius: 10,
+            padding: '14px 16px',
+            background: '#0f172a',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div>
+                <div style={{ color: '#e2e8f0', fontWeight: 600, fontSize: 15 }}>{index + 1}. {stage.label}</div>
+                <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>{stage.description}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: '#D4A853', fontWeight: 700, fontSize: 24 }}>{stage.count.toLocaleString()}</div>
+                <div style={{ color: '#64748b', fontSize: 12 }}>in selected period</div>
+              </div>
+            </div>
+
+            <div style={{
+              marginTop: 12,
+              height: 10,
+              width: '100%',
+              background: '#1e293b',
+              borderRadius: 999,
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.max((stage.count / maxCount) * 100, stage.count > 0 ? 4 : 0)}%`,
+                background: index === 0 ? '#D4A853' : '#22c55e',
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12 }}>
+              <div style={pillStyle}>
+                <span style={{ color: '#64748b' }}>Stage count</span>
+                <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{stage.count.toLocaleString()}</span>
+              </div>
+              {stage.conversionFromPrevious !== null && (
+                <div style={pillStyle}>
+                  <span style={{ color: '#64748b' }}>Conversion</span>
+                  <span style={{ color: '#22c55e', fontWeight: 600 }}>{stage.conversionFromPrevious}%</span>
+                </div>
+              )}
+              {stage.dropOffFromPrevious !== null && (
+                <div style={pillStyle}>
+                  <span style={{ color: '#64748b' }}>Drop-off</span>
+                  <span style={{ color: '#f87171', fontWeight: 600 }}>{stage.dropOffFromPrevious.toLocaleString()}</span>
+                </div>
+              )}
+              {stage.dropOffRateFromPrevious !== null && (
+                <div style={pillStyle}>
+                  <span style={{ color: '#64748b' }}>Drop-off rate</span>
+                  <span style={{ color: '#f87171', fontWeight: 600 }}>{stage.dropOffRateFromPrevious}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Overview Tab ──
 function OverviewTab({ data }: { data: OverviewData }) {
   const conversionRate = data.funnel.quizLeadsTotal > 0 && data.users.total > 0
@@ -355,12 +454,15 @@ function OverviewTab({ data }: { data: OverviewData }) {
         Quiz Funnel
       </h2>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
+        <StatCard label="Quiz Traffic" value={data.funnel.quizTraffic} color="#06b6d4" />
         <StatCard label="Quiz Leads (Period)" value={data.funnel.quizLeads} color="#22c55e" />
-        <StatCard label="Total Quiz Leads" value={data.funnel.quizLeadsTotal} color="#D4A853" />
+        <StatCard label="Offer Clicks" value={data.funnel.offerClicks} color="#f59e0b" />
+        <StatCard label="Purchases" value={data.funnel.purchases} color="#D4A853" />
         <StatCard label="Signed Up Users" value={data.users.total} color="#3b82f6" />
         <StatCard label="Lead → Signup Rate" value={`${conversionRate}%`} color="#a855f7" />
       </div>
 
+      <FunnelBreakdown stages={data.funnel.breakdown} />
       <MiniChart data={data.funnel.quizLeadsByDay} label="Quiz Leads by Day" />
 
       {/* Tier Distribution */}
@@ -704,6 +806,17 @@ const thStyle: React.CSSProperties = {
 
 const tdStyle: React.CSSProperties = {
   padding: '10px 12px', color: '#e2e8f0',
+};
+
+const pillStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '6px 10px',
+  borderRadius: 999,
+  background: '#111827',
+  border: '1px solid #1e293b',
+  fontSize: 12,
 };
 
 function formatDate(dateStr: string) {

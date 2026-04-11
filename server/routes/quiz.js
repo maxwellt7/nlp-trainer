@@ -30,6 +30,17 @@ try {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      user_id TEXT,
+      email TEXT,
+      metadata TEXT DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run();
 } catch (err) {
   console.error('Failed to create quiz_leads table:', err.message);
 }
@@ -119,6 +130,20 @@ router.post('/event', async (req, res) => {
     if (score !== undefined) customData.score = score;
     if (tier) customData.tier = tier;
     if (step !== undefined) customData.step = step;
+
+    db.prepare(`
+      INSERT INTO analytics_events (event_type, email, metadata)
+      VALUES (?, ?, ?)
+    `).run(
+      eventName,
+      email || null,
+      JSON.stringify({
+        score,
+        tier,
+        step,
+        sourceUrl: sourceUrl || null,
+      })
+    );
 
     await sendCapiEvent(mappedEvent, {
       email,
