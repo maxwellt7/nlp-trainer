@@ -48,3 +48,16 @@ test('resolveVoiceSelection uses an allowed requested voice and falls back to th
   assert.equal(fallback.id, '4tRn1lSkEn13EVTuqb0g');
   assert.equal(fallback.label, 'Serafina');
 });
+
+test('getConfiguredVoices ignores a stale generic default voice id that is not present in the named catalog', () => {
+  const staleEnv = {
+    ...voiceEnv,
+    ELEVENLABS_VOICE_ID: 'fCxG8OHm4STbIsWe4aT9',
+  };
+
+  const { voices, defaultVoiceId } = getConfiguredVoices(staleEnv);
+
+  assert.equal(defaultVoiceId, '4tRn1lSkEn13EVTuqb0g');
+  assert.equal(voices[0]?.isDefault, true);
+  assert.equal(voices.find((voice) => voice.label === 'Serafina')?.isDefault, true);
+});

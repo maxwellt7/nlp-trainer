@@ -36,17 +36,18 @@ export function getConfiguredVoices(env = process.env) {
       key: voice.key,
       label: voice.label,
       description: voice.description,
-      isDefault: configuredDefault ? configuredDefault === id : false,
+      isDefault: false,
     };
   }).filter((voice, index, allVoices) => {
     return voice.id && allVoices.findIndex((candidate) => candidate.id === voice.id) === index;
   });
 
-  const defaultVoiceId = configuredDefault || voices[0]?.id || '4tRn1lSkEn13EVTuqb0g';
+  const hasConfiguredDefault = configuredDefault && voices.some((voice) => voice.id === configuredDefault);
+  const defaultVoiceId = hasConfiguredDefault ? configuredDefault : (voices[0]?.id || '4tRn1lSkEn13EVTuqb0g');
 
-  const normalizedVoices = voices.map((voice, index) => ({
+  const normalizedVoices = voices.map((voice) => ({
     ...voice,
-    isDefault: voice.id === defaultVoiceId || (!voices.some((candidate) => candidate.isDefault) && index === 0 && voice.id === defaultVoiceId),
+    isDefault: voice.id === defaultVoiceId,
   }));
 
   return {

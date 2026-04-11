@@ -20,7 +20,6 @@ import OfflineBanner from './components/OfflineBanner';
 import SignupTracker from './components/SignupTracker';
 import Admin from './pages/Admin';
 import AnalyticsTracker from './components/AnalyticsTracker';
-import PaywallGate from './components/PaywallGate';
 
 function ProtectedRoutes() {
   return (
@@ -106,11 +105,9 @@ function ClerkAppContent() {
     <>
       <SignedIn>
         <SignupTracker />
-        <PaywallGate>
-          <AuthProvider>
-            <ProtectedRoutes />
-          </AuthProvider>
-        </PaywallGate>
+        <AuthProvider>
+          <ProtectedRoutes />
+        </AuthProvider>
       </SignedIn>
       <SignedOut>
         <PublicRoutes />
@@ -185,7 +182,7 @@ function App() {
           <AuthPageWrapper><SignInPage /></AuthPageWrapper>
         } />
         <Route path="*" element={
-          <div style={{ height: '100dvh', overflow: 'hidden' }}>
+          <div style={{ minHeight: '100dvh' }}>
             <OfflineBanner />
             {HAS_CLERK ? <ClerkAppContent /> : <UnauthenticatedApp />}
             <PwaInstallPrompt />
