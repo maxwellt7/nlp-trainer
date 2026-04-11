@@ -204,6 +204,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', auth: clerkEnabled });
 });
 
+// Diagnostic: test Anthropic API connectivity
+app.get('/api/diag/anthropic', async (req, res) => {
+  try {
+    const { default: anthropic } = await import('./config/anthropic.js');
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 20,
+      messages: [{ role: 'user', content: 'Say hello in one word.' }],
+    });
+    res.json({ status: 'ok', reply: response.content[0].text, model: response.model });
+  } catch (err) {
+    res.json({ status: 'error', error: err.message, type: err.constructor.name, statusCode: err.status || null });
+  }
+});
+
 // Middleware to extract userId from Clerk JWT and ensure user exists in DB
 const extractUserId = async (req, res, next) => {
   if (clerkEnabled) {
