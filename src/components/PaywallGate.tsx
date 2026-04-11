@@ -48,15 +48,13 @@ export default function PaywallGate({ children }: PaywallGateProps) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'flex-start',
-        height: '100dvh',
+        justifyContent: 'center',
+        minHeight: '100dvh',
         overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        boxSizing: 'border-box',
         background: 'linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)',
         color: '#e8e0d0',
         fontFamily: "'Cinzel', serif",
-        padding: '32px 24px 48px',
+        padding: '24px',
         textAlign: 'center',
       }}>
         {/* Gold compass icon */}
