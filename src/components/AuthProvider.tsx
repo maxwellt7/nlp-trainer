@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { setAuthTokenGetter } from '../services/api';
 
@@ -9,7 +9,7 @@ import { setAuthTokenGetter } from '../services/api';
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const { getToken } = useAuth();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setAuthTokenGetter(getToken);
     return () => setAuthTokenGetter(null);
   }, [getToken]);
