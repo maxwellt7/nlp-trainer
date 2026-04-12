@@ -138,11 +138,16 @@ function AdminWrapper() {
   }
 
   return (
-    <SignedIn>
-      <AuthProvider>
-        <Admin />
-      </AuthProvider>
-    </SignedIn>
+    <>
+      <SignedIn>
+        <AuthProvider>
+          <Admin />
+        </AuthProvider>
+      </SignedIn>
+      <SignedOut>
+        <Navigate to="/sign-in?redirect_url=%2Fadmin" replace />
+      </SignedOut>
+    </>
   );
 }
 

@@ -1,6 +1,8 @@
 import { SignIn } from '@clerk/clerk-react';
 
 export default function SignInPage() {
+  const redirectUrl = new URLSearchParams(window.location.search).get('redirect_url') || '/';
+
   return (
     <div style={{
       minHeight: '100dvh',
@@ -43,7 +45,7 @@ export default function SignInPage() {
           routing="path"
           path="/sign-in"
           signUpUrl="/sign-up"
-          afterSignInUrl="/"
+          afterSignInUrl={redirectUrl}
           appearance={{
             variables: {
               colorPrimary: '#D4A853',
