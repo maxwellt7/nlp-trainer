@@ -6,8 +6,9 @@
  * Sequences:
  *   quiz_lead  — took quiz, didn't sign up   (Day 1, 3, 7)
  *   free_trial — signed up, didn't purchase  (Day 0, 2, 4, 7, 14)
+ *   win_back   — churned user re-engagement  (Day 1, 7)
  *
- * Tables: email_sends, email_preferences, free_trial_signups
+ * Tables: email_sends, email_preferences, free_trial_signups, win_back_triggers
  */
 
 import nodemailer from 'nodemailer';
@@ -42,6 +43,13 @@ function initTables() {
       name          TEXT,
       clerk_user_id TEXT,
       created_at    TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS win_back_triggers (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      email        TEXT NOT NULL UNIQUE,
+      name         TEXT,
+      triggered_at TEXT DEFAULT (datetime('now'))
     );
   `);
 }
@@ -137,11 +145,82 @@ function recordSend(email, sequenceType, templateId) {
   }
 }
 
+// ── Open/click tracking ────────────────────────────────────────────────────────
+
+/**
+ * Build a base64url token encoding email + templateId for pixel/click tracking.
+ */
+export function makeTrackingToken(email, templateId) {
+  return Buffer.from(
+    JSON.stringify({ e: email.toLowerCase().trim(), t: templateId }),
+  ).toString('base64url');
+}
+
+/**
+ * Parse a tracking token. Returns { e, t } or null on failure.
+ */
+export function parseTrackingToken(token) {
+  try {
+    return JSON.parse(Buffer.from(token, 'base64url').toString());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Record that an email was opened (sets opened_at on first open only).
+ */
+export function markEmailOpened(email, templateId) {
+  const lower = email.toLowerCase().trim();
+  try {
+    db.prepare(`
+      UPDATE email_sends
+      SET opened_at = COALESCE(opened_at, datetime('now'))
+      WHERE user_email = ? AND template_id = ?
+    `).run(lower, templateId);
+    db.prepare(`
+      INSERT INTO analytics_events (event_type, email, metadata)
+      VALUES (?, ?, ?)
+    `).run('email_opened', lower, JSON.stringify({ template_id: templateId }));
+  } catch (err) {
+    console.error('[EmailTracking] markEmailOpened error:', err.message);
+  }
+}
+
+/**
+ * Record that a link was clicked (sets clicked_at on first click only).
+ */
+export function markEmailClicked(email, templateId) {
+  const lower = email.toLowerCase().trim();
+  try {
+    db.prepare(`
+      UPDATE email_sends
+      SET clicked_at = COALESCE(clicked_at, datetime('now'))
+      WHERE user_email = ? AND template_id = ?
+    `).run(lower, templateId);
+    db.prepare(`
+      INSERT INTO analytics_events (event_type, email, metadata)
+      VALUES (?, ?, ?)
+    `).run('email_clicked', lower, JSON.stringify({ template_id: templateId }));
+  } catch (err) {
+    console.error('[EmailTracking] markEmailClicked error:', err.message);
+  }
+}
+
 // ── Utilities ──────────────────────────────────────────────────────────────────
 
 function daysSince(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   return Math.floor(diff / 86_400_000);
+}
+
+function getApiBase() {
+  return (
+    process.env.API_BASE_URL ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : 'https://nlp-trainer-production.up.railway.app')
+  );
 }
 
 // ── HTML email builder ─────────────────────────────────────────────────────────
@@ -163,8 +242,31 @@ function btn(label, href) {
 </table>`;
 }
 
-function wrap({ subject, preheader, bodyHtml, email }) {
+/**
+ * Wrap email body HTML in the full Sacred Heart template.
+ * If trackingToken is provided:
+ *   - All hrefs (except unsubscribe) are wrapped with the click tracker
+ *   - A 1x1 open-tracking pixel is appended before </body>
+ */
+function wrap({ subject, preheader, bodyHtml, email, trackingToken }) {
   const unsub = unsubUrl(email);
+  const apiBase = getApiBase();
+
+  // Wrap non-unsubscribe hrefs with click tracking
+  let trackedBodyHtml = bodyHtml;
+  if (trackingToken) {
+    trackedBodyHtml = bodyHtml.replace(/href="([^"]+)"/g, (match, url) => {
+      if (url.includes('/unsubscribe') || url.startsWith('mailto:')) return match;
+      const tracked = `${apiBase}/api/email/track/click/${trackingToken}?url=${encodeURIComponent(url)}`;
+      return `href="${tracked}"`;
+    });
+  }
+
+  // 1x1 transparent tracking pixel
+  const pixel = trackingToken
+    ? `<img src="${apiBase}/api/email/track/open/${trackingToken}" width="1" height="1" style="display:none" alt="">`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -190,7 +292,7 @@ function wrap({ subject, preheader, bodyHtml, email }) {
         <!-- Body -->
         <tr>
           <td style="padding:40px 44px 36px;">
-            ${bodyHtml}
+            ${trackedBodyHtml}
           </td>
         </tr>
 
@@ -211,6 +313,7 @@ function wrap({ subject, preheader, bodyHtml, email }) {
     </td>
   </tr>
 </table>
+${pixel}
 </body>
 </html>`;
 }
@@ -434,10 +537,59 @@ function buildTrialDay14({ email, name }) {
   };
 }
 
+// ── Win-Back Templates ─────────────────────────────────────────────────────────
+
+function buildWinBackDay1({ email, name }) {
+  const first = name?.split(' ')[0] || 'Friend';
+  const bodyHtml = [
+    h2(`${first}, we noticed you left — here's what's changed`),
+    p(`You cancelled your Sacred Heart subscription. We get it — life shifts, priorities change.`),
+    p(`But before you go completely, we wanted to share what's been built since you left:`),
+    li([
+      `<strong>Deeper personalization</strong> — your hypnosis scripts now adapt in real-time based on session feedback`,
+      `<strong>New archetypes</strong> — 3 new identity patterns added, including the Visionary and the Anchor`,
+      `<strong>Sleep mode</strong> — a dedicated track for subconscious reprogramming during sleep`,
+      `<strong>Progress milestones</strong> — visual identity transformation timeline across your journey`,
+    ]),
+    p(`The work you started on yourself doesn't disappear. Your profile, your history, your insights — all still here.`),
+    p(`We'd love to have you back. For the next 7 days, your subscription restarts at <strong>$4 (not $7)</strong> as a returning member.`),
+    btn('Restart My Journey — $4/mo', `${BRAND_URL}/upgrade?promo=winback`),
+    divider(),
+    p(`<span style="color:#888;font-size:13px;">Offer expires in 7 days. No commitment — cancel anytime.</span>`),
+  ].join('');
+
+  return {
+    subject: `${first}, your Sacred Heart journey isn't over`,
+    preheader: `What changed since you left — and a returning member offer.`,
+    bodyHtml,
+  };
+}
+
+function buildWinBackDay7({ email, name }) {
+  const first = name?.split(' ')[0] || 'Friend';
+  const bodyHtml = [
+    h2(`Last call, ${first}`),
+    p(`This is my final message about coming back to Sacred Heart.`),
+    p(`I've shared what's new, I've offered a returning member discount. I won't push further than this.`),
+    p(`What I will say:`),
+    quote(`The subconscious doesn't care about your schedule. The patterns you came here to change are still running — whether you're working on them or not.`, ``),
+    p(`If the timing was wrong before, maybe it's right now. The $4 returning member offer expires today.`),
+    btn('Return to Sacred Heart — $4/mo', `${BRAND_URL}/upgrade?promo=winback`),
+    divider(),
+    p(`If this isn't the right path for you, no hard feelings — I genuinely hope you find what works.<br><span style="color:#888;font-size:13px;">— The Sacred Heart Team</span>`),
+  ].join('');
+
+  return {
+    subject: `Final offer: return to Sacred Heart for $4`,
+    preheader: `Last chance on the returning member rate. No pressure after this.`,
+    bodyHtml,
+  };
+}
+
 // ── Core send function ─────────────────────────────────────────────────────────
 
-async function sendEmail(transporter, { to, fromAddress, subject, preheader, bodyHtml, email }) {
-  const html = wrap({ subject, preheader, bodyHtml, email: to });
+async function sendEmail(transporter, { to, fromAddress, subject, preheader, bodyHtml, trackingToken }) {
+  const html = wrap({ subject, preheader, bodyHtml, email: to, trackingToken });
   await transporter.sendMail({
     from: fromAddress,
     to,
@@ -482,12 +634,14 @@ async function processQuizLeads(transporter) {
           name: lead.name,
           tier: lead.tier,
         });
+        const trackingToken = makeTrackingToken(lead.email, step.templateId);
         await sendEmail(transporter, {
           to: lead.email,
           fromAddress: FROM_ADDRESS(),
           subject,
           preheader,
           bodyHtml,
+          trackingToken,
         });
         recordSend(lead.email, 'quiz_lead', step.templateId);
         console.log(`[EmailScheduler] Sent ${step.templateId} → ${lead.email}`);
@@ -531,18 +685,65 @@ async function processTrialUsers(transporter) {
           email: user.email,
           name: user.name,
         });
+        const trackingToken = makeTrackingToken(user.email, step.templateId);
         await sendEmail(transporter, {
           to: user.email,
           fromAddress: FROM_ADDRESS(),
           subject,
           preheader,
           bodyHtml,
+          trackingToken,
         });
         recordSend(user.email, 'free_trial', step.templateId);
         console.log(`[EmailScheduler] Sent ${step.templateId} → ${user.email}`);
         sent++;
       } catch (err) {
         console.error(`[EmailScheduler] Failed to send ${step.templateId} to ${user.email}:`, err.message);
+      }
+    }
+  }
+  return sent;
+}
+
+async function processWinBack(transporter) {
+  const SEQUENCE = [
+    { templateId: 'win_back_day1', minDays: 0, maxDays: 2, builder: buildWinBackDay1 },
+    { templateId: 'win_back_day7', minDays: 6, maxDays: 9, builder: buildWinBackDay7 },
+  ];
+
+  const contacts = db.prepare(`
+    SELECT email, name, triggered_at FROM win_back_triggers
+    ORDER BY triggered_at ASC
+  `).all();
+
+  let sent = 0;
+  for (const contact of contacts) {
+    if (isUnsubscribed(contact.email)) continue;
+    const age = daysSince(contact.triggered_at);
+
+    for (const step of SEQUENCE) {
+      if (age < step.minDays || age > step.maxDays) continue;
+      if (alreadySent(contact.email, step.templateId)) continue;
+
+      try {
+        const { subject, preheader, bodyHtml } = step.builder({
+          email: contact.email,
+          name: contact.name,
+        });
+        const trackingToken = makeTrackingToken(contact.email, step.templateId);
+        await sendEmail(transporter, {
+          to: contact.email,
+          fromAddress: FROM_ADDRESS(),
+          subject,
+          preheader,
+          bodyHtml,
+          trackingToken,
+        });
+        recordSend(contact.email, 'win_back', step.templateId);
+        console.log(`[EmailScheduler] Sent ${step.templateId} → ${contact.email}`);
+        sent++;
+      } catch (err) {
+        console.error(`[EmailScheduler] Failed to send ${step.templateId} to ${contact.email}:`, err.message);
       }
     }
   }
@@ -562,7 +763,8 @@ async function runSchedulerHeartbeat() {
   try {
     const quizSent = await processQuizLeads(transporter);
     const trialSent = await processTrialUsers(transporter);
-    console.log(`[EmailScheduler] Heartbeat complete — quiz_lead: ${quizSent}, free_trial: ${trialSent}`);
+    const winBackSent = await processWinBack(transporter);
+    console.log(`[EmailScheduler] Heartbeat complete — quiz_lead: ${quizSent}, free_trial: ${trialSent}, win_back: ${winBackSent}`);
   } catch (err) {
     console.error('[EmailScheduler] Heartbeat error:', err.message);
   }
@@ -584,6 +786,25 @@ export function registerTrialSignup({ email, name, clerkUserId }) {
     console.log(`[EmailScheduler] Registered trial signup: ${lower}`);
   } catch (err) {
     console.error('[EmailScheduler] registerTrialSignup error:', err.message);
+  }
+}
+
+// ── Trigger win-back sequence ──────────────────────────────────────────────────
+
+export function triggerWinBack({ email, name }) {
+  if (!email) return;
+  const lower = email.toLowerCase().trim();
+  try {
+    db.prepare(`
+      INSERT INTO win_back_triggers (email, name, triggered_at)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(email) DO UPDATE SET
+        triggered_at = datetime('now'),
+        name = COALESCE(EXCLUDED.name, name)
+    `).run(lower, name || null);
+    console.log(`[EmailScheduler] Win-back triggered: ${lower}`);
+  } catch (err) {
+    console.error('[EmailScheduler] triggerWinBack error:', err.message);
   }
 }
 

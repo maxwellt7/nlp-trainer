@@ -1,9 +1,11 @@
 /**
  * Email routes
  *
- * GET  /api/email/unsubscribe        — one-click unsubscribe (CAN-SPAM)
- * POST /api/email/register-trial     — register a new free trial signup for drip sequence
- * GET  /api/email/sends              — admin: list recent sends
+ * GET  /api/email/unsubscribe           — one-click unsubscribe (CAN-SPAM)
+ * POST /api/email/register-trial        — register a new free trial signup for drip sequence
+ * GET  /api/email/sends                 — admin: list recent sends
+ * GET  /api/email/track/open/:token     — open tracking pixel (1x1 GIF)
+ * GET  /api/email/track/click/:token    — click tracking + redirect
  */
 
 import express from 'express';
@@ -12,9 +14,17 @@ import {
   verifyUnsubToken,
   unsubscribeEmail,
   registerTrialSignup,
+  parseTrackingToken,
+  markEmailOpened,
+  markEmailClicked,
 } from '../services/emailScheduler.js';
 
 const router = express.Router();
+
+// 1x1 transparent GIF used for open tracking
+const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+
+const BRAND_URL = process.env.BRAND_URL || 'https://heart.sovereignty.app';
 
 // ── GET /api/email/unsubscribe ─────────────────────────────────────────────────
 // Linked from every email footer. Validates HMAC token before unsubscribing.
@@ -98,6 +108,49 @@ router.get('/sends', (req, res) => {
     console.error('[Email] sends list error:', err.message);
     return res.status(500).json({ error: 'Failed to load sends' });
   }
+});
+
+// ── GET /api/email/track/open/:token ──────────────────────────────────────────
+// Called by the tracking pixel embedded in every sent email.
+// Returns a 1x1 transparent GIF and records the open event.
+
+router.get('/track/open/:token', (req, res) => {
+  const parsed = parseTrackingToken(req.params.token);
+  if (parsed?.e && parsed?.t) {
+    markEmailOpened(parsed.e, parsed.t);
+  }
+  res.set({
+    'Content-Type': 'image/gif',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  });
+  res.send(PIXEL_GIF);
+});
+
+// ── GET /api/email/track/click/:token ─────────────────────────────────────────
+// Wrapped around every link in sent emails. Records the click and redirects.
+// Query param: url — the destination (must be http/https to prevent open redirects)
+
+router.get('/track/click/:token', (req, res) => {
+  const parsed = parseTrackingToken(req.params.token);
+  if (parsed?.e && parsed?.t) {
+    markEmailClicked(parsed.e, parsed.t);
+  }
+
+  const dest = req.query.url;
+  if (dest) {
+    try {
+      const url = new URL(dest);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return res.redirect(302, url.toString());
+      }
+    } catch {
+      // fall through to safe default
+    }
+  }
+
+  res.redirect(302, BRAND_URL);
 });
 
 // ── Unsubscribe confirmation HTML page ────────────────────────────────────────

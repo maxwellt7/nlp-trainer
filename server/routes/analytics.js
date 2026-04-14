@@ -211,6 +211,44 @@ router.get('/overview', (req, res) => {
       LIMIT 10
     `).all();
 
+    // Email metrics
+    const emailMetrics = (() => {
+      try {
+        const totalSent   = db.prepare('SELECT COUNT(*) as count FROM email_sends').get();
+        const totalOpened = db.prepare('SELECT COUNT(*) as count FROM email_sends WHERE opened_at IS NOT NULL').get();
+        const totalClicked = db.prepare('SELECT COUNT(*) as count FROM email_sends WHERE clicked_at IS NOT NULL').get();
+        const totalUnsub  = db.prepare('SELECT COUNT(*) as count FROM email_preferences WHERE unsubscribed = 1').get();
+
+        const sent    = totalSent?.count    || 0;
+        const opened  = totalOpened?.count  || 0;
+        const clicked = totalClicked?.count || 0;
+        const unsub   = totalUnsub?.count   || 0;
+
+        const bySequence = db.prepare(`
+          SELECT
+            sequence_type,
+            COUNT(*) as sent,
+            SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) as opened,
+            SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) as clicked
+          FROM email_sends
+          GROUP BY sequence_type
+          ORDER BY sent DESC
+        `).all();
+
+        return {
+          sent,
+          opened,
+          clicked,
+          unsubscribed: unsub,
+          openRate:  sent > 0 ? Math.round((opened  / sent) * 1000) / 10 : 0,
+          clickRate: sent > 0 ? Math.round((clicked / sent) * 1000) / 10 : 0,
+          bySequence: bySequence || [],
+        };
+      } catch {
+        return { sent: 0, opened: 0, clicked: 0, unsubscribed: 0, openRate: 0, clickRate: 0, bySequence: [] };
+      }
+    })();
+
     res.json({
       period: { days, since },
       funnel: {
@@ -245,6 +283,7 @@ router.get('/overview', (req, res) => {
         totalScripts: totalScripts?.count || 0,
         recentScripts: recentScripts?.count || 0,
       },
+      email: emailMetrics,
       events: eventCounts || [],
       pageViews: {
         total: totalPageViews?.count || 0,
