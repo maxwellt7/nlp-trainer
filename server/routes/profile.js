@@ -1,7 +1,15 @@
 import { Router } from 'express';
 import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
-import { getAllSessions, getRecentSessions, getSessionForUser, getTodaySession, isSessionLocked, updateSessionMetadata } from '../services/memory.js';
+import {
+  deleteSessionForUser,
+  getAllSessions,
+  getRecentSessions,
+  getSessionForUser,
+  getTodaySession,
+  isSessionLocked,
+  updateSessionMetadata,
+} from '../services/memory.js';
 
 const router = Router();
 
@@ -90,6 +98,23 @@ router.get('/sessions/:sessionId', (req, res) => {
   } catch (error) {
     console.error('Error getting session:', error.message);
     res.status(500).json({ error: 'Failed to get session' });
+  }
+});
+
+// DELETE /api/profile/sessions/:sessionId — delete a general chat session
+router.delete('/sessions/:sessionId', (req, res) => {
+  try {
+    const result = deleteSessionForUser(req.params.sessionId, req.userId);
+    if (result.reason === 'not_found') {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    if (result.reason === 'protected_daily_session') {
+      return res.status(400).json({ error: 'Daily sessions cannot be deleted.' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting session:', error.message);
+    res.status(500).json({ error: 'Failed to delete session' });
   }
 });
 

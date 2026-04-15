@@ -148,6 +148,20 @@ export function getSessionForUser(sessionId, userId) {
   return db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(sessionId, userId);
 }
 
+export function deleteSessionForUser(sessionId, userId) {
+  const session = getSessionForUser(sessionId, userId);
+  if (!session) {
+    return { deleted: false, reason: 'not_found' };
+  }
+
+  if (session.session_type === 'daily_hypnosis') {
+    return { deleted: false, reason: 'protected_daily_session' };
+  }
+
+  db.prepare('DELETE FROM sessions WHERE id = ? AND user_id = ?').run(sessionId, userId);
+  return { deleted: true, reason: null };
+}
+
 export function getSidebarSessions(userId, limit = 30, offset = 0) {
   return db.prepare(`
     SELECT id, user_id, date_key, session_type, session_status, title,

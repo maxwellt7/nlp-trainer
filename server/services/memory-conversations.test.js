@@ -5,6 +5,7 @@ import db from '../db/index.js';
 import {
   createConversationSession,
   createSession,
+  deleteSessionForUser,
   getSession,
   getSidebarSessions,
   markHypnosisGenerated,
@@ -51,6 +52,39 @@ test('daily hypnosis sessions can still be created through the existing helper',
   assert.equal(session.session_type, 'daily_hypnosis');
   assert.equal(session.session_status, 'active');
   assert.equal(session.mood_before, 7);
+
+  cleanupUser(userId);
+});
+
+test('general conversations can be deleted for the owning user', () => {
+  const userId = `test-user-delete-general-${Date.now()}`;
+  cleanupUser(userId);
+
+  const created = createConversationSession(userId, {
+    sessionType: 'general_chat',
+    title: 'Temporary conversation',
+  });
+
+  const result = deleteSessionForUser(created.id, userId);
+
+  assert.deepEqual(result, { deleted: true, reason: null });
+  assert.equal(getSession(created.id), undefined);
+  assert.equal(getSidebarSessions(userId, 10, 0).length, 0);
+
+  cleanupUser(userId);
+});
+
+test('daily hypnosis sessions are protected from deletion', () => {
+  const userId = `test-user-delete-daily-${Date.now()}`;
+  cleanupUser(userId);
+
+  const created = createSession(userId, 6);
+
+  const result = deleteSessionForUser(created.id, userId);
+
+  assert.deepEqual(result, { deleted: false, reason: 'protected_daily_session' });
+  assert.ok(getSession(created.id));
+  assert.equal(getSidebarSessions(userId, 10, 0).length, 1);
 
   cleanupUser(userId);
 });

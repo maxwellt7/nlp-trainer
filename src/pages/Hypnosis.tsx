@@ -185,6 +185,19 @@ export default function Hypnosis() {
   const isSelectedLocked = !!selectedSession?.is_locked && selectedSession?.session_type === 'daily_hypnosis';
   const hasUserMessages = messages.some((message) => message.role === 'user');
   const canCreateHypnosis = readyToGenerate && !initializing && !loading && !generating && !isSelectedLocked && hasUserMessages;
+  const todayDateKey = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayDailyConversation = useMemo(
+    () => conversations.find((conversation) => conversation.session_type === 'daily_hypnosis' && conversation.date_key === todayDateKey) || null,
+    [conversations, todayDateKey],
+  );
+  const generalConversations = useMemo(
+    () => conversations.filter((conversation) => conversation.session_type === 'general_chat'),
+    [conversations],
+  );
+  const archivedDailyConversations = useMemo(
+    () => conversations.filter((conversation) => conversation.session_type === 'daily_hypnosis' && conversation.date_key !== todayDateKey),
+    [conversations, todayDateKey],
+  );
 
   const resetScriptPanel = useCallback(() => {
     setReadyToGenerate(false);
@@ -249,6 +262,9 @@ export default function Hypnosis() {
       }
 
       applyConversationState(detail, detailMessages);
+      if (!(detail.is_locked && detail.session_type === 'daily_hypnosis')) {
+        window.setTimeout(() => textareaRef.current?.focus(), 0);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load conversation');
     } finally {
@@ -286,11 +302,14 @@ export default function Hypnosis() {
       setInitializing(true);
       try {
         const existing = await refreshConversations();
-        if (existing.length > 0) {
-          await loadConversation(existing[0].id);
+        const todayDaily = existing.find(
+          (session) => session.session_type === 'daily_hypnosis' && session.date_key === todayDateKey,
+        );
+        if (todayDaily) {
+          await loadConversation(todayDaily.id);
           return;
         }
-        await startConversation('general_chat');
+        await startConversation('daily_hypnosis');
       } catch (err: any) {
         setError(err.message || 'Could not load conversations. Please refresh.');
         setInitializing(false);
@@ -496,6 +515,57 @@ export default function Hypnosis() {
     window.setTimeout(keepIntroVisible, 120);
   };
 
+  const handleOpenDailySession = useCallback(async () => {
+    if (todayDailyConversation) {
+      await loadConversation(todayDailyConversation.id);
+      return;
+    }
+    await startConversation('daily_hypnosis');
+  }, [loadConversation, startConversation, todayDailyConversation]);
+
+  const handleOpenNormalChat = useCallback(async () => {
+    if (selectedSession?.session_type === 'general_chat' && selectedSession.id) {
+      window.setTimeout(() => textareaRef.current?.focus(), 0);
+      return;
+    }
+
+    const latestGeneral = generalConversations[0];
+    if (latestGeneral) {
+      await loadConversation(latestGeneral.id);
+      return;
+    }
+
+    await startConversation('general_chat');
+  }, [generalConversations, loadConversation, selectedSession, startConversation]);
+
+  const handleDeleteConversation = useCallback(async (conversation: SessionSummary) => {
+    if (conversation.session_type !== 'general_chat') return;
+    const confirmed = window.confirm(`Delete chat "${formatTitle(conversation)}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setError(null);
+      await api.deleteSession(conversation.id);
+      const refreshed = await refreshConversations();
+      if (selectedConversationId !== conversation.id) return;
+
+      const refreshedTodayDaily = refreshed.find(
+        (session) => session.session_type === 'daily_hypnosis' && session.date_key === todayDateKey,
+      );
+      const nextGeneral = refreshed.find((session) => session.session_type === 'general_chat');
+      const fallback = refreshedTodayDaily || nextGeneral || null;
+
+      if (fallback) {
+        await loadConversation(fallback.id);
+        return;
+      }
+
+      await startConversation('daily_hypnosis');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete chat');
+    }
+  }, [loadConversation, refreshConversations, selectedConversationId, startConversation, todayDateKey]);
+
   return (
     <div className="h-full min-h-0 flex flex-col lg:flex-row" style={{ background: 'var(--color-brand-midnight)' }}>
       {showXpPopup && xpPopupData && (
@@ -503,66 +573,148 @@ export default function Hypnosis() {
       )}
 
       <aside
-        className="w-full lg:w-[19rem] xl:w-[21rem] border-b lg:border-b-0 lg:border-r flex flex-col"
-        style={{ borderColor: 'var(--color-brand-border)', background: 'rgba(7, 11, 20, 0.92)' }}
+        className="w-full lg:w-[22rem] xl:w-[24rem] border-b lg:border-b-0 lg:border-r flex flex-col"
+        style={{ borderColor: 'var(--color-brand-border)', background: 'rgba(7, 11, 20, 0.94)' }}
       >
-        <div className="p-4 border-b" style={{ borderColor: 'var(--color-brand-border)' }}>
-          <p className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-accent-gold)' }}>Conversations</p>
-          <h1 className="font-display text-2xl text-white mb-3">Alignment Workspace</h1>
+        <div className="p-4 border-b space-y-3" style={{ borderColor: 'var(--color-brand-border)' }}>
+          <div>
+            <p className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-accent-gold)' }}>Workspace</p>
+            <h1 className="font-display text-2xl text-white mb-2">Alignment Workspace</h1>
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              Land in today’s Daily Session by default, then switch to normal chats when you need open-ended coaching.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => startConversation('general_chat')}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold haptic-tap btn-primary"
-            >
-              New Chat
-            </button>
-            <button
-              onClick={() => startConversation('daily_hypnosis')}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold haptic-tap btn-ghost"
+              onClick={handleOpenDailySession}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold haptic-tap ${selectedSession?.session_type === 'daily_hypnosis' ? 'btn-primary' : 'btn-ghost'}`}
             >
               Daily Session
+            </button>
+            <button
+              onClick={handleOpenNormalChat}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold haptic-tap ${selectedSession?.session_type === 'general_chat' ? 'btn-primary' : 'btn-ghost'}`}
+            >
+              Normal Chat
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-2">
-          {conversations.length === 0 && !initializing && (
-            <div className="brand-card p-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              Start a chat or open your daily session to begin building personalized momentum.
+        <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-uppercase-spaced" style={{ color: 'var(--color-text-dim)' }}>Today</span>
             </div>
-          )}
+            <button
+              onClick={handleOpenDailySession}
+              className="w-full text-left rounded-2xl p-3 transition-all haptic-tap"
+              style={{
+                background: selectedConversationId === todayDailyConversation?.id ? 'rgba(212, 168, 83, 0.12)' : 'var(--color-brand-card)',
+                border: selectedConversationId === todayDailyConversation?.id ? '1px solid rgba(212, 168, 83, 0.35)' : '1px solid var(--color-brand-border)',
+              }}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <div className="text-sm font-semibold text-white leading-tight">{formatTitle(todayDailyConversation)}</div>
+                  <div className="text-[11px] mt-1" style={{ color: 'var(--color-text-dim)' }}>
+                    {todayDailyConversation
+                      ? formatTimestamp(todayDailyConversation.last_message_at || todayDailyConversation.created_at || todayDailyConversation.hypnosis_generated_at)
+                      : 'Ready to open'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-1.5 flex-wrap mb-2">
+                {statusPills(todayDailyConversation || { id: 'today-daily', session_type: 'daily_hypnosis' } as SessionSummary).map((pill) => (
+                  <span key={pill} className="pill pill-inactive text-[10px] px-2 py-1">{pill}</span>
+                ))}
+              </div>
+              <div className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                {todayDailyConversation?.chat_summary?.trim() || 'Your primary reflection thread for today.'}
+              </div>
+            </button>
+          </div>
 
-          {conversations.map((conversation) => {
-            const active = conversation.id === selectedConversationId;
-            return (
-              <button
-                key={conversation.id}
-                onClick={() => loadConversation(conversation.id)}
-                className="w-full text-left rounded-2xl p-3 transition-all haptic-tap"
-                style={{
-                  background: active ? 'rgba(212, 168, 83, 0.12)' : 'var(--color-brand-card)',
-                  border: active ? '1px solid rgba(212, 168, 83, 0.35)' : '1px solid var(--color-brand-border)',
-                }}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-uppercase-spaced" style={{ color: 'var(--color-text-dim)' }}>Chats</span>
+              <button onClick={() => startConversation('general_chat')} className="text-xs font-semibold haptic-tap" style={{ color: 'var(--color-accent-gold)' }}>
+                New Chat
+              </button>
+            </div>
+            {generalConversations.length === 0 ? (
+              <div className="brand-card p-4 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                No normal chats yet. Start one and it will open directly in the active thread.
+              </div>
+            ) : generalConversations.map((conversation) => {
+              const active = conversation.id === selectedConversationId;
+              return (
+                <div
+                  key={conversation.id}
+                  className="rounded-2xl p-3 transition-all"
+                  style={{
+                    background: active ? 'rgba(212, 168, 83, 0.12)' : 'var(--color-brand-card)',
+                    border: active ? '1px solid rgba(212, 168, 83, 0.35)' : '1px solid var(--color-brand-border)',
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    <button onClick={() => loadConversation(conversation.id)} className="flex-1 text-left haptic-tap">
+                      <div className="text-sm font-semibold text-white leading-tight">{formatTitle(conversation)}</div>
+                      <div className="text-[11px] mt-1" style={{ color: 'var(--color-text-dim)' }}>
+                        {formatTimestamp(conversation.last_message_at || conversation.created_at || conversation.hypnosis_generated_at)}
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap mt-2 mb-2">
+                        {statusPills(conversation).map((pill) => (
+                          <span key={pill} className="pill pill-inactive text-[10px] px-2 py-1">{pill}</span>
+                        ))}
+                      </div>
+                      <div className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+                        {conversation.chat_summary?.trim() || 'Open-ended coaching conversation.'}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteConversation(conversation)}
+                      aria-label={`Delete ${formatTitle(conversation)}`}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold haptic-tap"
+                      style={{ background: 'rgba(239, 68, 68, 0.08)', color: 'var(--color-status-error)', border: '1px solid rgba(239, 68, 68, 0.15)' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {archivedDailyConversations.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-uppercase-spaced" style={{ color: 'var(--color-text-dim)' }}>Daily Archive</span>
+              </div>
+              {archivedDailyConversations.map((conversation) => {
+                const active = conversation.id === selectedConversationId;
+                return (
+                  <button
+                    key={conversation.id}
+                    onClick={() => loadConversation(conversation.id)}
+                    className="w-full text-left rounded-2xl p-3 transition-all haptic-tap"
+                    style={{
+                      background: active ? 'rgba(212, 168, 83, 0.12)' : 'var(--color-brand-card)',
+                      border: active ? '1px solid rgba(212, 168, 83, 0.35)' : '1px solid var(--color-brand-border)',
+                    }}
+                  >
                     <div className="text-sm font-semibold text-white leading-tight">{formatTitle(conversation)}</div>
                     <div className="text-[11px] mt-1" style={{ color: 'var(--color-text-dim)' }}>
                       {formatTimestamp(conversation.last_message_at || conversation.created_at || conversation.hypnosis_generated_at)}
                     </div>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 flex-wrap mb-2">
-                  {statusPills(conversation).map((pill) => (
-                    <span key={pill} className="pill pill-inactive text-[10px] px-2 py-1">{pill}</span>
-                  ))}
-                </div>
-                <div className="text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
-                  {conversation.chat_summary?.trim() || (conversation.session_type === 'daily_hypnosis' ? 'Daily hypnosis thread ready to resume.' : 'Open-ended coaching conversation.')}
-                </div>
-              </button>
-            );
-          })}
+                    <div className="text-xs leading-relaxed mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                      {conversation.chat_summary?.trim() || 'Past daily hypnosis thread.'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </aside>
 

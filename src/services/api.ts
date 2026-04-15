@@ -45,6 +45,8 @@ export const api = {
     request<any>(`/profile/sessions?limit=${limit}&offset=${offset}`),
   getSession: (sessionId: string) =>
     request<any>(`/profile/sessions/${sessionId}`),
+  deleteSession: (sessionId: string) =>
+    request<any>(`/profile/sessions/${sessionId}`, { method: 'DELETE' }),
   rateSession: (sessionId: string, rating: number, feedback?: string) =>
     request<any>(`/profile/sessions/${sessionId}/rate`, {
       method: 'POST',
