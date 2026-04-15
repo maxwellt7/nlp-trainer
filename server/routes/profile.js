@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
-import { getAllSessions, getRecentSessions, getTodaySession, getSession, updateSessionMetadata } from '../services/memory.js';
+import { getAllSessions, getRecentSessions, getSessionForUser, getTodaySession, isSessionLocked, updateSessionMetadata } from '../services/memory.js';
 
 const router = Router();
 
@@ -21,8 +21,8 @@ router.get('/', (req, res) => {
       unopenedBoxes = getUnopenedBoxes(userId).length;
     } catch { /* gamification optional */ }
 
-    // Determine session state: completed (has chat_summary), in-progress, or none
-    const sessionCompleted = !!(todaySession && todaySession.chat_summary && todaySession.chat_summary.trim() !== '');
+    // Determine daily session state: locked/generated, in-progress, or none
+    const sessionCompleted = !!(todaySession && isSessionLocked(todaySession));
     const sessionInProgress = !!(todaySession && !sessionCompleted);
 
     res.json({
@@ -78,7 +78,7 @@ router.get('/sessions', (req, res) => {
 // GET /api/profile/sessions/:sessionId — get a specific session
 router.get('/sessions/:sessionId', (req, res) => {
   try {
-    const session = getSession(req.params.sessionId);
+    const session = getSessionForUser(req.params.sessionId, req.userId);
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -99,6 +99,10 @@ router.post('/sessions/:sessionId/rate', (req, res) => {
     const { rating, feedback } = req.body;
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+    const session = getSessionForUser(req.params.sessionId, req.userId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
     }
     updateSessionMetadata(req.params.sessionId, {
       user_rating: rating,

@@ -53,12 +53,12 @@ export const api = {
   getStreak: () => request<any>('/profile/streak'),
 
   // ── Coaching & Hypnosis ──
-  hypnosisInit: () =>
-    request<any>('/hypnosis/init', { method: 'POST' }),
-  hypnosisChat: (messages: any[], sessionId?: string, moodBefore?: number) =>
+  hypnosisInit: (options?: { sessionId?: string; sessionType?: string; forceNew?: boolean; title?: string }) =>
+    request<any>('/hypnosis/init', { method: 'POST', body: JSON.stringify(options ?? {}) }),
+  hypnosisChat: (messages: any[], sessionId?: string, moodBefore?: number, sessionType?: string, title?: string) =>
     request<any>('/hypnosis/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages, sessionId, moodBefore }),
+      body: JSON.stringify({ messages, sessionId, moodBefore, sessionType, title }),
     }),
   hypnosisGenerate: (messages: any[], sessionId?: string) =>
     request<any>('/hypnosis/generate', {

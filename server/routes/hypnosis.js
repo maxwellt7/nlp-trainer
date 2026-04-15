@@ -4,7 +4,17 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import anthropic from '../config/anthropic.js';
 import { getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
-import { createSession, updateSessionMessages, updateSessionMetadata, buildMemoryContext, getTodaySession } from '../services/memory.js';
+import {
+  buildMemoryContext,
+  createConversationSession,
+  createSession,
+  getSessionForUser,
+  getTodaySession,
+  isSessionLocked,
+  markHypnosisGenerated,
+  updateSessionMessages,
+  updateSessionMetadata,
+} from '../services/memory.js';
 import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
 import { onSessionComplete, updateStreakMultiplier } from '../services/gamification.js';
 
@@ -83,51 +93,83 @@ function parseJsonResponse(text) {
   }
 }
 
+function parseStoredMessages(rawMessages) {
+  if (!rawMessages) return null;
+  try {
+    const parsed = JSON.parse(typeof rawMessages === 'string' ? rawMessages : JSON.stringify(rawMessages));
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function deriveConversationTitle(messages = []) {
+  const firstUserMessage = messages.find((message) => message.role === 'user' && String(message.content || '').trim());
+  if (!firstUserMessage) return '';
+  return String(firstUserMessage.content).trim().replace(/\s+/g, ' ').slice(0, 80);
+}
+
 // POST /init — generate the AI's opening message to start the session
 router.post('/init', async (req, res) => {
   try {
     const userId = req.userId;
+    const {
+      sessionId: requestedSessionId,
+      sessionType = 'daily_hypnosis',
+      forceNew = false,
+      title = '',
+    } = req.body || {};
 
-    // Reuse today's session if one already exists, even if it is still empty.
-    // Production can already have a same-day placeholder row before /init runs,
-    // and creating another session can fail against stricter live schemas.
-    const existing = getTodaySession(userId);
-    if (existing) {
-      const isCompleted = !!(existing.chat_summary && existing.chat_summary.trim() !== '');
-      let resumeMessages = null;
+    let session = requestedSessionId ? getSessionForUser(requestedSessionId, userId) : null;
+    if (requestedSessionId && !session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
 
-      if (existing.chat_messages) {
-        try {
-          const msgs = JSON.parse(typeof existing.chat_messages === 'string' ? existing.chat_messages : JSON.stringify(existing.chat_messages));
-          if (Array.isArray(msgs) && msgs.length > 0) {
-            resumeMessages = msgs;
-          }
-        } catch {
-          resumeMessages = null;
-        }
-      }
+    if (!session && !forceNew && sessionType === 'daily_hypnosis') {
+      session = getTodaySession(userId);
+    }
 
-      if (isCompleted || resumeMessages) {
+    if (session) {
+      const resumeMessages = parseStoredMessages(session.chat_messages);
+      if (resumeMessages) {
         return res.json({
           reply: null,
-          sessionId: existing.id,
+          sessionId: session.id,
           resumeMessages,
-          completed: isCompleted,
-          sessionSummary: isCompleted ? existing.chat_summary : null,
+          session,
+          completed: isSessionLocked(session),
+          sessionSummary: session.chat_summary || null,
+        });
+      }
+
+      if (isSessionLocked(session)) {
+        return res.json({
+          reply: null,
+          sessionId: session.id,
+          resumeMessages: [],
+          session,
+          completed: true,
+          sessionSummary: session.chat_summary || null,
         });
       }
     }
 
-    const session = existing || createSession(userId, null);
-    const systemPrompt = buildSystemPrompt(userId, 'coaching');
+    if (!session) {
+      session = sessionType === 'general_chat'
+        ? createConversationSession(userId, {
+            sessionType: 'general_chat',
+            title: title || '',
+          })
+        : createSession(userId, null);
+    }
 
-    // Send a synthetic seed message to get the AI's opening
+    const systemPrompt = buildSystemPrompt(userId, 'coaching');
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
       system: systemPrompt + '\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally, reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.',
       messages: [
-        { role: 'user', content: '[SESSION_START] The user has opened the app for their daily session.' }
+        { role: 'user', content: session.session_type === 'general_chat' ? '[SESSION_START] The user has opened a general coaching conversation.' : '[SESSION_START] The user has opened the app for their daily hypnosis session.' }
       ],
     });
 
@@ -140,8 +182,6 @@ router.post('/init', async (req, res) => {
     }
 
     const openingMessage = parsed.reply || text;
-
-    // Save the opening message to the session (with the seed hidden)
     updateSessionMessages(session.id, [
       { role: 'assistant', content: openingMessage }
     ]);
@@ -150,6 +190,7 @@ router.post('/init', async (req, res) => {
       reply: openingMessage,
       sessionId: session.id,
       resumeMessages: null,
+      session: getSessionForUser(session.id, userId),
     });
   } catch (error) {
     console.error('Hypnosis init error:', error.message);
@@ -160,25 +201,39 @@ router.post('/init', async (req, res) => {
 // POST /chat — daily coaching conversation
 router.post('/chat', async (req, res) => {
   try {
-    const { messages, sessionId, moodBefore } = req.body;
+    const {
+      messages,
+      sessionId,
+      moodBefore,
+      sessionType = 'daily_hypnosis',
+      title = '',
+    } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages array is required' });
     }
 
     const userId = req.userId;
+    let session = sessionId ? getSessionForUser(sessionId, userId) : null;
 
-    // Create or retrieve session
-    let currentSessionId = sessionId;
-    if (!currentSessionId) {
-      const existing = getTodaySession(userId);
-      if (existing) {
-        currentSessionId = existing.id;
-      } else {
-        const newSession = createSession(userId, moodBefore || null);
-        currentSessionId = newSession.id;
-      }
+    if (sessionId && !session) {
+      return res.status(404).json({ error: 'Session not found' });
     }
 
+    if (!session) {
+      session = sessionType === 'general_chat'
+        ? createConversationSession(userId, {
+            sessionType: 'general_chat',
+            title: title || deriveConversationTitle(messages),
+            moodBefore: moodBefore || null,
+          })
+        : (getTodaySession(userId) || createSession(userId, moodBefore || null));
+    }
+
+    if (isSessionLocked(session)) {
+      return res.status(409).json({ error: 'This session is locked and can no longer be updated.' });
+    }
+
+    const currentSessionId = session.id;
     const systemPrompt = buildSystemPrompt(userId, 'coaching');
 
     if (messages.length > 50) {
@@ -212,6 +267,13 @@ router.post('/chat', async (req, res) => {
     updateSessionMessages(currentSessionId, messages.concat([
       { role: 'assistant', content: parsed.reply || text }
     ]));
+
+    if (session.session_type === 'general_chat' && !(session.title || '').trim()) {
+      const derivedTitle = title || deriveConversationTitle(messages);
+      if (derivedTitle) {
+        updateSessionMetadata(currentSessionId, { title: derivedTitle });
+      }
+    }
 
     // Apply profile updates if detected
     if (parsed.profileUpdates) {
@@ -296,6 +358,7 @@ router.post('/chat', async (req, res) => {
       readyToGenerate: parsed.readyToGenerate === true,
       sessionId: currentSessionId,
       profileUpdates: parsed.profileUpdates || {},
+      session: getSessionForUser(currentSessionId, userId),
     });
   } catch (error) {
     console.error('Hypnosis chat error:', error.message);
@@ -312,6 +375,14 @@ router.post('/generate', async (req, res) => {
     }
 
     const userId = req.userId;
+    const currentSession = sessionId ? getSessionForUser(sessionId, userId) : getTodaySession(userId);
+    if (!currentSession) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    if (isSessionLocked(currentSession) && currentSession.session_type === 'daily_hypnosis') {
+      return res.status(409).json({ error: 'This daily hypnosis session is already locked.' });
+    }
+
     const systemPrompt = buildSystemPrompt(userId, 'generation');
 
     if (messages.length > 50) {
@@ -340,25 +411,31 @@ router.post('/generate', async (req, res) => {
       parsed = { title: 'Hypnosis Script', duration: 'full', estimatedMinutes: 20, script: text, sessionSummary: '', keyThemes: [] };
     }
 
-    // Update session with summary and themes
-    let gamificationResults = null;
-    if (sessionId) {
-      updateSessionMetadata(sessionId, {
-        chat_summary: parsed.sessionSummary || '',
-        key_themes: parsed.keyThemes || [],
-      });
+    updateSessionMetadata(currentSession.id, {
+      chat_summary: parsed.sessionSummary || '',
+      key_themes: parsed.keyThemes || [],
+    });
 
-      // Update streak
+    const hypnosisEvent = {
+      role: 'system',
+      eventType: 'hypnosis_generated',
+      content: 'Hypnosis generated for this conversation.',
+      generatedAt: new Date().toISOString(),
+      sessionType: currentSession.session_type,
+    };
+
+    updateSessionMessages(currentSession.id, messages.concat([hypnosisEvent]));
+    markHypnosisGenerated(currentSession.id);
+
+    let gamificationResults = null;
+    if (currentSession.session_type === 'daily_hypnosis') {
       const streakResult = updateStreak(userId);
-      
-      // Update streak multiplier for XP
       if (streakResult) {
         updateStreakMultiplier(userId, streakResult.current_streak);
       }
 
-      // Award XP, generate mystery box, check achievements
       try {
-        gamificationResults = onSessionComplete(userId, sessionId, {
+        gamificationResults = onSessionComplete(userId, currentSession.id, {
           vulnerabilityDetected: parsed.vulnerabilityDetected || false,
         });
       } catch (err) {
@@ -374,6 +451,8 @@ router.post('/generate', async (req, res) => {
       sessionSummary: parsed.sessionSummary || '',
       keyThemes: parsed.keyThemes || [],
       gamification: gamificationResults,
+      hypnosisEvent,
+      session: getSessionForUser(currentSession.id, userId),
     });
   } catch (error) {
     console.error('Hypnosis generate error:', error.message);
