@@ -7,3 +7,5 @@ server/node_modules/
 .vercel
 server/data/alignment-engine.db*
 server/data/audio/*.mp3
+
+.worktrees/
