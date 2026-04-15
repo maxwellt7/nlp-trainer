@@ -1,22 +1,69 @@
 import db from '../db/index.js';
 import { v4 as uuidv4 } from 'uuid';
 
-// Create a new session
-export function createSession(userId, moodBefore = null) {
-  const id = `session-${Date.now()}-${uuidv4().slice(0, 8)}`;
-  const dateKey = new Date().toISOString().split('T')[0];
+function buildSessionId() {
+  return `session-${Date.now()}-${uuidv4().slice(0, 8)}`;
+}
+
+function getTodayDateKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
+export function isSessionLocked(session) {
+  return Boolean(session?.locked_at) || session?.session_status === 'locked';
+}
+
+export function createConversationSession(userId, options = {}) {
+  const {
+    moodBefore = null,
+    sessionType = 'general_chat',
+    title = '',
+    dateKey = getTodayDateKey(),
+    sessionStatus = 'active',
+  } = options;
+
+  const id = buildSessionId();
 
   db.prepare(`
-    INSERT INTO sessions (id, user_id, date_key, mood_before) VALUES (?, ?, ?, ?)
-  `).run(id, userId, dateKey, moodBefore);
+    INSERT INTO sessions (
+      id,
+      user_id,
+      date_key,
+      session_type,
+      session_status,
+      title,
+      mood_before,
+      last_message_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+  `).run(id, userId, dateKey, sessionType, sessionStatus, title, moodBefore);
 
-  return { id, user_id: userId, date_key: dateKey };
+  return {
+    id,
+    user_id: userId,
+    date_key: dateKey,
+    session_type: sessionType,
+    session_status: sessionStatus,
+    title,
+    mood_before: moodBefore,
+  };
+}
+
+// Create a new daily hypnosis session
+export function createSession(userId, moodBefore = null) {
+  return createConversationSession(userId, {
+    moodBefore,
+    sessionType: 'daily_hypnosis',
+    dateKey: getTodayDateKey(),
+    sessionStatus: 'active',
+  });
 }
 
 // Update session with chat messages
 export function updateSessionMessages(sessionId, messages) {
   db.prepare(`
-    UPDATE sessions SET chat_messages = ? WHERE id = ?
+    UPDATE sessions
+    SET chat_messages = ?, last_message_at = datetime('now')
+    WHERE id = ?
   `).run(JSON.stringify(messages), sessionId);
 }
 
@@ -34,6 +81,11 @@ export function updateSessionMetadata(sessionId, metadata) {
   if (metadata.user_rating !== undefined) { fields.push('user_rating = ?'); values.push(metadata.user_rating); }
   if (metadata.user_feedback !== undefined) { fields.push('user_feedback = ?'); values.push(metadata.user_feedback); }
   if (metadata.mood_after !== undefined) { fields.push('mood_after = ?'); values.push(metadata.mood_after); }
+  if (metadata.title !== undefined) { fields.push('title = ?'); values.push(metadata.title); }
+  if (metadata.session_status !== undefined) { fields.push('session_status = ?'); values.push(metadata.session_status); }
+  if (metadata.hypnosis_generated_at !== undefined) { fields.push('hypnosis_generated_at = ?'); values.push(metadata.hypnosis_generated_at); }
+  if (metadata.locked_at !== undefined) { fields.push('locked_at = ?'); values.push(metadata.locked_at); }
+  if (metadata.touchLastMessageAt) { fields.push(`last_message_at = datetime('now')`); }
 
   if (fields.length === 0) return;
 
@@ -41,23 +93,49 @@ export function updateSessionMetadata(sessionId, metadata) {
   db.prepare(`UPDATE sessions SET ${fields.join(', ')} WHERE id = ?`).run(...values);
 }
 
+export function markHypnosisGenerated(sessionId, metadata = {}) {
+  const session = getSession(sessionId);
+  if (!session) return null;
+
+  const generatedAt = new Date().toISOString();
+  const lockedAt = session.session_type === 'daily_hypnosis' ? generatedAt : null;
+  const sessionStatus = lockedAt ? 'locked' : 'hypnosis_generated';
+
+  updateSessionMetadata(sessionId, {
+    script_id: metadata.scriptId,
+    audio_file: metadata.audioFile,
+    title: metadata.title,
+    hypnosis_generated_at: generatedAt,
+    locked_at: lockedAt,
+    session_status: sessionStatus,
+    touchLastMessageAt: true,
+  });
+
+  return getSession(sessionId);
+}
+
 // Get recent sessions for memory context
 export function getRecentSessions(userId, limit = 5) {
   return db.prepare(`
-    SELECT id, date_key, chat_summary, detected_map, detected_state, key_themes, 
-           mood_before, mood_after, user_rating, user_feedback
-    FROM sessions 
+    SELECT id, date_key, chat_summary, detected_map, detected_state, key_themes,
+           mood_before, mood_after, user_rating, user_feedback,
+           session_type, session_status, hypnosis_generated_at, last_message_at
+    FROM sessions
     WHERE user_id = ? AND chat_summary != ''
-    ORDER BY created_at DESC 
+    ORDER BY COALESCE(last_message_at, created_at) DESC
     LIMIT ?
   `).all(userId, limit);
 }
 
-// Get today's session if one exists
+// Get today's daily hypnosis session if one exists
 export function getTodaySession(userId) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateKey();
   return db.prepare(`
-    SELECT * FROM sessions WHERE user_id = ? AND date_key = ? ORDER BY created_at DESC LIMIT 1
+    SELECT *
+    FROM sessions
+    WHERE user_id = ? AND date_key = ? AND session_type = 'daily_hypnosis'
+    ORDER BY created_at DESC
+    LIMIT 1
   `).get(userId, today);
 }
 
@@ -66,14 +144,34 @@ export function getSession(sessionId) {
   return db.prepare('SELECT * FROM sessions WHERE id = ?').get(sessionId);
 }
 
+export function getSessionForUser(sessionId, userId) {
+  return db.prepare('SELECT * FROM sessions WHERE id = ? AND user_id = ?').get(sessionId, userId);
+}
+
+export function getSidebarSessions(userId, limit = 30, offset = 0) {
+  return db.prepare(`
+    SELECT id, user_id, date_key, session_type, session_status, title,
+           chat_summary, script_id, audio_file, hypnosis_generated_at,
+           locked_at, last_message_at, created_at,
+           CASE WHEN locked_at IS NULL OR locked_at = '' THEN 0 ELSE 1 END AS is_locked
+    FROM sessions
+    WHERE user_id = ?
+    ORDER BY COALESCE(last_message_at, created_at) DESC, created_at DESC
+    LIMIT ? OFFSET ?
+  `).all(userId, limit, offset);
+}
+
 // Get all sessions for a user (paginated)
 export function getAllSessions(userId, limit = 30, offset = 0) {
   return db.prepare(`
     SELECT id, date_key, chat_summary, detected_map, detected_state, key_themes,
-           mood_before, mood_after, user_rating, script_id, audio_file, created_at
-    FROM sessions 
+           mood_before, mood_after, user_rating, script_id, audio_file, created_at,
+           session_type, session_status, title, last_message_at, hypnosis_generated_at,
+           locked_at,
+           CASE WHEN locked_at IS NULL OR locked_at = '' THEN 0 ELSE 1 END AS is_locked
+    FROM sessions
     WHERE user_id = ?
-    ORDER BY created_at DESC 
+    ORDER BY COALESCE(last_message_at, created_at) DESC, created_at DESC
     LIMIT ? OFFSET ?
   `).all(userId, limit, offset);
 }
