@@ -214,3 +214,29 @@ Record the preview URL, commit SHA, and any known limitations.
 git add .
 git commit -m "chore: finalize chat workspace preview"
 ```
+
+### Task 6 progress note: current preview deployment state
+
+- Branch `chat-ux-dev` has been pushed to origin.
+- Commit SHA currently deployed for preview: `646ae12cd9e008f32f1a253b37dbdff6566b4af2`.
+- Vercel check returned `success` for the latest branch commit.
+- Deployment overview: `https://vercel.com/max-maxwellmayes-projects/nlp-training-tool/FRaoPUmAHAAfYopJWHgXBUoBhp2r`
+- Preview domain: `https://nlp-training-tool-git-chat-ux-dev-max-maxwellmayes-projects.vercel.app`
+- Runtime verification note: the preview deployment currently loads the Alignment Engine shell but remains stuck on the `INITIALIZING` screen, so the preview is live but not yet fully review-ready.
+
+
+### Preview verification notes update
+
+The Vercel preview deployment is healthy at the platform level, but direct access to the preview domain is gated by Vercel authentication, which causes 401 responses for `/` and `/manifest.json` outside an authorized session and leaves the browser stuck on the app's `INITIALIZING` state.
+
+A secondary sandbox-hosted preview was exposed publicly at `https://4173-i8heexvtz5afr70si7uai-23ad98d4.us2.manus.computer`. Static assets and `manifest.json` return `200 OK`, and the compiled bundle still contains the expected React bootstrap plus the fallback warning `Missing VITE_CLERK_PUBLISHABLE_KEY — auth will be disabled`. However, the page is still rendering a blank screen in browser verification, so this exposed preview is reachable but not yet trustworthy as a review environment.
+
+
+### Audio recovery verification update
+
+The recreated hypnosis audio is now confirmed in the live Audios library. The authenticated production page at `/audios` shows **two** entries titled `Living Your Full Identity and Self`, both marked `Audio Ready`. The newest recovered item is timestamped **Apr 15, 2026, 06:23 AM**, confirming that the regenerated upload ultimately completed successfully.
+
+
+### Public preview recovery update
+
+After guarding the layout's unconditional Clerk avatar widgets and rebuilding the worktree, the exposed development preview can render the app UI. A manual bundle execution in browser verification mounted the dashboard successfully, and the page now visibly shows the redesigned environment shell with navigation and the command dashboard. This confirms the public review environment is no longer fundamentally blank, though I still need to confirm whether the bootstrap issue resolves automatically on a fresh user visit or whether an additional initialization fix is required before treating it as stable.

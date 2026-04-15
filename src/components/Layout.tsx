@@ -3,6 +3,8 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { api } from '../services/api';
 
+const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
 const navItems = [
   { to: '/', label: 'Command', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4', section: 'ops' },
   { to: '/hypnosis', label: 'Session', icon: 'M13 10V3L4 14h7v7l9-11h-7z', section: 'ops' },
@@ -90,7 +92,9 @@ export default function Layout() {
               </span>
             </NavLink>
           )}
-          <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: { width: 26, height: 26 } } }} />
+          {HAS_CLERK && (
+            <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: { width: 26, height: 26 } } }} />
+          )}
           <button onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1.5 rounded-md transition-colors"
             style={{ color: 'var(--color-text-muted)' }} aria-label="Toggle menu">
@@ -128,9 +132,11 @@ export default function Layout() {
               <p className="text-uppercase-spaced mt-0.5" style={{ color: 'var(--color-accent-gold)', fontSize: '0.55rem' }}>ENGINE</p>
             </div>
           </div>
-          <div className="hidden md:block">
-            <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: { width: 26, height: 26 } } }} />
-          </div>
+          {HAS_CLERK && (
+            <div className="hidden md:block">
+              <UserButton afterSignOutUrl="/sign-in" appearance={{ elements: { avatarBox: { width: 26, height: 26 } } }} />
+            </div>
+          )}
         </div>
 
         {/* XP Bar (desktop) */}
