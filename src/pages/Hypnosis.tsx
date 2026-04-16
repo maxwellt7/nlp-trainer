@@ -177,6 +177,7 @@ export default function Hypnosis() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const detailSectionRef = useRef<HTMLElement>(null);
+  const nextConversationViewportActionRef = useRef<'top' | 'bottom' | null>(null);
   const initCalled = useRef(false);
 
   const hasConversationStarted = useMemo(
@@ -207,9 +208,13 @@ export default function Hypnosis() {
     setMysteryBoxData(null);
   }, []);
 
+  const isMobileViewport = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 1023px)').matches;
+  }, []);
+
   const revealConversationPanelOnMobile = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    if (!isMobileViewport()) return;
 
     const scrollIntoView = () => {
       detailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -217,7 +222,7 @@ export default function Hypnosis() {
 
     window.requestAnimationFrame(scrollIntoView);
     window.setTimeout(scrollIntoView, 180);
-  }, []);
+  }, [isMobileViewport]);
 
   const refreshConversations = useCallback(async (preferredId?: string) => {
     const data = await api.getSessions(50);
@@ -262,6 +267,10 @@ export default function Hypnosis() {
         detailMessages = initData.resumeMessages || (initData.reply ? [{ role: 'assistant', content: initData.reply }] : []);
       }
 
+      if (options?.revealOnMobile && isMobileViewport()) {
+        nextConversationViewportActionRef.current = 'top';
+      }
+
       applyConversationState(detail, detailMessages);
       if (options?.revealOnMobile) {
         revealConversationPanelOnMobile();
@@ -271,7 +280,7 @@ export default function Hypnosis() {
     } finally {
       setInitializing(false);
     }
-  }, [applyConversationState, resetScriptPanel, revealConversationPanelOnMobile]);
+  }, [applyConversationState, isMobileViewport, resetScriptPanel, revealConversationPanelOnMobile]);
 
   const startConversation = useCallback(async (sessionType: 'daily_hypnosis' | 'general_chat', options?: { revealOnMobile?: boolean }) => {
     setInitializing(true);
@@ -326,9 +335,17 @@ export default function Hypnosis() {
   useEffect(() => {
     if (!hasConversationStarted && !loading) {
       messagesRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+      nextConversationViewportActionRef.current = null;
       return;
     }
 
+    if (nextConversationViewportActionRef.current === 'top') {
+      messagesRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+      nextConversationViewportActionRef.current = null;
+      return;
+    }
+
+    nextConversationViewportActionRef.current = null;
     bottomRef.current?.scrollIntoView({
       behavior: loading ? 'smooth' : 'auto',
       block: 'end',
