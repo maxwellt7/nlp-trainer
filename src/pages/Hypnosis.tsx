@@ -176,6 +176,7 @@ export default function Hypnosis() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const detailSectionRef = useRef<HTMLElement>(null);
   const initCalled = useRef(false);
 
   const hasConversationStarted = useMemo(
@@ -206,6 +207,18 @@ export default function Hypnosis() {
     setMysteryBoxData(null);
   }, []);
 
+  const revealConversationPanelOnMobile = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+
+    const scrollIntoView = () => {
+      detailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    window.requestAnimationFrame(scrollIntoView);
+    window.setTimeout(scrollIntoView, 180);
+  }, []);
+
   const refreshConversations = useCallback(async (preferredId?: string) => {
     const data = await api.getSessions(50);
     const nextConversations = (data.sessions || []).map((session: any) => normalizeSession(session)).filter(Boolean) as SessionSummary[];
@@ -234,7 +247,7 @@ export default function Hypnosis() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }, []);
 
-  const loadConversation = useCallback(async (conversationId: string) => {
+  const loadConversation = useCallback(async (conversationId: string, options?: { revealOnMobile?: boolean }) => {
     setInitializing(true);
     setError(null);
     resetScriptPanel();
@@ -250,14 +263,17 @@ export default function Hypnosis() {
       }
 
       applyConversationState(detail, detailMessages);
+      if (options?.revealOnMobile) {
+        revealConversationPanelOnMobile();
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load conversation');
     } finally {
       setInitializing(false);
     }
-  }, [applyConversationState, resetScriptPanel]);
+  }, [applyConversationState, resetScriptPanel, revealConversationPanelOnMobile]);
 
-  const startConversation = useCallback(async (sessionType: 'daily_hypnosis' | 'general_chat') => {
+  const startConversation = useCallback(async (sessionType: 'daily_hypnosis' | 'general_chat', options?: { revealOnMobile?: boolean }) => {
     setInitializing(true);
     setError(null);
     resetScriptPanel();
@@ -269,7 +285,7 @@ export default function Hypnosis() {
       const refreshed = await refreshConversations(initData.sessionId);
       const preferredId = initData.sessionId || refreshed[0]?.id;
       if (preferredId) {
-        await loadConversation(preferredId);
+        await loadConversation(preferredId, options);
       } else {
         setInitializing(false);
       }
@@ -286,15 +302,18 @@ export default function Hypnosis() {
     async function bootstrap() {
       setInitializing(true);
       try {
+        const launchSearch = window.location.search;
+        const launchParams = new URLSearchParams(launchSearch);
         const existing = await refreshConversations();
-        const initialTarget = resolveInitialHypnosisTarget(window.location.search, existing);
+        const initialTarget = resolveInitialHypnosisTarget(launchSearch, existing);
+        const revealFromLaunchIntent = launchParams.has('mode') || launchParams.has('sessionId');
 
         if (initialTarget.action === 'load') {
-          await loadConversation(initialTarget.sessionId);
+          await loadConversation(initialTarget.sessionId, { revealOnMobile: revealFromLaunchIntent });
           return;
         }
 
-        await startConversation(initialTarget.sessionType);
+        await startConversation(initialTarget.sessionType, { revealOnMobile: revealFromLaunchIntent });
       } catch (err: any) {
         setError(err.message || 'Could not load conversations. Please refresh.');
         setInitializing(false);
@@ -515,13 +534,13 @@ export default function Hypnosis() {
           <h1 className="font-display text-2xl text-white mb-3">Alignment Workspace</h1>
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => startConversation('general_chat')}
+              onClick={() => startConversation('general_chat', { revealOnMobile: true })}
               className="rounded-xl px-4 py-2.5 text-sm font-semibold haptic-tap btn-primary"
             >
               New Chat
             </button>
             <button
-              onClick={() => startConversation('daily_hypnosis')}
+              onClick={() => startConversation('daily_hypnosis', { revealOnMobile: true })}
               className="rounded-xl px-4 py-2.5 text-sm font-semibold haptic-tap btn-ghost"
             >
               Daily Session
@@ -541,7 +560,7 @@ export default function Hypnosis() {
             return (
               <button
                 key={conversation.id}
-                onClick={() => loadConversation(conversation.id)}
+                onClick={() => loadConversation(conversation.id, { revealOnMobile: true })}
                 className="w-full text-left rounded-2xl p-3 transition-all haptic-tap"
                 style={{
                   background: active ? 'rgba(212, 168, 83, 0.12)' : 'var(--color-brand-card)',
@@ -570,7 +589,7 @@ export default function Hypnosis() {
         </div>
       </aside>
 
-      <section className="flex-1 min-h-0 flex flex-col">
+      <section ref={detailSectionRef} className="flex-1 min-h-0 flex flex-col">
         <div
           className="px-4 sm:px-6 py-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
           style={{ borderColor: 'var(--color-brand-border)', background: 'var(--color-brand-deep)' }}
