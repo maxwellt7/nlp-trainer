@@ -157,7 +157,7 @@ export default function Dashboard() {
 
       {/* ── CTA Button ── */}
       <Link
-        to="/hypnosis"
+        to="/hypnosis?mode=daily"
         className={`block w-full rounded-xl p-4 mb-4 text-center font-bold text-base transition-all haptic-tap ${
           data?.sessionCompleted ? '' : 'animate-breathe'
         }`}

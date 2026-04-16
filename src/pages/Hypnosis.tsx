@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import XpPopup from '../components/XpPopup';
 import MysteryBox from '../components/MysteryBox';
+import { resolveInitialHypnosisTarget } from './hypnosisLaunch';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -286,11 +287,14 @@ export default function Hypnosis() {
       setInitializing(true);
       try {
         const existing = await refreshConversations();
-        if (existing.length > 0) {
-          await loadConversation(existing[0].id);
+        const initialTarget = resolveInitialHypnosisTarget(window.location.search, existing);
+
+        if (initialTarget.action === 'load') {
+          await loadConversation(initialTarget.sessionId);
           return;
         }
-        await startConversation('general_chat');
+
+        await startConversation(initialTarget.sessionType);
       } catch (err: any) {
         setError(err.message || 'Could not load conversations. Please refresh.');
         setInitializing(false);
