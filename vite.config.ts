@@ -12,7 +12,10 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: false, // We use our own public/manifest.json
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
             // Cache API calls with network-first strategy
