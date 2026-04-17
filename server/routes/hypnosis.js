@@ -268,6 +268,10 @@ router.post('/chat', async (req, res) => {
       { role: 'assistant', content: parsed.reply || text }
     ]));
 
+    updateSessionMetadata(currentSessionId, {
+      session_status: parsed.readyToGenerate === true ? 'ready_for_hypnosis' : 'active',
+    });
+
     if (session.session_type === 'general_chat' && !(session.title || '').trim()) {
       const derivedTitle = title || deriveConversationTitle(messages);
       if (derivedTitle) {

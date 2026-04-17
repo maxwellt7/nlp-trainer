@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import XpPopup from '../components/XpPopup';
 import MysteryBox from '../components/MysteryBox';
 import { resolveInitialHypnosisTarget } from './hypnosisLaunch';
+import { canShowCreateHypnosisCTA, isSessionMarkedReady } from './hypnosisReadiness';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -140,6 +141,8 @@ function statusPills(session: SessionSummary | null) {
     pills.push('Locked');
   } else if (session.hypnosis_generated_at) {
     pills.push('Hypnosis Generated');
+  } else if (session.session_status === 'ready_for_hypnosis') {
+    pills.push('Ready');
   } else {
     pills.push('Open');
   }
@@ -187,8 +190,15 @@ export default function Hypnosis() {
   );
 
   const isSelectedLocked = !!selectedSession?.is_locked && selectedSession?.session_type === 'daily_hypnosis';
-  const hasUserMessages = messages.some((message) => message.role === 'user');
-  const canCreateHypnosis = readyToGenerate && !initializing && !loading && !generating && !isSelectedLocked && hasUserMessages;
+  const canCreateHypnosis = canShowCreateHypnosisCTA({
+    readyToGenerate,
+    messages,
+    initializing,
+    loading,
+    generating,
+    isSelectedLocked,
+    minimumUserMessages: 3,
+  });
 
   const resetScriptPanel = useCallback(() => {
     setReadyToGenerate(false);
@@ -246,7 +256,7 @@ export default function Hypnosis() {
     setSelectedSession(session);
     setSelectedConversationId(session?.id || null);
     setMessages(nextMessages);
-    setReadyToGenerate(nextMessages.some((message) => message.role === 'user') && !(session?.is_locked && session?.session_type === 'daily_hypnosis'));
+    setReadyToGenerate(isSessionMarkedReady(session?.session_status) && !(session?.is_locked && session?.session_type === 'daily_hypnosis'));
     setInput('');
     setError(null);
     setProfileInsights({});
@@ -392,6 +402,7 @@ export default function Hypnosis() {
     setMessages(updatedMessages);
     setLoading(true);
     setError(null);
+    setReadyToGenerate(false);
 
     try {
       const data = await api.hypnosisChat(
@@ -408,7 +419,7 @@ export default function Hypnosis() {
         const normalized = normalizeSession(data.session);
         if (normalized) setSelectedSession((current) => ({ ...(current || {}), ...normalized } as SessionSummary));
       }
-      setReadyToGenerate(nextMessages.some((message) => message.role === 'user') && !isSelectedLocked);
+      setReadyToGenerate((data.readyToGenerate === true || isSessionMarkedReady(data.session?.session_status)) && !isSelectedLocked);
       if (data.profileUpdates) {
         setProfileInsights((prev) => ({ ...prev, ...data.profileUpdates }));
       }
@@ -558,7 +569,7 @@ export default function Hypnosis() {
   };
 
   return (
-    <div className="relative h-full min-h-0 flex" style={{ background: 'var(--color-brand-midnight)' }}>
+    <div className="relative flex h-[100dvh] max-h-[100dvh] min-h-0 overflow-hidden lg:h-full lg:max-h-none" style={{ background: 'var(--color-brand-midnight)' }}>
       {showXpPopup && xpPopupData && (
         <XpPopup xpEvents={xpPopupData.xpEvents} levelUp={xpPopupData.levelUp} onDismiss={() => setShowXpPopup(false)} />
       )}
@@ -650,27 +661,29 @@ export default function Hypnosis() {
         </div>
       </aside>
 
-      <section ref={detailSectionRef} className="flex-1 min-h-0 flex flex-col">
+      <section ref={detailSectionRef} className="flex-1 min-h-0 min-w-0 flex flex-col">
         <div
-          className="px-4 sm:px-6 py-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          className="px-3 sm:px-6 py-3 sm:py-4 border-b flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between"
           style={{ borderColor: 'var(--color-brand-border)', background: 'var(--color-brand-deep)' }}
         >
-          <div>
-            <div className="flex items-center gap-2 flex-wrap mb-1">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0 mb-1">
               <button
                 type="button"
                 onClick={() => setMobileHistoryOpen(true)}
-                className="lg:hidden rounded-lg px-3 py-1.5 text-xs font-semibold haptic-tap btn-ghost"
+                className="lg:hidden rounded-lg px-3 py-1.5 text-xs font-semibold haptic-tap btn-ghost shrink-0"
               >
                 History
               </button>
-              <div className="w-2 h-2 rounded-full animate-breathe-subtle" style={{ background: 'var(--color-accent-gold)' }} />
-              <span className="text-base font-semibold text-white">{formatTitle(selectedSession)}</span>
+              <div className="w-2 h-2 rounded-full shrink-0 animate-breathe-subtle" style={{ background: 'var(--color-accent-gold)' }} />
+              <span className="min-w-0 truncate text-sm sm:text-base font-semibold text-white">{formatTitle(selectedSession)}</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 flex-wrap mb-1">
               {statusPills(selectedSession).map((pill) => (
                 <span key={pill} className="pill pill-inactive text-[10px] px-2 py-1">{pill}</span>
               ))}
             </div>
-            <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+            <div className="text-[11px] sm:text-xs leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
               {selectedSession?.hypnosis_generated_at
                 ? `Hypnosis generated ${formatTimestamp(selectedSession.hypnosis_generated_at)}`
                 : selectedSession?.session_type === 'daily_hypnosis'
@@ -680,13 +693,13 @@ export default function Hypnosis() {
           </div>
 
           {profileInsights.detected_map && (
-            <span className="pill pill-inactive text-[10px] py-1 px-2 self-start sm:self-auto">
+            <span className="hidden sm:inline-flex pill pill-inactive text-[10px] py-1 px-2 self-start sm:self-auto">
               {mapLabels[profileInsights.detected_map] || profileInsights.detected_map}
             </span>
           )}
         </div>
 
-        <div ref={messagesRef} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-4 space-y-3">
+        <div ref={messagesRef} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4 space-y-3">
           {initializing && (
             <div className="flex justify-start">
               <div
@@ -806,8 +819,12 @@ export default function Hypnosis() {
         {!isSelectedLocked && !generating && (
           <form
             onSubmit={handleSubmit}
-            className="px-3 sm:px-5 py-3 flex gap-2 items-end"
-            style={{ background: 'var(--color-brand-midnight)', borderTop: '1px solid var(--color-brand-border)' }}
+            className="px-3 sm:px-5 py-2.5 sm:py-3 flex gap-2 items-end"
+            style={{
+              background: 'var(--color-brand-midnight)',
+              borderTop: '1px solid var(--color-brand-border)',
+              paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))',
+            }}
           >
             <textarea
               ref={textareaRef}
