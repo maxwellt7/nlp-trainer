@@ -173,6 +173,7 @@ export default function Hypnosis() {
   const [showXpPopup, setShowXpPopup] = useState(false);
   const [xpPopupData, setXpPopupData] = useState<any>(null);
   const [mysteryBoxData, setMysteryBoxData] = useState<any>(null);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -215,6 +216,8 @@ export default function Hypnosis() {
 
   const revealConversationPanelOnMobile = useCallback(() => {
     if (!isMobileViewport()) return;
+
+    setMobileHistoryOpen(false);
 
     const scrollIntoView = () => {
       detailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -269,6 +272,7 @@ export default function Hypnosis() {
 
       if (options?.revealOnMobile && isMobileViewport()) {
         nextConversationViewportActionRef.current = 'top';
+        setMobileHistoryOpen(false);
       }
 
       applyConversationState(detail, detailMessages);
@@ -286,6 +290,9 @@ export default function Hypnosis() {
     setInitializing(true);
     setError(null);
     resetScriptPanel();
+    if (options?.revealOnMobile && isMobileViewport()) {
+      setMobileHistoryOpen(false);
+    }
     try {
       const initData = await api.hypnosisInit({
         sessionType,
@@ -331,6 +338,20 @@ export default function Hypnosis() {
 
     bootstrap();
   }, [loadConversation, refreshConversations, startConversation]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const syncDesktopMode = () => {
+      if (window.matchMedia('(min-width: 1024px)').matches) {
+        setMobileHistoryOpen(false);
+      }
+    };
+
+    syncDesktopMode();
+    window.addEventListener('resize', syncDesktopMode);
+    return () => window.removeEventListener('resize', syncDesktopMode);
+  }, []);
 
   useEffect(() => {
     if (!hasConversationStarted && !loading) {
@@ -537,15 +558,38 @@ export default function Hypnosis() {
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col lg:flex-row" style={{ background: 'var(--color-brand-midnight)' }}>
+    <div className="relative h-full min-h-0 flex" style={{ background: 'var(--color-brand-midnight)' }}>
       {showXpPopup && xpPopupData && (
         <XpPopup xpEvents={xpPopupData.xpEvents} levelUp={xpPopupData.levelUp} onDismiss={() => setShowXpPopup(false)} />
       )}
 
+      {mobileHistoryOpen && (
+        <button
+          type="button"
+          aria-label="Close conversation history"
+          onClick={() => setMobileHistoryOpen(false)}
+          className="lg:hidden absolute inset-0 z-20 bg-black/60 backdrop-blur-sm"
+        />
+      )}
+
       <aside
-        className="w-full lg:w-[19rem] xl:w-[21rem] border-b lg:border-b-0 lg:border-r flex flex-col"
-        style={{ borderColor: 'var(--color-brand-border)', background: 'rgba(7, 11, 20, 0.92)' }}
+        className={`absolute inset-y-0 left-0 z-30 w-full max-w-[24rem] border-r flex flex-col transform transition-transform duration-200 ease-in-out lg:static lg:z-auto lg:w-[19rem] xl:w-[21rem] ${mobileHistoryOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+        style={{ borderColor: 'var(--color-brand-border)', background: 'rgba(7, 11, 20, 0.96)' }}
       >
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-brand-border)' }}>
+          <div>
+            <p className="text-uppercase-spaced" style={{ color: 'var(--color-accent-gold)' }}>History</p>
+            <p className="text-sm text-white font-semibold">Conversation Sidebar</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileHistoryOpen(false)}
+            className="rounded-lg px-3 py-2 text-xs font-semibold haptic-tap btn-ghost"
+          >
+            Close
+          </button>
+        </div>
+
         <div className="p-4 border-b" style={{ borderColor: 'var(--color-brand-border)' }}>
           <p className="text-uppercase-spaced mb-2" style={{ color: 'var(--color-accent-gold)' }}>Conversations</p>
           <h1 className="font-display text-2xl text-white mb-3">Alignment Workspace</h1>
@@ -613,6 +657,13 @@ export default function Hypnosis() {
         >
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-1">
+              <button
+                type="button"
+                onClick={() => setMobileHistoryOpen(true)}
+                className="lg:hidden rounded-lg px-3 py-1.5 text-xs font-semibold haptic-tap btn-ghost"
+              >
+                History
+              </button>
               <div className="w-2 h-2 rounded-full animate-breathe-subtle" style={{ background: 'var(--color-accent-gold)' }} />
               <span className="text-base font-semibold text-white">{formatTitle(selectedSession)}</span>
               {statusPills(selectedSession).map((pill) => (
