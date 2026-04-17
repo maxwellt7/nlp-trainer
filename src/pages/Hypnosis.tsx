@@ -199,6 +199,7 @@ export default function Hypnosis() {
     isSelectedLocked,
     minimumUserMessages: 3,
   });
+  const hasGeneratedOutputReview = Boolean(scriptResult) && isSelectedLocked;
 
   const resetScriptPanel = useCallback(() => {
     setReadyToGenerate(false);
@@ -699,7 +700,8 @@ export default function Hypnosis() {
           )}
         </div>
 
-        <div ref={messagesRef} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4 space-y-3">
+        <div className={hasGeneratedOutputReview ? 'flex-1 min-h-0 overflow-y-auto' : 'contents'}>
+          <div ref={messagesRef} className={hasGeneratedOutputReview ? 'px-3 sm:px-5 py-3 sm:py-4 space-y-3' : 'flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4 space-y-3'}>
           {initializing && (
             <div className="flex justify-start">
               <div
@@ -1018,6 +1020,7 @@ export default function Hypnosis() {
             </div>
           </div>
         )}
+        </div>
       </section>
     </div>
   );
