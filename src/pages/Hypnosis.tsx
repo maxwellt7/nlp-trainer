@@ -569,7 +569,7 @@ export default function Hypnosis() {
   };
 
   return (
-    <div className="relative flex h-[100dvh] max-h-[100dvh] min-h-0 overflow-hidden lg:h-full lg:max-h-none" style={{ background: 'var(--color-brand-midnight)' }}>
+    <div className="relative flex h-full min-h-0 overflow-hidden" style={{ background: 'var(--color-brand-midnight)' }}>
       {showXpPopup && xpPopupData && (
         <XpPopup xpEvents={xpPopupData.xpEvents} levelUp={xpPopupData.levelUp} onDismiss={() => setShowXpPopup(false)} />
       )}
