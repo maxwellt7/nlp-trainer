@@ -20,6 +20,14 @@ export function resolveInitialHypnosisTarget(
   conversations: HypnosisConversationTarget[],
 ): InitialHypnosisTarget {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  const requestedSessionId = params.get('sessionId');
+
+  if (requestedSessionId) {
+    return {
+      action: 'load',
+      sessionId: requestedSessionId,
+    };
+  }
 
   if (params.get('mode') === 'daily') {
     return {

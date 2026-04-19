@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 
 interface SessionSummary {
@@ -63,52 +64,61 @@ export default function Sessions() {
             key={s.id}
             className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden"
           >
-            <button
-              onClick={() => setExpanded(expanded === s.id ? null : s.id)}
-              className="w-full flex items-start gap-3 p-4 text-left hover:bg-gray-800/50 transition-colors"
-            >
-              <div className="shrink-0 w-12 h-12 rounded-lg bg-indigo-600/20 flex flex-col items-center justify-center text-indigo-400">
-                <span className="text-xs font-bold">
-                  {new Date(s.date_key + 'T12:00:00').toLocaleDateString('en', { month: 'short' })}
-                </span>
-                <span className="text-lg font-bold leading-none">
-                  {new Date(s.date_key + 'T12:00:00').getDate()}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                {s.chat_summary ? (
-                  <p className="text-sm text-gray-300 line-clamp-2">{s.chat_summary}</p>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">Session in progress...</p>
-                )}
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {s.detected_map && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">
-                      {mapLabels[s.detected_map] || s.detected_map}
-                    </span>
-                  )}
-                  {s.detected_state && (
-                    <span className={`text-xs capitalize ${
-                      s.detected_state === 'capacity' ? 'text-emerald-400' :
-                      s.detected_state === 'discharge' ? 'text-red-400' :
-                      'text-amber-400'
-                    }`}>
-                      {s.detected_state}
-                    </span>
-                  )}
-                  {s.key_themes?.slice(0, 3).map((t, i) => (
-                    <span key={i} className="text-xs text-gray-500">#{t}</span>
-                  ))}
-                  {s.user_rating && (
-                    <span className="text-xs text-amber-400">{'★'.repeat(s.user_rating)}</span>
-                  )}
-                  {s.audio_file && (
-                    <span className="text-xs text-purple-400">Audio</span>
-                  )}
+            <div className="flex items-start gap-3 p-4 hover:bg-gray-800/50 transition-colors">
+              <Link
+                to={`/hypnosis?sessionId=${s.id}`}
+                className="flex flex-1 min-w-0 items-start gap-3 text-left"
+              >
+                <div className="shrink-0 w-12 h-12 rounded-lg bg-indigo-600/20 flex flex-col items-center justify-center text-indigo-400">
+                  <span className="text-xs font-bold">
+                    {new Date(s.date_key + 'T12:00:00').toLocaleDateString('en', { month: 'short' })}
+                  </span>
+                  <span className="text-lg font-bold leading-none">
+                    {new Date(s.date_key + 'T12:00:00').getDate()}
+                  </span>
                 </div>
-              </div>
-              <span className="text-gray-600 text-sm">{expanded === s.id ? '▲' : '▼'}</span>
-            </button>
+                <div className="flex-1 min-w-0">
+                  {s.chat_summary ? (
+                    <p className="text-sm text-gray-300 line-clamp-2">{s.chat_summary}</p>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Session in progress...</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {s.detected_map && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">
+                        {mapLabels[s.detected_map] || s.detected_map}
+                      </span>
+                    )}
+                    {s.detected_state && (
+                      <span className={`text-xs capitalize ${
+                        s.detected_state === 'capacity' ? 'text-emerald-400' :
+                        s.detected_state === 'discharge' ? 'text-red-400' :
+                        'text-amber-400'
+                      }`}>
+                        {s.detected_state}
+                      </span>
+                    )}
+                    {s.key_themes?.slice(0, 3).map((t, i) => (
+                      <span key={i} className="text-xs text-gray-500">#{t}</span>
+                    ))}
+                    {s.user_rating && (
+                      <span className="text-xs text-amber-400">{'★'.repeat(s.user_rating)}</span>
+                    )}
+                    {s.audio_file && (
+                      <span className="text-xs text-purple-400">Audio</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                aria-label={expanded === s.id ? 'Collapse session details' : 'Expand session details'}
+                className="shrink-0 rounded-lg px-2 py-1 text-gray-600 text-sm hover:bg-gray-800"
+              >
+                {expanded === s.id ? '▲' : '▼'}
+              </button>
+            </div>
 
             {expanded === s.id && (
               <div className="px-4 pb-4 border-t border-gray-800 pt-3">
@@ -129,6 +139,12 @@ export default function Sessions() {
                 {s.chat_summary && (
                   <p className="text-sm text-gray-400 mt-3">{s.chat_summary}</p>
                 )}
+                <Link
+                  to={`/hypnosis?sessionId=${s.id}`}
+                  className="inline-flex mt-3 rounded-lg px-3 py-2 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                >
+                  {s.script_id ? 'Review Session' : 'Continue Session'}
+                </Link>
               </div>
             )}
           </div>
