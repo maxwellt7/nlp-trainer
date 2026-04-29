@@ -1,12 +1,13 @@
 import db from '../db/index.js';
 import { v4 as uuidv4 } from 'uuid';
+import { getDateKeyForTimezone } from './timezone.js';
 
 function buildSessionId() {
   return `session-${Date.now()}-${uuidv4().slice(0, 8)}`;
 }
 
-function getTodayDateKey() {
-  return new Date().toISOString().split('T')[0];
+function getTodayDateKey(timeZone = null) {
+  return getDateKeyForTimezone(timeZone);
 }
 
 export function isSessionLocked(session) {
@@ -49,11 +50,11 @@ export function createConversationSession(userId, options = {}) {
 }
 
 // Create a new daily hypnosis session
-export function createSession(userId, moodBefore = null) {
+export function createSession(userId, moodBefore = null, timeZone = null) {
   return createConversationSession(userId, {
     moodBefore,
     sessionType: 'daily_hypnosis',
-    dateKey: getTodayDateKey(),
+    dateKey: getTodayDateKey(timeZone),
     sessionStatus: 'active',
   });
 }
@@ -128,8 +129,8 @@ export function getRecentSessions(userId, limit = 5) {
 }
 
 // Get today's daily hypnosis session if one exists
-export function getTodaySession(userId) {
-  const today = getTodayDateKey();
+export function getTodaySession(userId, timeZone = null) {
+  const today = getTodayDateKey(timeZone);
   return db.prepare(`
     SELECT *
     FROM sessions

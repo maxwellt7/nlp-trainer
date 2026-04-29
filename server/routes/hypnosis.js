@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import anthropic from '../config/anthropic.js';
-import { getProfileForPrompt, updateProfile, updateStreak } from '../services/profile.js';
+import { getProfileForPrompt, updateProfile, updateStreak, resolveUserTimezone } from '../services/profile.js';
 import {
   buildMemoryContext,
   createConversationSession,
@@ -23,6 +23,10 @@ const dataDir = join(__dirname, '..', 'data');
 const promptsDir = join(dataDir, 'prompts');
 
 const router = Router();
+
+function resolveRequestTimezone(req) {
+  return resolveUserTimezone(req.userId, req.get('X-User-Timezone'));
+}
 
 // Cache for NLP content
 let nlpContentCache = null;
@@ -113,6 +117,7 @@ function deriveConversationTitle(messages = []) {
 router.post('/init', async (req, res) => {
   try {
     const userId = req.userId;
+    const effectiveTimezone = resolveRequestTimezone(req);
     const {
       sessionId: requestedSessionId,
       sessionType = 'daily_hypnosis',
@@ -126,7 +131,7 @@ router.post('/init', async (req, res) => {
     }
 
     if (!session && !forceNew && sessionType === 'daily_hypnosis') {
-      session = getTodaySession(userId);
+      session = getTodaySession(userId, effectiveTimezone);
     }
 
     if (session) {
@@ -160,7 +165,7 @@ router.post('/init', async (req, res) => {
             sessionType: 'general_chat',
             title: title || '',
           })
-        : createSession(userId, null);
+        : createSession(userId, null, effectiveTimezone);
     }
 
     const systemPrompt = buildSystemPrompt(userId, 'coaching');
@@ -213,6 +218,7 @@ router.post('/chat', async (req, res) => {
     }
 
     const userId = req.userId;
+    const effectiveTimezone = resolveRequestTimezone(req);
     let session = sessionId ? getSessionForUser(sessionId, userId) : null;
 
     if (sessionId && !session) {
@@ -226,7 +232,7 @@ router.post('/chat', async (req, res) => {
             title: title || deriveConversationTitle(messages),
             moodBefore: moodBefore || null,
           })
-        : (getTodaySession(userId) || createSession(userId, moodBefore || null));
+        : (getTodaySession(userId, effectiveTimezone) || createSession(userId, moodBefore || null, effectiveTimezone));
     }
 
     if (isSessionLocked(session)) {
@@ -379,7 +385,8 @@ router.post('/generate', async (req, res) => {
     }
 
     const userId = req.userId;
-    const currentSession = sessionId ? getSessionForUser(sessionId, userId) : getTodaySession(userId);
+    const effectiveTimezone = resolveRequestTimezone(req);
+    const currentSession = sessionId ? getSessionForUser(sessionId, userId) : getTodaySession(userId, effectiveTimezone);
     if (!currentSession) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -433,7 +440,7 @@ router.post('/generate', async (req, res) => {
 
     let gamificationResults = null;
     if (currentSession.session_type === 'daily_hypnosis') {
-      const streakResult = updateStreak(userId);
+      const streakResult = updateStreak(userId, effectiveTimezone);
       if (streakResult) {
         updateStreakMultiplier(userId, streakResult.current_streak);
       }

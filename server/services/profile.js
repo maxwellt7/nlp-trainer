@@ -1,5 +1,6 @@
 import db from '../db/index.js';
 import { v4 as uuidv4 } from 'uuid';
+import { getDateKeyForTimezone, normalizeTimezone } from './timezone.js';
 
 // Ensure a default user exists (single-user mode — legacy fallback)
 export function ensureDefaultUser() {
@@ -18,6 +19,50 @@ export function ensureUser(userId) {
     console.log(`Created new user record for: ${userId}`);
   }
   return userId;
+}
+
+function parseOnboarding(rawOnboarding) {
+  if (!rawOnboarding) return {};
+  try {
+    const parsed = JSON.parse(rawOnboarding);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getUserRecord(userId) {
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+}
+
+export function getUserTimezone(userId) {
+  const user = getUserRecord(userId);
+  const onboarding = parseOnboarding(user?.onboarding);
+  return normalizeTimezone(onboarding.timezone);
+}
+
+export function setUserTimezone(userId, timeZone) {
+  const normalized = normalizeTimezone(timeZone);
+  if (!normalized) return getUserTimezone(userId);
+
+  ensureUser(userId);
+  const user = getUserRecord(userId);
+  const onboarding = parseOnboarding(user?.onboarding);
+  if (onboarding.timezone === normalized) {
+    return normalized;
+  }
+
+  onboarding.timezone = normalized;
+  db.prepare('UPDATE users SET onboarding = ? WHERE id = ?').run(JSON.stringify(onboarding), userId);
+  return normalized;
+}
+
+export function resolveUserTimezone(userId, detectedTimezone) {
+  const normalized = normalizeTimezone(detectedTimezone);
+  if (normalized) {
+    return setUserTimezone(userId, normalized);
+  }
+  return getUserTimezone(userId);
 }
 
 // Get user profile
@@ -66,12 +111,14 @@ export function getStreak(userId) {
 }
 
 // Update streak after a session
-export function updateStreak(userId) {
+export function updateStreak(userId, timeZone = null) {
   const streak = getStreak(userId);
   if (!streak) return;
 
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const effectiveTimezone = normalizeTimezone(timeZone) || getUserTimezone(userId) || 'UTC';
+  const now = new Date();
+  const today = getDateKeyForTimezone(effectiveTimezone, now);
+  const yesterday = getDateKeyForTimezone(effectiveTimezone, new Date(now.getTime() - 86400000));
 
   let newCurrent = 1;
   if (streak.last_session_date === today) {

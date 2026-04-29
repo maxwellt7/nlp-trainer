@@ -1,17 +1,22 @@
 import { Router } from 'express';
-import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak } from '../services/profile.js';
+import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak, resolveUserTimezone } from '../services/profile.js';
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
 import { getAllSessions, getRecentSessions, getSessionForUser, getTodaySession, isSessionLocked, updateSessionMetadata } from '../services/memory.js';
 
 const router = Router();
 
+function resolveRequestTimezone(req) {
+  return resolveUserTimezone(req.userId, req.get('X-User-Timezone'));
+}
+
 // GET /api/profile — get user profile and streak
 router.get('/', (req, res) => {
   try {
     const userId = req.userId;
+    const effectiveTimezone = resolveRequestTimezone(req);
     const profile = getProfileForPrompt(userId);
     const streak = getStreak(userId);
-    const todaySession = getTodaySession(userId);
+    const todaySession = getTodaySession(userId, effectiveTimezone);
 
     // Get gamification data
     let xp = null;
@@ -35,6 +40,7 @@ router.get('/', (req, res) => {
       todaySessionId: todaySession?.id || null,
       xp,
       unopenedBoxes,
+      timezone: effectiveTimezone,
     });
   } catch (error) {
     console.error('Error getting profile:', error.message);

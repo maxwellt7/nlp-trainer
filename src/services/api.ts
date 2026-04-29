@@ -7,11 +7,25 @@ export function setAuthTokenGetter(fn: (() => Promise<string | null>) | null) {
   getToken = fn;
 }
 
+function getBrowserTimezone(): string | null {
+  if (typeof Intl === 'undefined' || typeof Intl.DateTimeFormat !== 'function') {
+    return null;
+  }
+
+  const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return typeof resolved === 'string' && resolved.trim() ? resolved : null;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options?.headers as Record<string, string> || {}),
   };
+
+  const userTimezone = getBrowserTimezone();
+  if (userTimezone) {
+    headers['X-User-Timezone'] = userTimezone;
+  }
 
   // Attach Clerk auth token if available
   if (getToken) {
