@@ -6,6 +6,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// sql.js looks up its wasm via fetch/fs. On Vercel the bundler doesn't trace it
+// into /var/task/node_modules, so we ship a copy under server/db/ (server/** is
+// bundled by vercel.json includeFiles) and point initSqlJs at it.
+const bundledWasmPath = join(__dirname, 'sql-wasm.wasm');
+const sqlJsConfig = existsSync(bundledWasmPath)
+  ? { locateFile: () => bundledWasmPath }
+  : undefined;
+
 // Pick a writable storage root:
 // - /app/storage on Railway (volume mount)
 // - /tmp/alignment-engine on Vercel (only writable path on serverless)
@@ -31,7 +39,7 @@ try {
 let SQL;
 let rawDb;
 
-const initPromise = initSqlJs().then(sqlJs => {
+const initPromise = initSqlJs(sqlJsConfig).then(sqlJs => {
   SQL = sqlJs;
   // Load existing DB from runtime path, falling back to bundled seed (e.g. on Vercel cold start)
   const sourcePath = existsSync(dbPath) ? dbPath : (existsSync(seedDbPath) ? seedDbPath : null);
