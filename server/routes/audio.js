@@ -12,8 +12,12 @@ dotenv.config({ path: join(__dirname, '..', '..', '.env'), quiet: true });
 
 const router = Router();
 
-// Persistent storage: use /app/storage on Railway (volume mount), fallback to data/ locally
-const storageRoot = existsSync('/app/storage') ? '/app/storage' : join(__dirname, '..', 'data');
+// Persistent storage: /app/storage on Railway, /tmp on Vercel (read-only /var/task), data/ locally
+const storageRoot = existsSync('/app/storage')
+  ? '/app/storage'
+  : process.env.VERCEL
+    ? '/tmp/alignment-engine'
+    : join(__dirname, '..', 'data');
 const scriptsDir = join(storageRoot, 'scripts');
 const audioDir = join(storageRoot, 'audio');
 // Music is static content shipped with the code, not user-generated
@@ -24,10 +28,17 @@ function isSafeFilename(name) {
   return /^[a-zA-Z0-9_-]+$/.test(name);
 }
 
-// Ensure directories exist
-if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
-if (!existsSync(audioDir)) mkdirSync(audioDir, { recursive: true });
-if (!existsSync(musicDir)) mkdirSync(musicDir, { recursive: true });
+// Ensure directories exist; tolerate read-only filesystems (Vercel) so module load doesn't crash
+const ensureDir = (p) => {
+  try {
+    if (!existsSync(p)) mkdirSync(p, { recursive: true });
+  } catch (err) {
+    console.warn('audio.js: cannot create', p, '-', err.message);
+  }
+};
+ensureDir(scriptsDir);
+ensureDir(audioDir);
+ensureDir(musicDir);
 
 /**
  * Generate a silence audio file of the specified duration using ffmpeg.

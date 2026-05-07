@@ -6,13 +6,25 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Use /app/storage on Railway (volume mount), fallback to local data dir
-const storageRoot = existsSync('/app/storage') ? '/app/storage' : join(__dirname, '..', 'data');
+// Pick a writable storage root:
+// - /app/storage on Railway (volume mount)
+// - /tmp/alignment-engine on Vercel (only writable path on serverless)
+// - server/data locally
+const storageRoot = existsSync('/app/storage')
+  ? '/app/storage'
+  : process.env.VERCEL
+    ? '/tmp/alignment-engine'
+    : join(__dirname, '..', 'data');
+const seedDbPath = join(__dirname, '..', 'data', 'alignment-engine.db');
 const dbPath = join(storageRoot, 'alignment-engine.db');
 
-// Ensure storage directory exists
-if (!existsSync(storageRoot)) {
-  mkdirSync(storageRoot, { recursive: true });
+// Ensure storage directory exists (best-effort: read-only fs is fine, sql.js falls back to in-memory)
+try {
+  if (!existsSync(storageRoot)) {
+    mkdirSync(storageRoot, { recursive: true });
+  }
+} catch (err) {
+  console.warn('DB storage root not writable, continuing in-memory:', err.message);
 }
 
 // Initialize sql.js synchronously by blocking on the promise
@@ -21,10 +33,11 @@ let rawDb;
 
 const initPromise = initSqlJs().then(sqlJs => {
   SQL = sqlJs;
-  // Load existing DB or create new
-  if (existsSync(dbPath)) {
+  // Load existing DB from runtime path, falling back to bundled seed (e.g. on Vercel cold start)
+  const sourcePath = existsSync(dbPath) ? dbPath : (existsSync(seedDbPath) ? seedDbPath : null);
+  if (sourcePath) {
     try {
-      const buffer = readFileSync(dbPath);
+      const buffer = readFileSync(sourcePath);
       rawDb = new SQL.Database(buffer);
     } catch {
       rawDb = new SQL.Database();
