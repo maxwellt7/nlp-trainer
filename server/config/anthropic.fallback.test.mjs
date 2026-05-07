@@ -96,6 +96,7 @@ test('createMessagesApi falls back to OpenAI when Anthropic is rate limited or o
       { role: 'system', content: 'You are a coaching assistant.' },
       { role: 'user', content: 'Help me process what happened today.' },
     ],
+    response_format: { type: 'json_object' },
   });
   assert.deepEqual(result, {
     content: [{ text: '{"reply":"OpenAI fallback reply"}' }],

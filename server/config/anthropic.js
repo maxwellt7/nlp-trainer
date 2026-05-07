@@ -102,6 +102,11 @@ function toOpenAiPayload(request, fallbackModel) {
     model: fallbackModel,
     max_tokens: request.max_tokens,
     messages,
+    // All current callers ask Claude for JSON in their system prompts.
+    // Force OpenAI to honor that contract — without this, gpt-4.1-mini
+    // returns prose, JSON parse fails, and downstream flags like
+    // readyToGenerate silently default to false.
+    response_format: { type: 'json_object' },
   };
 }
 

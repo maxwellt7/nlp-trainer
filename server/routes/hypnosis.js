@@ -17,6 +17,7 @@ import {
 } from '../services/memory.js';
 import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
 import { onSessionComplete, updateStreakMultiplier } from '../services/gamification.js';
+import { generateChunkedScript } from '../services/hypnosis-script-generator.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -400,26 +401,24 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'Conversation too long.' });
     }
 
-    const apiMessages = [
-      ...messages
-        .filter(m => m.role === 'user' || m.role === 'assistant')
-        .map(m => ({ role: m.role, content: String(m.content) })),
-      { role: 'user', content: 'Please generate my personalized hypnosis script now based on everything we discussed.' },
-    ];
+    const apiMessages = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: String(m.content) }));
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: apiMessages,
-    });
-
-    const text = response.content[0].text;
+    // Multi-call chunked generation — produces ~15-20 min scripts that single-call
+    // generation consistently failed to deliver. See hypnosis-script-generator.js
+    // for segment-by-segment design.
     let parsed;
     try {
-      parsed = parseJsonResponse(text);
-    } catch {
-      parsed = { title: 'Hypnosis Script', duration: 'full', estimatedMinutes: 20, script: text, sessionSummary: '', keyThemes: [] };
+      parsed = await generateChunkedScript({
+        systemPrompt,
+        apiMessages,
+        llm: (payload) => anthropic.messages.create(payload),
+        parseJson: parseJsonResponse,
+      });
+    } catch (err) {
+      console.error('[hypnosis/generate] chunked generation failed:', err.message);
+      throw err;
     }
 
     updateSessionMetadata(currentSession.id, {
@@ -456,9 +455,9 @@ router.post('/generate', async (req, res) => {
 
     res.json({
       title: parsed.title || 'Hypnosis Script',
-      duration: parsed.duration || 'full',
+      duration: 'full',
       estimatedMinutes: parsed.estimatedMinutes || 20,
-      script: parsed.script || text,
+      script: parsed.script,
       sessionSummary: parsed.sessionSummary || '',
       keyThemes: parsed.keyThemes || [],
       gamification: gamificationResults,
