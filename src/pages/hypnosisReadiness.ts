@@ -61,9 +61,13 @@ export function canShowCreateHypnosisCTA({
     return false;
   }
 
-  if (endsWithQuestion(lastMessage.content)) {
-    return false;
-  }
+  // Earlier this also rejected when the last assistant message ended with a
+  // question mark, on the theory that the model would not say
+  // "readyToGenerate: true" while still asking something. In practice the
+  // OpenAI fallback (gpt-4.1-mini) breaks that contract often enough that
+  // users were getting trapped at the end of finished conversations with no
+  // CTA. Backend's readyToGenerate is now the source of truth — if it says
+  // ready, surface the button.
 
   return true;
 }
