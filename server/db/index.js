@@ -240,6 +240,18 @@ const initPromise = initSqlJs(sqlJsConfig).then(sqlJs => {
       unlocked_at      TEXT DEFAULT (datetime('now')),
       UNIQUE(user_id, achievement_key)
     );
+
+    CREATE TABLE IF NOT EXISTS hypnosis_jobs (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL,
+      session_id      TEXT NOT NULL,
+      status          TEXT NOT NULL DEFAULT 'queued',
+      result_json     TEXT DEFAULT NULL,
+      error_message   TEXT DEFAULT NULL,
+      created_at      TEXT DEFAULT (datetime('now')),
+      updated_at      TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_hypnosis_jobs_user_session ON hypnosis_jobs(user_id, session_id);
   `);
 
   applySessionMigrations(rawDb);

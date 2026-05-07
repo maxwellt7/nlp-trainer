@@ -160,6 +160,7 @@ export default function Hypnosis() {
   const [scriptResult, setScriptResult] = useState<ScriptResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generationJobId, setGenerationJobId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [savedScriptId, setSavedScriptId] = useState<string | null>(null);
   const [generatingAudio, setGeneratingAudio] = useState(false);
@@ -218,6 +219,8 @@ export default function Hypnosis() {
     setShowXpPopup(false);
     setXpPopupData(null);
     setMysteryBoxData(null);
+    setGenerationJobId(null);
+    setGenerating(false);
   }, []);
 
   const isMobileViewport = useCallback(() => {
@@ -442,30 +445,27 @@ export default function Hypnosis() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
-  const generateScript = async () => {
-    if (!selectedSession) return;
+  // Apply a completed generation result — extracted so the polling effect and
+  // any synchronous fallback can both deliver the same downstream state.
+  const applyGenerationResult = useCallback(async (data: any) => {
+    if (!data) return;
+    setScriptResult(data);
+    if (data.hypnosisEvent) {
+      setMessages((current) => {
+        const alreadyAdded = current.some(
+          (message) => message.role === 'system' && message.generatedAt === data.hypnosisEvent.generatedAt,
+        );
+        if (alreadyAdded) return current;
+        return [...current, data.hypnosisEvent];
+      });
+    }
 
-    setGenerating(true);
-    setError(null);
+    if (data.session) {
+      const normalized = normalizeSession(data.session);
+      if (normalized) setSelectedSession((current) => ({ ...(current || {}), ...normalized } as SessionSummary));
+    }
+
     try {
-      const apiMessages = messages.map((message) => ({ role: message.role, content: message.content }));
-      const data = await api.hypnosisGenerate(apiMessages, selectedSession.id);
-      setScriptResult(data);
-      if (data.hypnosisEvent) {
-        setMessages((current) => {
-          const alreadyAdded = current.some(
-            (message) => message.role === 'system' && message.generatedAt === data.hypnosisEvent.generatedAt,
-          );
-          if (alreadyAdded) return current;
-          return [...current, data.hypnosisEvent];
-        });
-      }
-
-      if (data.session) {
-        const normalized = normalizeSession(data.session);
-        if (normalized) setSelectedSession((current) => ({ ...(current || {}), ...normalized } as SessionSummary));
-      }
-
       const saved = await api.saveScript({
         title: data.title,
         duration: data.duration,
@@ -473,41 +473,168 @@ export default function Hypnosis() {
         script: data.script,
       });
       setSavedScriptId(saved.id);
+    } catch (saveErr: any) {
+      setError(saveErr?.message || 'Failed to save script');
+    }
 
-      try {
-        const musicData = await api.listMusic();
-        setMusicTracks(musicData.tracks || []);
-        setSelectedMusic('');
-      } catch {
-        setMusicTracks([]);
+    try {
+      const musicData = await api.listMusic();
+      setMusicTracks(musicData.tracks || []);
+      setSelectedMusic('');
+    } catch {
+      setMusicTracks([]);
+    }
+
+    try {
+      const voiceData = await api.listVoices();
+      const availableVoices = voiceData.voices || [];
+      setVoices(availableVoices);
+      const defaultVoice = availableVoices.find((voice: VoiceOption) => voice.isDefault);
+      setSelectedVoice(defaultVoice?.id || availableVoices[0]?.id || '');
+    } catch {
+      setVoices([]);
+    }
+
+    if (data.gamification) {
+      const gam = data.gamification;
+      if (gam.xpEvents && gam.xpEvents.length > 0) {
+        setXpPopupData({ xpEvents: gam.xpEvents, levelUp: gam.levelUp });
+        setShowXpPopup(true);
       }
+      if (gam.mysteryBox) setMysteryBoxData(gam.mysteryBox);
+    }
 
-      try {
-        const voiceData = await api.listVoices();
-        const availableVoices = voiceData.voices || [];
-        setVoices(availableVoices);
-        const defaultVoice = availableVoices.find((voice: VoiceOption) => voice.isDefault);
-        setSelectedVoice(defaultVoice?.id || availableVoices[0]?.id || '');
-      } catch {
-        setVoices([]);
-      }
-
-      if (data.gamification) {
-        const gam = data.gamification;
-        if (gam.xpEvents && gam.xpEvents.length > 0) {
-          setXpPopupData({ xpEvents: gam.xpEvents, levelUp: gam.levelUp });
-          setShowXpPopup(true);
-        }
-        if (gam.mysteryBox) setMysteryBoxData(gam.mysteryBox);
-      }
-
+    if (selectedSession) {
       await refreshConversations(selectedSession.id);
+    }
+  }, [refreshConversations, selectedSession]);
+
+  // Kick off generation as a background job; the polling effect drives the
+  // rest. Survives backgrounding/lock/network blips because the work happens
+  // server-side and we only own a jobId.
+  const generateScript = async () => {
+    if (!selectedSession) return;
+
+    setGenerating(true);
+    setError(null);
+    try {
+      const apiMessages = messages.map((message) => ({ role: message.role, content: message.content }));
+      const r = await api.hypnosisGenerateStart(apiMessages, selectedSession.id);
+      setGenerationJobId(r.jobId);
+      try {
+        sessionStorage.setItem(`hypnosis-job-${selectedSession.id}`, r.jobId);
+      } catch {
+        // sessionStorage can be unavailable (private mode); fine, we just lose recovery.
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate script');
-    } finally {
+      setError(err.message || 'Failed to start generation');
       setGenerating(false);
     }
   };
+
+  // Poll the hypnosis-generate job until it reaches a terminal state.
+  // Survives backgrounding because all the work is on the server — when the
+  // tab wakes up, the next poll picks up from wherever the job got to.
+  useEffect(() => {
+    if (!generationJobId) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const r = await api.hypnosisGenerateStatus(generationJobId);
+        if (cancelled) return;
+
+        if (r.status === 'complete') {
+          await applyGenerationResult(r.result);
+          setGenerating(false);
+          setGenerationJobId(null);
+          if (selectedSession) {
+            try { sessionStorage.removeItem(`hypnosis-job-${selectedSession.id}`); } catch { /* ignore */ }
+          }
+          return;
+        }
+
+        if (r.status === 'failed') {
+          setError(r.error || 'Generation failed');
+          setGenerating(false);
+          setGenerationJobId(null);
+          if (selectedSession) {
+            try { sessionStorage.removeItem(`hypnosis-job-${selectedSession.id}`); } catch { /* ignore */ }
+          }
+          return;
+        }
+
+        // queued or running — keep polling
+        timer = setTimeout(poll, 3500);
+      } catch {
+        if (cancelled) return;
+        // Transient network errors during polling — back off and retry.
+        timer = setTimeout(poll, 6000);
+      }
+    };
+
+    poll();
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !cancelled) {
+        // App just came back to foreground — poll immediately rather than
+        // waiting out the remaining setTimeout.
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        poll();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [generationJobId, applyGenerationResult, selectedSession]);
+
+  // Recovery: when the user switches to a session, check whether a generation
+  // is already in flight (e.g. they refreshed mid-generation, or another
+  // device kicked one off). Resume polling instead of starting a new job.
+  useEffect(() => {
+    if (!selectedSession) return;
+    if (generationJobId) return; // already polling
+    if (scriptResult) return;    // already have the result
+
+    let cancelled = false;
+    const sessionId = selectedSession.id;
+    const localJobId = (() => {
+      try { return sessionStorage.getItem(`hypnosis-job-${sessionId}`); }
+      catch { return null; }
+    })();
+
+    const recover = async () => {
+      try {
+        if (localJobId) {
+          setGenerationJobId(localJobId);
+          setGenerating(true);
+          return;
+        }
+        const r = await api.hypnosisGetActiveJob(sessionId);
+        if (cancelled) return;
+        if (r.jobId) {
+          setGenerationJobId(r.jobId);
+          setGenerating(true);
+          try { sessionStorage.setItem(`hypnosis-job-${sessionId}`, r.jobId); } catch { /* ignore */ }
+        }
+      } catch {
+        // No recovery possible; user can re-trigger manually.
+      }
+    };
+    recover();
+
+    return () => { cancelled = true; };
+  }, [selectedSession?.id, generationJobId, scriptResult]);
 
   const generateAudio = async () => {
     if (!savedScriptId) return;

@@ -18,6 +18,14 @@ import {
 import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
 import { onSessionComplete, updateStreakMultiplier } from '../services/gamification.js';
 import { generateChunkedScript } from '../services/hypnosis-script-generator.js';
+import {
+  createJob,
+  setJobRunning,
+  setJobComplete,
+  setJobFailed,
+  getJob,
+  getActiveJobForSession,
+} from '../services/hypnosis-jobs.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -377,12 +385,18 @@ router.post('/chat', async (req, res) => {
   }
 });
 
-// POST /generate — generate the hypnosis script
+// POST /generate — kicks off chunked hypnosis generation as a background job.
+// The 4-call chunked pipeline takes 60-90s, long enough that mobile
+// backgrounding / network blips kill synchronous HTTP. We return a jobId
+// immediately and the frontend polls /generate-status/:jobId.
 router.post('/generate', async (req, res) => {
   try {
     const { messages, sessionId } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages array is required' });
+    }
+    if (messages.length > 50) {
+      return res.status(400).json({ error: 'Conversation too long.' });
     }
 
     const userId = req.userId;
@@ -395,79 +409,107 @@ router.post('/generate', async (req, res) => {
       return res.status(409).json({ error: 'This daily hypnosis session is already locked.' });
     }
 
-    const systemPrompt = buildSystemPrompt(userId, 'generation');
-
-    if (messages.length > 50) {
-      return res.status(400).json({ error: 'Conversation too long.' });
+    // If a job is already in flight for this session, return its id instead of
+    // double-firing the LLM (saves money + avoids racing writes).
+    const existing = getActiveJobForSession(userId, currentSession.id);
+    if (existing) {
+      return res.status(202).json({ jobId: existing.id, status: existing.status });
     }
 
     const apiMessages = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role, content: String(m.content) }));
+    const messagesSnapshot = messages;
 
-    // Multi-call chunked generation — produces ~15-20 min scripts that single-call
-    // generation consistently failed to deliver. See hypnosis-script-generator.js
-    // for segment-by-segment design.
-    let parsed;
-    try {
-      parsed = await generateChunkedScript({
-        systemPrompt,
-        apiMessages,
-        llm: (payload) => anthropic.messages.create(payload),
-        parseJson: parseJsonResponse,
-      });
-    } catch (err) {
-      console.error('[hypnosis/generate] chunked generation failed:', err.message);
-      throw err;
-    }
+    // Build prompt up front so any prompt-build failure surfaces synchronously.
+    const systemPrompt = buildSystemPrompt(userId, 'generation');
 
-    updateSessionMetadata(currentSession.id, {
-      chat_summary: parsed.sessionSummary || '',
-      key_themes: parsed.keyThemes || [],
-    });
+    const job = createJob(userId, currentSession.id);
+    res.status(202).json({ jobId: job.id, status: 'queued' });
 
-    const hypnosisEvent = {
-      role: 'system',
-      eventType: 'hypnosis_generated',
-      content: 'Hypnosis generated for this conversation.',
-      generatedAt: new Date().toISOString(),
-      sessionType: currentSession.session_type,
-    };
-
-    updateSessionMessages(currentSession.id, messages.concat([hypnosisEvent]));
-    markHypnosisGenerated(currentSession.id);
-
-    let gamificationResults = null;
-    if (currentSession.session_type === 'daily_hypnosis') {
-      const streakResult = updateStreak(userId, effectiveTimezone);
-      if (streakResult) {
-        updateStreakMultiplier(userId, streakResult.current_streak);
-      }
-
+    setImmediate(async () => {
       try {
-        gamificationResults = onSessionComplete(userId, currentSession.id, {
-          vulnerabilityDetected: parsed.vulnerabilityDetected || false,
+        setJobRunning(job.id);
+        const parsed = await generateChunkedScript({
+          systemPrompt,
+          apiMessages,
+          llm: (payload) => anthropic.messages.create(payload),
+          parseJson: parseJsonResponse,
+        });
+
+        updateSessionMetadata(currentSession.id, {
+          chat_summary: parsed.sessionSummary || '',
+          key_themes: parsed.keyThemes || [],
+        });
+
+        const hypnosisEvent = {
+          role: 'system',
+          eventType: 'hypnosis_generated',
+          content: 'Hypnosis generated for this conversation.',
+          generatedAt: new Date().toISOString(),
+          sessionType: currentSession.session_type,
+        };
+
+        updateSessionMessages(currentSession.id, messagesSnapshot.concat([hypnosisEvent]));
+        markHypnosisGenerated(currentSession.id);
+
+        let gamificationResults = null;
+        if (currentSession.session_type === 'daily_hypnosis') {
+          const streakResult = updateStreak(userId, effectiveTimezone);
+          if (streakResult) {
+            updateStreakMultiplier(userId, streakResult.current_streak);
+          }
+          try {
+            gamificationResults = onSessionComplete(userId, currentSession.id, {
+              vulnerabilityDetected: parsed.vulnerabilityDetected || false,
+            });
+          } catch (err) {
+            console.warn('Gamification processing error:', err.message);
+          }
+        }
+
+        setJobComplete(job.id, {
+          title: parsed.title || 'Hypnosis Script',
+          duration: 'full',
+          estimatedMinutes: parsed.estimatedMinutes || 20,
+          script: parsed.script,
+          sessionSummary: parsed.sessionSummary || '',
+          keyThemes: parsed.keyThemes || [],
+          gamification: gamificationResults,
+          hypnosisEvent,
+          session: getSessionForUser(currentSession.id, userId),
         });
       } catch (err) {
-        console.warn('Gamification processing error:', err.message);
+        console.error('[hypnosis/generate] job failed:', err.message);
+        setJobFailed(job.id, err.message || 'Generation failed');
       }
-    }
-
-    res.json({
-      title: parsed.title || 'Hypnosis Script',
-      duration: 'full',
-      estimatedMinutes: parsed.estimatedMinutes || 20,
-      script: parsed.script,
-      sessionSummary: parsed.sessionSummary || '',
-      keyThemes: parsed.keyThemes || [],
-      gamification: gamificationResults,
-      hypnosisEvent,
-      session: getSessionForUser(currentSession.id, userId),
     });
   } catch (error) {
     console.error('Hypnosis generate error:', error.message);
-    res.status(500).json({ error: 'Failed to generate script' });
+    res.status(500).json({ error: 'Failed to start generation' });
   }
+});
+
+// GET /generate-status/:jobId — poll endpoint for the chunked-generation job.
+router.get('/generate-status/:jobId', (req, res) => {
+  const job = getJob(req.params.jobId, req.userId);
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+  res.json({
+    jobId: job.id,
+    status: job.status,
+    result: job.status === 'complete' ? job.result : undefined,
+    error: job.status === 'failed' ? job.error : undefined,
+  });
+});
+
+// GET /generate-active/:sessionId — frontend recovery: "is there an in-flight
+// generation I should be polling?" Used after a refresh or reopen.
+router.get('/generate-active/:sessionId', (req, res) => {
+  const job = getActiveJobForSession(req.userId, req.params.sessionId);
+  if (!job) return res.json({ jobId: null });
+  res.json({ jobId: job.id, status: job.status });
 });
 
 export default router;

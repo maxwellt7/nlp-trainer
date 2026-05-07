@@ -74,11 +74,25 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ messages, sessionId, moodBefore, sessionType, title }),
     }),
-  hypnosisGenerate: (messages: any[], sessionId?: string) =>
-    request<any>('/hypnosis/generate', {
+  // POST starts an async generation job. Frontend polls hypnosisGenerateStatus
+  // until status === 'complete' (or 'failed').
+  hypnosisGenerateStart: (messages: any[], sessionId?: string) =>
+    request<{ jobId: string; status: 'queued' | 'running' | 'complete' | 'failed' }>('/hypnosis/generate', {
       method: 'POST',
       body: JSON.stringify({ messages, sessionId }),
     }),
+  hypnosisGenerateStatus: (jobId: string) =>
+    request<{
+      jobId: string;
+      status: 'queued' | 'running' | 'complete' | 'failed';
+      result?: any;
+      error?: string;
+    }>(`/hypnosis/generate-status/${encodeURIComponent(jobId)}`),
+  // Recovery: "is there a generation already in flight for this session?"
+  hypnosisGetActiveJob: (sessionId: string) =>
+    request<{ jobId: string | null; status?: 'queued' | 'running' }>(
+      `/hypnosis/generate-active/${encodeURIComponent(sessionId)}`,
+    ),
 
   // ── Learn ──
   getModules: () => request<any>('/learn/modules'),
