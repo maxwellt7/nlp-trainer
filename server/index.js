@@ -18,6 +18,7 @@ import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import emailRoutes from './routes/email.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
 import { initEmailScheduler } from './services/emailScheduler.js';
+import { initKnowledgeBaseScheduler } from './services/knowledge-base-scheduler.js';
 import { buildRuntimeHealthPayload } from './config/runtime-health.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,13 @@ try {
   initEmailScheduler();
 } catch (err) {
   console.error('Email scheduler initialization error:', err.message);
+}
+
+// Initialize Dropbox → Pinecone knowledge-base sync scheduler
+try {
+  initKnowledgeBaseScheduler();
+} catch (err) {
+  console.error('Knowledge base scheduler initialization error:', err.message);
 }
 
 app.use(cors({

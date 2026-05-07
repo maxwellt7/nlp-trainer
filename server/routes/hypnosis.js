@@ -26,6 +26,11 @@ import {
   getJob,
   getActiveJobForSession,
 } from '../services/hypnosis-jobs.js';
+import {
+  retrieveRelevant,
+  formatRetrievedForPrompt,
+  isEnabled as kbEnabled,
+} from '../services/knowledge-base.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -68,8 +73,11 @@ function loadCoachingFrameworks() {
   return coachingCache;
 }
 
-// Build the full system prompt with all context injected
-function buildSystemPrompt(userId, phase) {
+// Build the full system prompt with all context injected.
+// `retrievalQuery` (optional) drives the user-knowledge-base RAG step — pass
+// the last user message (or a short summary) when you want chunks pulled
+// from Pinecone. Pass falsy to skip retrieval entirely (init / pre-conversation).
+async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
   const template = readFileSync(join(promptsDir, 'daily-coach.txt'), 'utf-8');
   const nlpContent = loadNlpContent();
   const coachingFrameworks = loadCoachingFrameworks();
@@ -78,12 +86,23 @@ function buildSystemPrompt(userId, phase) {
 
   const identityContext = buildIdentityContext(userId);
 
+  let retrievedBlock = '';
+  if (kbEnabled() && retrievalQuery && retrievalQuery.trim()) {
+    try {
+      const chunks = await retrieveRelevant(retrievalQuery, { topK: 5 });
+      retrievedBlock = formatRetrievedForPrompt(chunks);
+    } catch (err) {
+      console.warn('[hypnosis] RAG retrieval failed; continuing without it:', err.message);
+    }
+  }
+
   let prompt = template
     .replace('{{NLP_CONTENT}}', JSON.stringify(nlpContent, null, 2))
     .replace('{{COACHING_FRAMEWORKS}}', JSON.stringify(coachingFrameworks, null, 2))
     .replace('{{USER_PROFILE}}', profile ? JSON.stringify(profile, null, 2) : 'No profile data yet — this is a new user.')
     .replace('{{MEMORY_CONTEXT}}', memoryContext)
-    .replace('{{IDENTITY_CONTEXT}}', identityContext);
+    .replace('{{IDENTITY_CONTEXT}}', identityContext)
+    .replace('{{USER_KNOWLEDGE_RETRIEVED}}', retrievedBlock || '(no user knowledge available for this query)');
 
   if (phase === 'coaching') {
     prompt += '\n\nYou are in COACHING phase. Conduct the daily coaching conversation. Ask ONE question at a time. Respond in the COACHING JSON format.';
@@ -92,6 +111,16 @@ function buildSystemPrompt(userId, phase) {
   }
 
   return prompt;
+}
+
+function lastUserMessageContent(messages) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    if (m && m.role === 'user' && typeof m.content === 'string' && m.content.trim()) {
+      return m.content;
+    }
+  }
+  return '';
 }
 
 function parseJsonResponse(text) {
@@ -177,7 +206,8 @@ router.post('/init', async (req, res) => {
         : createSession(userId, null, effectiveTimezone);
     }
 
-    const systemPrompt = buildSystemPrompt(userId, 'coaching');
+    // /init has no user query yet, so we skip RAG retrieval here.
+    const systemPrompt = await buildSystemPrompt(userId, 'coaching');
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
@@ -249,11 +279,14 @@ router.post('/chat', async (req, res) => {
     }
 
     const currentSessionId = session.id;
-    const systemPrompt = buildSystemPrompt(userId, 'coaching');
 
     if (messages.length > 50) {
       return res.status(400).json({ error: 'Conversation too long. Please start a new session.' });
     }
+
+    // RAG: use the last user message as the retrieval query so the model
+    // sees chunks relevant to what the user just said.
+    const systemPrompt = await buildSystemPrompt(userId, 'coaching', lastUserMessageContent(messages));
 
     const apiMessages = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -421,8 +454,10 @@ router.post('/generate', async (req, res) => {
       .map(m => ({ role: m.role, content: String(m.content) }));
     const messagesSnapshot = messages;
 
-    // Build prompt up front so any prompt-build failure surfaces synchronously.
-    const systemPrompt = buildSystemPrompt(userId, 'generation');
+    // Build prompt up front (including RAG retrieval) so any prompt-build
+    // failure surfaces before we mint a job. The retrieval query is the most
+    // recent user message — the focal point of what the script needs to address.
+    const systemPrompt = await buildSystemPrompt(userId, 'generation', lastUserMessageContent(messages));
 
     const job = createJob(userId, currentSession.id);
     res.status(202).json({ jobId: job.id, status: 'queued' });

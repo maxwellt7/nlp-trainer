@@ -270,3 +270,7 @@ FORMATTING FOR ELEVENLABS:
 
 ## NLP KNOWLEDGE BASE
 {{NLP_CONTENT}}
+
+## RETRIEVED USER KNOWLEDGE BASE (semantic-search results from the user's own uploaded materials — empty if RAG is disabled or no relevant chunks were found)
+Use these excerpts when they're directly relevant to the user's current message, but never invent quotes that aren't here.
+{{USER_KNOWLEDGE_RETRIEVED}}

@@ -11,12 +11,15 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
     "@clerk/express": "^2.0.8",
+    "@pinecone-database/pinecone": "^7.2.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
+    "dropbox": "^10.34.0",
     "express": "^5.2.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "openai": "^6.36.0",
+    "pdf-parse": "^2.4.5",
     "sql.js": "^1.14.1",
     "uuid": "^13.0.0"
   },
