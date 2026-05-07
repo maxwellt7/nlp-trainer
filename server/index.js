@@ -18,6 +18,7 @@ import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import emailRoutes from './routes/email.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
 import { initEmailScheduler } from './services/emailScheduler.js';
+import { buildRuntimeHealthPayload } from './config/runtime-health.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Load .env for local dev; Railway/production injects env vars directly
@@ -210,7 +211,7 @@ async function verifyClerkJwt(token) {
 
 // Health check (public, no auth required)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', auth: clerkEnabled });
+  res.json(buildRuntimeHealthPayload({ clerkEnabled }));
 });
 
 // Middleware to extract userId from Clerk JWT and ensure user exists in DB
