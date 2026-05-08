@@ -125,11 +125,28 @@ export const api = {
   listVoices: () => request<any>('/audio/voices'),
   saveScript: (script: { title: string; duration: string; estimatedMinutes: number; script: string }) =>
     request<any>('/audio/scripts', { method: 'POST', body: JSON.stringify(script) }),
-  generateAudio: (scriptId: string, musicTrack?: string, musicVolume?: number, voiceId?: string) =>
-    request<any>(`/audio/generate-audio/${scriptId}`, {
-      method: 'POST',
-      body: JSON.stringify({ musicTrack, musicVolume, voiceId }),
-    }),
+  // POST starts an async ElevenLabs render job. Returns 202 + jobId.
+  // Use audioGenerateStatus to poll until status === 'complete'.
+  audioGenerateStart: (scriptId: string, musicTrack?: string, musicVolume?: number, voiceId?: string) =>
+    request<{ jobId: string; status: 'queued' | 'running' | 'complete' | 'failed' }>(
+      `/audio/generate-audio/${scriptId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ musicTrack, musicVolume, voiceId }),
+      },
+    ),
+  audioGenerateStatus: (jobId: string) =>
+    request<{
+      jobId: string;
+      status: 'queued' | 'running' | 'complete' | 'failed';
+      result?: any;
+      error?: string;
+    }>(`/audio/audio-status/${encodeURIComponent(jobId)}`),
+  // Recovery: "is there an audio render in flight for this script?"
+  audioGetActiveJob: (scriptId: string) =>
+    request<{ jobId: string | null; status?: 'queued' | 'running' }>(
+      `/audio/audio-active/${encodeURIComponent(scriptId)}`,
+    ),
   listMusic: () => request<any>('/audio/music'),
   deleteScript: (scriptId: string) =>
     request<any>(`/audio/scripts/${scriptId}`, { method: 'DELETE' }),

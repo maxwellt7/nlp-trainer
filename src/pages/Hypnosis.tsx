@@ -465,16 +465,10 @@ export default function Hypnosis() {
       if (normalized) setSelectedSession((current) => ({ ...(current || {}), ...normalized } as SessionSummary));
     }
 
-    try {
-      const saved = await api.saveScript({
-        title: data.title,
-        duration: data.duration,
-        estimatedMinutes: data.estimatedMinutes,
-        script: data.script,
-      });
-      setSavedScriptId(saved.id);
-    } catch (saveErr: any) {
-      setError(saveErr?.message || 'Failed to save script');
+    // Server-side save is authoritative now (eliminates the prior polling
+    // race that produced duplicate scripts). Client just consumes the id.
+    if (data.savedScript?.id) {
+      setSavedScriptId(data.savedScript.id);
     }
 
     try {
@@ -540,14 +534,20 @@ export default function Hypnosis() {
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let pollInFlight = false;
+    let terminal = false;
 
     const poll = async () => {
-      if (cancelled) return;
+      if (cancelled || pollInFlight || terminal) return;
+      pollInFlight = true;
       try {
         const r = await api.hypnosisGenerateStatus(generationJobId);
-        if (cancelled) return;
+        if (cancelled || terminal) return;
 
         if (r.status === 'complete') {
+          // Lock terminal BEFORE awaiting downstream work so a visibility-
+          // triggered re-poll can't race us into a second applyGenerationResult.
+          terminal = true;
           await applyGenerationResult(r.result);
           setGenerating(false);
           setGenerationJobId(null);
@@ -558,6 +558,7 @@ export default function Hypnosis() {
         }
 
         if (r.status === 'failed') {
+          terminal = true;
           setError(r.error || 'Generation failed');
           setGenerating(false);
           setGenerationJobId(null);
@@ -568,26 +569,30 @@ export default function Hypnosis() {
         }
 
         // queued or running — keep polling
-        timer = setTimeout(poll, 3500);
+        if (!cancelled && !terminal) {
+          timer = setTimeout(poll, 3500);
+        }
       } catch {
-        if (cancelled) return;
+        if (cancelled || terminal) return;
         // Transient network errors during polling — back off and retry.
         timer = setTimeout(poll, 6000);
+      } finally {
+        pollInFlight = false;
       }
     };
 
     poll();
 
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && !cancelled) {
-        // App just came back to foreground — poll immediately rather than
-        // waiting out the remaining setTimeout.
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
-        }
-        poll();
+      if (document.visibilityState !== 'visible' || cancelled || terminal) return;
+      // App came back to foreground. Don't fire a redundant poll if one is
+      // already in flight — just clear the pending timer so the in-flight
+      // poll's continuation runs without delay.
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
       }
+      if (!pollInFlight) poll();
     };
     document.addEventListener('visibilitychange', onVisible);
 
@@ -636,22 +641,126 @@ export default function Hypnosis() {
     return () => { cancelled = true; };
   }, [selectedSession?.id, generationJobId, scriptResult]);
 
+  const [audioJobId, setAudioJobId] = useState<string | null>(null);
+
+  // Poll the audio render job. Same survival semantics as the hypnosis-
+  // generate poller: in-flight guard, terminal lock, immediate poll on
+  // visibilitychange. Eliminates the "tool fails when I background" issue
+  // for ElevenLabs renders that take 30-90s.
+  useEffect(() => {
+    if (!audioJobId) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let pollInFlight = false;
+    let terminal = false;
+
+    const poll = async () => {
+      if (cancelled || pollInFlight || terminal) return;
+      pollInFlight = true;
+      try {
+        const r = await api.audioGenerateStatus(audioJobId);
+        if (cancelled || terminal) return;
+
+        if (r.status === 'complete') {
+          terminal = true;
+          setAudioGenerated(true);
+          setGeneratingAudio(false);
+          setAudioJobId(null);
+          if (savedScriptId) {
+            try { sessionStorage.removeItem(`audio-job-${savedScriptId}`); } catch { /* ignore */ }
+          }
+          if (navigator.vibrate) navigator.vibrate([30, 50, 100]);
+          return;
+        }
+
+        if (r.status === 'failed') {
+          terminal = true;
+          setError(r.error || 'Audio generation failed');
+          setGeneratingAudio(false);
+          setAudioJobId(null);
+          if (savedScriptId) {
+            try { sessionStorage.removeItem(`audio-job-${savedScriptId}`); } catch { /* ignore */ }
+          }
+          return;
+        }
+
+        if (!cancelled && !terminal) timer = setTimeout(poll, 4000);
+      } catch {
+        if (cancelled || terminal) return;
+        timer = setTimeout(poll, 7000);
+      } finally {
+        pollInFlight = false;
+      }
+    };
+
+    poll();
+
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || cancelled || terminal) return;
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (!pollInFlight) poll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [audioJobId, savedScriptId]);
+
+  // Recovery: when a session loads and a savedScript exists but we have no
+  // active polling, check whether an audio render is already in flight.
+  useEffect(() => {
+    if (!savedScriptId) return;
+    if (audioJobId) return;
+    if (audioGenerated) return;
+
+    let cancelled = false;
+    const local = (() => {
+      try { return sessionStorage.getItem(`audio-job-${savedScriptId}`); }
+      catch { return null; }
+    })();
+
+    const recover = async () => {
+      try {
+        if (local) {
+          setAudioJobId(local);
+          setGeneratingAudio(true);
+          return;
+        }
+        const r = await api.audioGetActiveJob(savedScriptId);
+        if (cancelled) return;
+        if (r.jobId) {
+          setAudioJobId(r.jobId);
+          setGeneratingAudio(true);
+          try { sessionStorage.setItem(`audio-job-${savedScriptId}`, r.jobId); } catch { /* ignore */ }
+        }
+      } catch { /* no recovery possible; user can re-trigger */ }
+    };
+    recover();
+
+    return () => { cancelled = true; };
+  }, [savedScriptId, audioJobId, audioGenerated]);
+
   const generateAudio = async () => {
     if (!savedScriptId) return;
     setGeneratingAudio(true);
     setError(null);
     try {
-      await api.generateAudio(
+      const r = await api.audioGenerateStart(
         savedScriptId,
         selectedMusic || undefined,
         selectedMusic ? musicVolume : undefined,
         selectedVoice || undefined,
       );
-      setAudioGenerated(true);
-      if (navigator.vibrate) navigator.vibrate([30, 50, 100]);
+      setAudioJobId(r.jobId);
+      try {
+        sessionStorage.setItem(`audio-job-${savedScriptId}`, r.jobId);
+      } catch { /* ignore */ }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate audio');
-    } finally {
+      setError(err.message || 'Failed to start audio generation');
       setGeneratingAudio(false);
     }
   };

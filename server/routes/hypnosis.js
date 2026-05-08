@@ -33,6 +33,7 @@ import {
   CATEGORY_NLP,
   CATEGORY_COACHING,
 } from '../services/knowledge-base.js';
+import { saveScriptForUser } from '../services/scripts.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -508,6 +509,25 @@ router.post('/generate', async (req, res) => {
         updateSessionMessages(currentSession.id, messagesSnapshot.concat([hypnosisEvent]));
         markHypnosisGenerated(currentSession.id);
 
+        // Persist the stitched script server-side BEFORE marking the job
+        // complete. This eliminates the client-side polling race that
+        // previously caused multiple saves when the user backgrounded the
+        // tab mid-generation. The frontend just consumes savedScript from
+        // the job result.
+        let savedScript = null;
+        try {
+          savedScript = saveScriptForUser({
+            userId,
+            title: parsed.title || 'Hypnosis Script',
+            duration: 'full',
+            estimatedMinutes: parsed.estimatedMinutes || 20,
+            script: parsed.script,
+          });
+        } catch (saveErr) {
+          console.error('[hypnosis/generate] failed to save script:', saveErr.message);
+          throw saveErr;
+        }
+
         let gamificationResults = null;
         if (currentSession.session_type === 'daily_hypnosis') {
           const streakResult = updateStreak(userId, effectiveTimezone);
@@ -530,6 +550,7 @@ router.post('/generate', async (req, res) => {
           script: parsed.script,
           sessionSummary: parsed.sessionSummary || '',
           keyThemes: parsed.keyThemes || [],
+          savedScript, // full record incl. id; client uses this directly
           gamification: gamificationResults,
           hypnosisEvent,
           session: getSessionForUser(currentSession.id, userId),

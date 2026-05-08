@@ -117,17 +117,49 @@ export default function Audios() {
     setPlayingId(script.id);
   };
 
+  // Async audio render: kick off job, poll until terminal. Survives mobile
+  // backgrounding because all work is server-side; we only own a jobId.
   const generateAudio = async (scriptId: string) => {
     setGeneratingId(scriptId);
     setError(null);
+    let jobId: string;
     try {
-      await api.generateAudio(scriptId, undefined, undefined, selectedVoiceByScript[scriptId]);
-      await loadScripts();
+      const r = await api.audioGenerateStart(scriptId, undefined, undefined, selectedVoiceByScript[scriptId]);
+      jobId = r.jobId;
     } catch (err: any) {
-      setError(err.message || 'Failed to generate audio');
-    } finally {
+      setError(err.message || 'Failed to start audio generation');
       setGeneratingId(null);
+      return;
     }
+
+    let pollInFlight = false;
+    let terminal = false;
+    const tick = async (): Promise<void> => {
+      if (pollInFlight || terminal) return;
+      pollInFlight = true;
+      try {
+        const r = await api.audioGenerateStatus(jobId);
+        if (terminal) return;
+        if (r.status === 'complete') {
+          terminal = true;
+          await loadScripts();
+          setGeneratingId(null);
+          return;
+        }
+        if (r.status === 'failed') {
+          terminal = true;
+          setError(r.error || 'Audio generation failed');
+          setGeneratingId(null);
+          return;
+        }
+        setTimeout(tick, 4000);
+      } catch (err: any) {
+        if (!terminal) setTimeout(tick, 7000);
+      } finally {
+        pollInFlight = false;
+      }
+    };
+    tick();
   };
 
   const deleteScript = async (scriptId: string) => {

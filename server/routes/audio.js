@@ -6,6 +6,15 @@ import { execFileSync } from 'child_process';
 import dotenv from 'dotenv';
 
 import { getConfiguredVoices, resolveVoiceSelection } from '../services/audio-voices.js';
+import { saveScriptForUser, getScriptsDir } from '../services/scripts.js';
+import {
+  createJob as createAudioJob,
+  setJobRunning as setAudioJobRunning,
+  setJobComplete as setAudioJobComplete,
+  setJobFailed as setAudioJobFailed,
+  getJob as getAudioJob,
+  getActiveJobForScript,
+} from '../services/audio-jobs.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '..', '..', '.env'), quiet: true });
@@ -189,19 +198,13 @@ router.post('/scripts', (req, res) => {
       return res.status(400).json({ error: 'title and script must be strings' });
     }
 
-    const id = `script-${Date.now()}`;
-    const data = {
-      id,
+    const data = saveScriptForUser({
       userId: req.userId,
       title,
-      duration: duration || 'full',
-      estimatedMinutes: estimatedMinutes || 20,
+      duration,
+      estimatedMinutes,
       script,
-      audioFile: null,
-      createdAt: new Date().toISOString(),
-    };
-
-    writeFileSync(join(scriptsDir, `${id}.json`), JSON.stringify(data, null, 2));
+    });
     res.status(201).json(data);
   } catch (error) {
     console.error('Error saving script:', error.message);
@@ -209,257 +212,277 @@ router.post('/scripts', (req, res) => {
   }
 });
 
-// POST /generate-audio/:scriptId — generate audio via ElevenLabs with proper pauses
+// Long-running ElevenLabs render extracted so the route can dispatch it as
+// a background job. Resolves to the same shape the synchronous endpoint
+// used to return; rejects with an Error whose message is what gets stored
+// in the audio_jobs row for the client to see.
+async function renderAudio({ scriptId, scriptPath, scriptData, requestedVoiceId, musicTrack, musicVolume }) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) throw new Error('ELEVENLABS_API_KEY not configured');
+
+  const selectedVoice = resolveVoiceSelection(requestedVoiceId);
+  const voiceId = selectedVoice.id;
+
+  // Parse script into text segments and pause segments
+  const segments = parseScriptSegments(scriptData.script);
+  console.log(`[Audio] Parsed ${segments.length} segments (text + pauses)`);
+
+  // ElevenLabs has a 10,000 char limit per request
+  const MAX_CHUNK = 9500;
+
+  async function generateTTS(text) {
+    const chunks = [];
+    if (text.length <= MAX_CHUNK) {
+      chunks.push(text);
+    } else {
+      let remaining = text;
+      while (remaining.length > 0) {
+        if (remaining.length <= MAX_CHUNK) {
+          chunks.push(remaining);
+          break;
+        }
+        let splitIdx = remaining.lastIndexOf('. ', MAX_CHUNK);
+        if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.5) {
+          splitIdx = remaining.lastIndexOf(' ', MAX_CHUNK);
+        }
+        if (splitIdx === -1) splitIdx = MAX_CHUNK;
+        chunks.push(remaining.slice(0, splitIdx + 1));
+        remaining = remaining.slice(splitIdx + 1).trimStart();
+      }
+    }
+
+    const buffers = [];
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`[Audio] TTS chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'audio/mpeg',
+        },
+        body: JSON.stringify({
+          text: chunks[i],
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.85,
+            similarity_boost: 0.80,
+            style: 0.15,
+            use_speaker_boost: false,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Audio] ElevenLabs error:', response.status, errorText);
+        // Surface the real ElevenLabs detail so it lands in the audio_jobs
+        // row and the UI can show something other than "Failed to generate audio".
+        throw new Error(`ElevenLabs ${response.status}: ${errorText.slice(0, 200)}`);
+      }
+
+      buffers.push(Buffer.from(await response.arrayBuffer()));
+    }
+    return buffers;
+  }
+
+  // Generate audio parts (voice segments + silence segments)
+  const partFiles = [];
+  const tempFiles = []; // track all temp files for cleanup
+
+  try {
+    if (hasBreaks) {
+      let partIndex = 0;
+      for (const segment of segments) {
+        if (segment.type === 'text') {
+          const buffers = await generateTTS(segment.content);
+          for (const buf of buffers) {
+            const partPath = join(audioDir, `${scriptId}-part-${partIndex}.mp3`);
+            writeFileSync(partPath, buf);
+            partFiles.push(partPath);
+            tempFiles.push(partPath);
+            partIndex++;
+          }
+        } else if (segment.type === 'pause') {
+          const silencePath = join(audioDir, `${scriptId}-silence-${partIndex}.mp3`);
+          console.log(`[Audio] Generating ${segment.duration}s silence`);
+          generateSilence(silencePath, segment.duration);
+          partFiles.push(silencePath);
+          tempFiles.push(silencePath);
+          partIndex++;
+        }
+      }
+    } else {
+      const cleanText = scriptData.script.replace(/<[^>]+>/g, '');
+      const buffers = await generateTTS(cleanText);
+      let partIndex = 0;
+      for (const buf of buffers) {
+        const partPath = join(audioDir, `${scriptId}-part-${partIndex}.mp3`);
+        writeFileSync(partPath, buf);
+        partFiles.push(partPath);
+        tempFiles.push(partPath);
+        partIndex++;
+      }
+    }
+
+    // Concatenate all parts into a single voice file
+    const voiceFileName = `${scriptId}-voice.mp3`;
+    const voicePath = join(audioDir, voiceFileName);
+    tempFiles.push(voicePath);
+
+    if (partFiles.length === 1) {
+      renameSync(partFiles[0], voicePath);
+      tempFiles.splice(tempFiles.indexOf(partFiles[0]), 1);
+    } else {
+      const listFile = join(audioDir, `${scriptId}-parts.txt`);
+      writeFileSync(listFile, partFiles.map(p => `file '${p}'`).join('\n'));
+      tempFiles.push(listFile);
+      execFileSync('ffmpeg', [
+        '-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', voicePath,
+      ], { stdio: 'pipe', timeout: 120000 });
+    }
+
+    let finalFileName = `${scriptId}.mp3`;
+    const finalPath = join(audioDir, finalFileName);
+
+    console.log(`[Audio] Music track requested: "${musicTrack}", volume: ${musicVolume}`);
+
+    if (musicTrack) {
+      let musicPath = null;
+      const exactPath = join(musicDir, musicTrack);
+      if (existsSync(exactPath)) musicPath = exactPath;
+      if (!musicPath && !musicTrack.endsWith('.mp3') && !musicTrack.endsWith('.wav')) {
+        const withMp3 = join(musicDir, `${musicTrack}.mp3`);
+        const withWav = join(musicDir, `${musicTrack}.wav`);
+        if (existsSync(withMp3)) musicPath = withMp3;
+        else if (existsSync(withWav)) musicPath = withWav;
+      }
+      if (!musicPath) {
+        const baseName = musicTrack.replace(/\.(mp3|wav)$/, '');
+        const mp3Path = join(musicDir, `${baseName}.mp3`);
+        const wavPath = join(musicDir, `${baseName}.wav`);
+        if (existsSync(mp3Path)) musicPath = mp3Path;
+        else if (existsSync(wavPath)) musicPath = wavPath;
+      }
+
+      if (musicPath) {
+        try {
+          mixAudioWithMusic(voicePath, musicPath, finalPath, musicVolume || 0.15);
+        } catch (mixErr) {
+          console.error('[Audio] Music mixing failed, using voice-only:', mixErr.message);
+          if (existsSync(voicePath)) renameSync(voicePath, finalPath);
+        }
+      } else {
+        console.warn(`[Audio] Music track not found: "${musicTrack}"`);
+        renameSync(voicePath, finalPath);
+      }
+    } else {
+      renameSync(voicePath, finalPath);
+    }
+
+    for (const f of tempFiles) {
+      if (f !== finalPath && existsSync(f)) {
+        try { unlinkSync(f); } catch { /* ignore */ }
+      }
+    }
+
+    // Update script record with audio file reference
+    scriptData.audioFile = finalFileName;
+    scriptData.musicTrack = musicTrack || null;
+    scriptData.voiceId = selectedVoice.id;
+    scriptData.voiceLabel = selectedVoice.label;
+    writeFileSync(scriptPath, JSON.stringify(scriptData, null, 2));
+
+    return {
+      success: true,
+      audioFile: finalFileName,
+      musicTrack: musicTrack || null,
+      voiceId: selectedVoice.id,
+      voiceLabel: selectedVoice.label,
+      script: scriptData,
+    };
+  } catch (genError) {
+    for (const f of tempFiles) {
+      if (existsSync(f)) {
+        try { unlinkSync(f); } catch { /* ignore */ }
+      }
+    }
+    throw genError;
+  }
+}
+
+// POST /generate-audio/:scriptId — kicks off ElevenLabs render as a background job.
+// Returns 202 + jobId immediately. Frontend polls /audio-status/:jobId until
+// status is complete or failed. Survives mobile backgrounding because all
+// the work is server-side.
 router.post('/generate-audio/:scriptId', async (req, res) => {
   try {
     const { scriptId } = req.params;
     if (!isSafeFilename(scriptId)) {
       return res.status(400).json({ error: 'Invalid script ID' });
     }
-    const scriptPath = join(scriptsDir, `${scriptId}.json`);
-
-    if (!existsSync(scriptPath)) {
+    const sPath = join(scriptsDir, `${scriptId}.json`);
+    if (!existsSync(sPath)) {
       return res.status(404).json({ error: 'Script not found' });
     }
 
-    const scriptData = JSON.parse(readFileSync(scriptPath, 'utf-8'));
-
-    // Verify ownership
+    const scriptData = JSON.parse(readFileSync(sPath, 'utf-8'));
     if (scriptData.userId && scriptData.userId !== req.userId) {
       return res.status(403).json({ error: 'Not authorized to access this script' });
     }
 
-    const apiKey = process.env.ELEVENLABS_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({ error: 'ELEVENLABS_API_KEY not configured' });
+    // If a render is already in flight for this script, return it instead of
+    // starting a duplicate (would race over the same temp files).
+    const existing = getActiveJobForScript(req.userId, scriptId);
+    if (existing) {
+      return res.status(202).json({ jobId: existing.id, status: existing.status });
     }
 
     const { voiceId: requestedVoiceId, musicTrack, musicVolume } = req.body || {};
-    const selectedVoice = resolveVoiceSelection(requestedVoiceId);
-    const voiceId = selectedVoice.id;
+    const job = createAudioJob(req.userId, scriptId);
+    res.status(202).json({ jobId: job.id, status: 'queued' });
 
-    // Parse script into text segments and pause segments
-    const segments = parseScriptSegments(scriptData.script);
-    console.log(`[Audio] Parsed ${segments.length} segments (text + pauses)`);
-
-    // If no break tags found, fall back to the old approach (single text block)
-    const hasBreaks = segments.some(s => s.type === 'pause');
-    
-    // ElevenLabs has a 10,000 char limit per request
-    const MAX_CHUNK = 9500;
-
-    /**
-     * Generate TTS for a text string, potentially splitting into sub-chunks.
-     * Returns an array of audio buffers.
-     */
-    async function generateTTS(text) {
-      const chunks = [];
-      if (text.length <= MAX_CHUNK) {
-        chunks.push(text);
-      } else {
-        let remaining = text;
-        while (remaining.length > 0) {
-          if (remaining.length <= MAX_CHUNK) {
-            chunks.push(remaining);
-            break;
-          }
-          let splitIdx = remaining.lastIndexOf('. ', MAX_CHUNK);
-          if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.5) {
-            splitIdx = remaining.lastIndexOf(' ', MAX_CHUNK);
-          }
-          if (splitIdx === -1) splitIdx = MAX_CHUNK;
-          chunks.push(remaining.slice(0, splitIdx + 1));
-          remaining = remaining.slice(splitIdx + 1).trimStart();
-        }
-      }
-
-      const buffers = [];
-      for (let i = 0; i < chunks.length; i++) {
-        console.log(`[Audio] TTS chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-          method: 'POST',
-          headers: {
-            'xi-api-key': apiKey,
-            'Content-Type': 'application/json',
-            'Accept': 'audio/mpeg',
-          },
-          body: JSON.stringify({
-            text: chunks[i],
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-              stability: 0.85,
-              similarity_boost: 0.80,
-              style: 0.15,
-              use_speaker_boost: false,
-            },
-          }),
+    setImmediate(async () => {
+      try {
+        setAudioJobRunning(job.id);
+        const result = await renderAudio({
+          scriptId,
+          scriptPath: sPath,
+          scriptData,
+          requestedVoiceId,
+          musicTrack,
+          musicVolume,
         });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[Audio] ElevenLabs error:', response.status, errorText);
-          throw new Error(`ElevenLabs API error: ${response.status}`);
-        }
-
-        buffers.push(Buffer.from(await response.arrayBuffer()));
+        setAudioJobComplete(job.id, result);
+      } catch (err) {
+        console.error('[audio] job failed:', err.message);
+        setAudioJobFailed(job.id, err.message || 'Audio generation failed');
       }
-      return buffers;
-    }
-
-    // Generate audio parts (voice segments + silence segments)
-    const partFiles = [];
-    const tempFiles = []; // track all temp files for cleanup
-
-    try {
-      if (hasBreaks) {
-        // Process each segment: generate TTS for text, silence for pauses
-        let partIndex = 0;
-        for (const segment of segments) {
-          if (segment.type === 'text') {
-            const buffers = await generateTTS(segment.content);
-            for (const buf of buffers) {
-              const partPath = join(audioDir, `${scriptId}-part-${partIndex}.mp3`);
-              writeFileSync(partPath, buf);
-              partFiles.push(partPath);
-              tempFiles.push(partPath);
-              partIndex++;
-            }
-          } else if (segment.type === 'pause') {
-            const silencePath = join(audioDir, `${scriptId}-silence-${partIndex}.mp3`);
-            console.log(`[Audio] Generating ${segment.duration}s silence`);
-            generateSilence(silencePath, segment.duration);
-            partFiles.push(silencePath);
-            tempFiles.push(silencePath);
-            partIndex++;
-          }
-        }
-      } else {
-        // No break tags — single text block (legacy behavior)
-        const cleanText = scriptData.script.replace(/<[^>]+>/g, '');
-        const buffers = await generateTTS(cleanText);
-        let partIndex = 0;
-        for (const buf of buffers) {
-          const partPath = join(audioDir, `${scriptId}-part-${partIndex}.mp3`);
-          writeFileSync(partPath, buf);
-          partFiles.push(partPath);
-          tempFiles.push(partPath);
-          partIndex++;
-        }
-      }
-
-      // Concatenate all parts into a single voice file
-      const voiceFileName = `${scriptId}-voice.mp3`;
-      const voicePath = join(audioDir, voiceFileName);
-      tempFiles.push(voicePath);
-
-      if (partFiles.length === 1) {
-        renameSync(partFiles[0], voicePath);
-        tempFiles.splice(tempFiles.indexOf(partFiles[0]), 1); // don't delete the renamed file
-      } else {
-        const listFile = join(audioDir, `${scriptId}-parts.txt`);
-        writeFileSync(listFile, partFiles.map(p => `file '${p}'`).join('\n'));
-        tempFiles.push(listFile);
-        execFileSync('ffmpeg', [
-          '-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', voicePath,
-        ], { stdio: 'pipe', timeout: 120000 });
-      }
-
-      // Check if music track was requested
-      let finalFileName = `${scriptId}.mp3`;
-      const finalPath = join(audioDir, finalFileName);
-
-      console.log(`[Audio] Music track requested: "${musicTrack}", volume: ${musicVolume}`);
-      console.log(`[Audio] Music directory: ${musicDir}`);
-
-      if (musicTrack) {
-        // Try to find the music file — be flexible with the filename
-        let musicPath = null;
-
-        // Try exact filename first
-        const exactPath = join(musicDir, musicTrack);
-        if (existsSync(exactPath)) {
-          musicPath = exactPath;
-        }
-
-        // Try with .mp3 extension if not already present
-        if (!musicPath && !musicTrack.endsWith('.mp3') && !musicTrack.endsWith('.wav')) {
-          const withMp3 = join(musicDir, `${musicTrack}.mp3`);
-          const withWav = join(musicDir, `${musicTrack}.wav`);
-          if (existsSync(withMp3)) musicPath = withMp3;
-          else if (existsSync(withWav)) musicPath = withWav;
-        }
-
-        // Try stripping extension and re-adding
-        if (!musicPath) {
-          const baseName = musicTrack.replace(/\.(mp3|wav)$/, '');
-          const mp3Path = join(musicDir, `${baseName}.mp3`);
-          const wavPath = join(musicDir, `${baseName}.wav`);
-          if (existsSync(mp3Path)) musicPath = mp3Path;
-          else if (existsSync(wavPath)) musicPath = wavPath;
-        }
-
-        if (musicPath) {
-          try {
-            console.log(`[Audio] Mixing voice with music: ${musicPath} at volume ${musicVolume || 0.15}`);
-            mixAudioWithMusic(voicePath, musicPath, finalPath, musicVolume || 0.15);
-            console.log(`[Audio] Music mixing successful`);
-          } catch (mixErr) {
-            console.error('[Audio] Music mixing failed, using voice-only:', mixErr.message);
-            // Fall back to voice-only
-            if (existsSync(voicePath)) {
-              renameSync(voicePath, finalPath);
-            }
-          }
-        } else {
-          console.warn(`[Audio] Music track not found: "${musicTrack}"`);
-          // List available files for debugging
-          try {
-            const available = readdirSync(musicDir);
-            console.log(`[Audio] Available music files:`, available);
-          } catch {}
-          renameSync(voicePath, finalPath);
-        }
-      } else {
-        // No music requested — just rename voice file to final
-        renameSync(voicePath, finalPath);
-      }
-
-      // Clean up temp files (but not the final output)
-      for (const f of tempFiles) {
-        if (f !== finalPath && existsSync(f)) {
-          try { unlinkSync(f); } catch {}
-        }
-      }
-
-      // Update script record with audio file reference
-      scriptData.audioFile = finalFileName;
-      scriptData.musicTrack = musicTrack || null;
-      scriptData.voiceId = selectedVoice.id;
-      scriptData.voiceLabel = selectedVoice.label;
-      writeFileSync(scriptPath, JSON.stringify(scriptData, null, 2));
-
-      res.json({
-        success: true,
-        audioFile: finalFileName,
-        musicTrack: musicTrack || null,
-        voiceId: selectedVoice.id,
-        voiceLabel: selectedVoice.label,
-        script: scriptData,
-      });
-    } catch (genError) {
-      // Clean up any temp files on error
-      for (const f of tempFiles) {
-        if (existsSync(f)) {
-          try { unlinkSync(f); } catch {}
-        }
-      }
-      throw genError;
-    }
+    });
   } catch (error) {
-    console.error('Error generating audio:', error.message);
-    res.status(500).json({ error: 'Failed to generate audio' });
+    console.error('Error starting audio generation:', error.message);
+    res.status(500).json({ error: error.message || 'Failed to start audio generation' });
   }
+});
+
+// GET /audio-status/:jobId — poll endpoint for the audio render job.
+router.get('/audio-status/:jobId', (req, res) => {
+  const job = getAudioJob(req.params.jobId, req.userId);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  res.json({
+    jobId: job.id,
+    status: job.status,
+    result: job.status === 'complete' ? job.result : undefined,
+    error: job.status === 'failed' ? job.error : undefined,
+  });
+});
+
+// GET /audio-active/:scriptId — frontend recovery: "is there an in-flight audio
+// render I should be polling for this script?" Used after refresh / re-open.
+router.get('/audio-active/:scriptId', (req, res) => {
+  const job = getActiveJobForScript(req.userId, req.params.scriptId);
+  if (!job) return res.json({ jobId: null });
+  res.json({ jobId: job.id, status: job.status });
 });
 
 // GET /audio/:filename — serve audio file with range request support
