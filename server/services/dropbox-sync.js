@@ -7,9 +7,19 @@
 
 import { Dropbox } from 'dropbox';
 import { extractTextByExtension } from './pdf-parser.js';
-import { ingestDocument } from './knowledge-base.js';
+import { ingestDocument, CATEGORY_NLP, CATEGORY_COACHING } from './knowledge-base.js';
 
 const SUPPORTED_EXT = new Set(['pdf', 'txt', 'md', 'markdown']);
+
+// Map Dropbox subfolder names → category labels. Anything not matched gets
+// no category (still indexed, just won't be filtered by category-aware
+// retrieval).
+function categoryFromPath(dropboxPath) {
+  const lower = (dropboxPath || '').toLowerCase();
+  if (lower.includes('/nlp/') || lower.includes('/nlp')) return CATEGORY_NLP;
+  if (lower.includes('coaching')) return CATEGORY_COACHING;
+  return null;
+}
 
 let _client = null;
 function getClient() {
@@ -103,6 +113,7 @@ export async function runSyncOnce({ logger = console } = {}) {
       const result = await ingestDocument({
         source: `dropbox:${file.path}`,
         text,
+        category: categoryFromPath(file.path),
         metadata: { filename: file.name, dropboxContentHash: file.contentHash },
       });
       if (result.status === 'ingested') summary.ingested += 1;

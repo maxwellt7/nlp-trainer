@@ -27,9 +27,11 @@ import {
   getActiveJobForSession,
 } from '../services/hypnosis-jobs.js';
 import {
-  retrieveRelevant,
+  retrieveByCategory,
   formatRetrievedForPrompt,
   isEnabled as kbEnabled,
+  CATEGORY_NLP,
+  CATEGORY_COACHING,
 } from '../services/knowledge-base.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -86,11 +88,28 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
 
   const identityContext = buildIdentityContext(userId);
 
-  let retrievedBlock = '';
+  // Phase-aware retrieval. During GENERATION the script needs heavier NLP
+  // technique density (induction structure, Milton patterns, embedded commands)
+  // so we pull more NLP chunks than coaching ones. During COACHING the
+  // conversational reply leans on Max's voice from transcripts.
+  let nlpBlock = '(no NLP excerpts retrieved for this query)';
+  let coachingBlock = '(no coaching transcripts retrieved for this query)';
   if (kbEnabled() && retrievalQuery && retrievalQuery.trim()) {
     try {
-      const chunks = await retrieveRelevant(retrievalQuery, { topK: 5 });
-      retrievedBlock = formatRetrievedForPrompt(chunks);
+      const isGenerationPhase = phase === 'generation';
+      const grouped = await retrieveByCategory(retrievalQuery, {
+        categories: [CATEGORY_NLP, CATEGORY_COACHING],
+        topKPerCategory: isGenerationPhase ? 6 : 3,
+      });
+      const nlp = grouped[CATEGORY_NLP] || [];
+      const coaching = grouped[CATEGORY_COACHING] || [];
+      // For coaching phase, flip the bias: more transcript voice, less technique.
+      const trimmedNlp = isGenerationPhase ? nlp : nlp.slice(0, 2);
+      const trimmedCoaching = isGenerationPhase ? coaching.slice(0, 3) : coaching;
+      const formattedNlp = formatRetrievedForPrompt(trimmedNlp);
+      const formattedCoaching = formatRetrievedForPrompt(trimmedCoaching);
+      if (formattedNlp) nlpBlock = formattedNlp;
+      if (formattedCoaching) coachingBlock = formattedCoaching;
     } catch (err) {
       console.warn('[hypnosis] RAG retrieval failed; continuing without it:', err.message);
     }
@@ -102,7 +121,8 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
     .replace('{{USER_PROFILE}}', profile ? JSON.stringify(profile, null, 2) : 'No profile data yet — this is a new user.')
     .replace('{{MEMORY_CONTEXT}}', memoryContext)
     .replace('{{IDENTITY_CONTEXT}}', identityContext)
-    .replace('{{USER_KNOWLEDGE_RETRIEVED}}', retrievedBlock || '(no user knowledge available for this query)');
+    .replace('{{NLP_RETRIEVED}}', nlpBlock)
+    .replace('{{COACHING_RETRIEVED}}', coachingBlock);
 
   if (phase === 'coaching') {
     prompt += '\n\nYou are in COACHING phase. Conduct the daily coaching conversation. Ask ONE question at a time. Respond in the COACHING JSON format.';
