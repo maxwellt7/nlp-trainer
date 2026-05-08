@@ -5,7 +5,6 @@
 // content, and feeds it to ingestDocument(). The KB itself dedupes by
 // content-hash, so re-running is cheap if nothing has changed.
 
-import { Dropbox } from 'dropbox';
 import { extractTextByExtension } from './pdf-parser.js';
 import { ingestDocument, CATEGORY_NLP, CATEGORY_COACHING } from './knowledge-base.js';
 
@@ -21,15 +20,35 @@ function categoryFromPath(dropboxPath) {
   return null;
 }
 
-let _client = null;
-function getClient() {
-  if (_client) return _client;
-  const accessToken = process.env.DROPBOX_ACCESS_TOKEN;
-  if (!accessToken) {
-    throw new Error('DROPBOX_ACCESS_TOKEN is not set');
+// We talk to Dropbox over raw HTTP rather than the official SDK because the
+// SDK's filesDownload pulls in node-fetch 2.x semantics (`.buffer()`) that
+// don't exist on modern Node's built-in fetch. Two endpoints suffice:
+//   POST https://api.dropboxapi.com/2/files/list_folder      (list + paginate)
+//   POST https://content.dropboxapi.com/2/files/download     (binary download)
+
+const API_BASE = 'https://api.dropboxapi.com/2';
+const CONTENT_BASE = 'https://content.dropboxapi.com/2';
+
+function getAccessToken() {
+  const t = process.env.DROPBOX_ACCESS_TOKEN;
+  if (!t) throw new Error('DROPBOX_ACCESS_TOKEN is not set');
+  return t;
+}
+
+async function api(endpoint, body) {
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Dropbox ${endpoint} HTTP ${res.status}: ${text.slice(0, 300)}`);
   }
-  _client = new Dropbox({ accessToken, fetch: globalThis.fetch });
-  return _client;
+  return res.json();
 }
 
 export function isConfigured() {
@@ -45,42 +64,44 @@ function fileExtension(filename) {
 /**
  * List all files (recursively) under the configured Dropbox folder.
  * Returns [{ path, name, size, contentHash, updatedAt }].
- *
- * `contentHash` is Dropbox's per-file content_hash header — we use it as a
- * cheap "did this change" signal to skip downloading unchanged files.
  */
 async function listAllFiles() {
-  const client = getClient();
   const folder = process.env.DROPBOX_KNOWLEDGE_FOLDER || '';
-
   const out = [];
-  let res = await client.filesListFolder({ path: folder, recursive: true });
+  let res = await api('files/list_folder', { path: folder, recursive: true, limit: 1000 });
   while (true) {
-    for (const entry of res.result.entries) {
+    for (const entry of res.entries) {
       if (entry['.tag'] !== 'file') continue;
       const ext = fileExtension(entry.name);
       if (!SUPPORTED_EXT.has(ext)) continue;
       out.push({
-        path: entry.path_lower || entry.path_display,
+        path: entry.path_display || entry.path_lower,
         name: entry.name,
         size: entry.size,
         contentHash: entry.content_hash,
         updatedAt: entry.server_modified,
       });
     }
-    if (!res.result.has_more) break;
-    res = await client.filesListFolderContinue({ cursor: res.result.cursor });
+    if (!res.has_more) break;
+    res = await api('files/list_folder/continue', { cursor: res.cursor });
   }
   return out;
 }
 
 async function downloadFile(path) {
-  const client = getClient();
-  const res = await client.filesDownload({ path });
-  // dropbox SDK returns fileBinary on Node, fileBlob in browsers. We're Node.
-  if (res.result.fileBinary) return res.result.fileBinary;
-  if (res.result.fileBlob) return Buffer.from(await res.result.fileBlob.arrayBuffer());
-  throw new Error(`Dropbox response had no fileBinary for ${path}`);
+  // Dropbox's content endpoint puts the JSON arg in a header instead of body.
+  const res = await fetch(`${CONTENT_BASE}/files/download`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`,
+      'Dropbox-API-Arg': JSON.stringify({ path }),
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Dropbox download HTTP ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
 }
 
 /**

@@ -1,17 +1,23 @@
-// Minimal PDF text extraction using pdf-parse.
+// Minimal PDF text extraction using pdf-parse v2 (PDFParse class API).
 // Returns plain text with paragraph breaks preserved.
 
 import { readFile } from 'node:fs/promises';
+import { PDFParse } from 'pdf-parse';
 
 export async function extractTextFromPdf(filepathOrBuffer) {
-  const { default: pdfParse } = await import('pdf-parse');
   const buffer = Buffer.isBuffer(filepathOrBuffer)
     ? filepathOrBuffer
     : await readFile(filepathOrBuffer);
-  const result = await pdfParse(buffer);
-  // pdf-parse already collapses page-internal whitespace; we just normalize
-  // multi-blank-line runs that come from page breaks.
-  return result.text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  // PDFParse expects a Uint8Array via the `data` option in v2.
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const result = await parser.getText();
+    return (result.text || '').replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  } finally {
+    if (typeof parser.destroy === 'function') {
+      try { await parser.destroy(); } catch { /* ignore */ }
+    }
+  }
 }
 
 export async function extractTextFromTxt(filepathOrBuffer) {
