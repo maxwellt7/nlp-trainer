@@ -227,6 +227,9 @@ async function renderAudio({ scriptId, scriptPath, scriptData, requestedVoiceId,
   const segments = parseScriptSegments(scriptData.script);
   console.log(`[Audio] Parsed ${segments.length} segments (text + pauses)`);
 
+  // If no SSML <break> tags found, fall back to a single-text-block render.
+  const hasBreaks = segments.some((s) => s.type === 'pause');
+
   // ElevenLabs has a 10,000 char limit per request
   const MAX_CHUNK = 9500;
 
