@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak, resolveUserTimezone } from '../services/profile.js';
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
 import { getAllSessions, getRecentSessions, getSessionForUser, getTodaySession, isSessionLocked, updateSessionMetadata } from '../services/memory.js';
+import { sanitizeMessageHistory } from '../services/message-sanitizer.js';
 
 const router = Router();
 
@@ -90,7 +91,7 @@ router.get('/sessions/:sessionId', (req, res) => {
     }
     res.json({
       ...session,
-      chat_messages: JSON.parse(session.chat_messages || '[]'),
+      chat_messages: sanitizeMessageHistory(JSON.parse(session.chat_messages || '[]')),
       key_themes: JSON.parse(session.key_themes || '[]'),
     });
   } catch (error) {

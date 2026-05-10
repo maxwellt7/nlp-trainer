@@ -34,6 +34,13 @@ import {
   CATEGORY_COACHING,
 } from '../services/knowledge-base.js';
 import { saveScriptForUser } from '../services/scripts.js';
+import {
+  extractReplyField,
+  extractReadyFlag,
+  looksLikeRawJson,
+  sanitizeAssistantContent,
+  sanitizeMessageHistory,
+} from '../services/message-sanitizer.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(__dirname, '..', 'data');
@@ -156,6 +163,17 @@ function parseJsonResponse(text) {
   }
 }
 
+function tryParseChatJson(text) {
+  try {
+    return parseJsonResponse(text);
+  } catch {
+    return null;
+  }
+}
+
+const SLIM_CHAT_INSTRUCTION =
+  '\n\nIMPORTANT: Your previous response was truncated. Respond again with ONLY the "reply", "readyToGenerate", and "profileUpdates" fields. OMIT "valueDetections" and "identityStatements" entirely so the response fits the token budget. Keep the reply concise.';
+
 function parseStoredMessages(rawMessages) {
   if (!rawMessages) return null;
   try {
@@ -199,7 +217,7 @@ router.post('/init', async (req, res) => {
         return res.json({
           reply: null,
           sessionId: session.id,
-          resumeMessages,
+          resumeMessages: sanitizeMessageHistory(resumeMessages),
           session,
           completed: isSessionLocked(session),
           sessionSummary: session.chat_summary || null,
@@ -311,30 +329,69 @@ router.post('/chat', async (req, res) => {
 
     const apiMessages = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({ role: m.role, content: String(m.content) }));
+      .map(m => ({
+        role: m.role,
+        content: m.role === 'assistant'
+          ? sanitizeAssistantContent(String(m.content))
+          : String(m.content),
+      }));
 
     if (apiMessages.length === 0) {
       return res.status(400).json({ error: 'No valid messages provided' });
     }
 
-    const response = await anthropic.messages.create({
+    const baseChatRequest = {
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: systemPrompt,
       messages: apiMessages,
-    });
+    };
 
-    const text = response.content[0].text;
-    let parsed;
-    try {
-      parsed = parseJsonResponse(text);
-    } catch {
-      parsed = { reply: text, readyToGenerate: false, profileUpdates: {} };
+    let response = await anthropic.messages.create(baseChatRequest);
+    let text = response?.content?.[0]?.text || '';
+    let parsed = tryParseChatJson(text);
+
+    // Self-heal: if the model returned unparseable JSON (typically because it
+    // ran out of tokens emitting valueDetections / identityStatements), retry
+    // once with an instruction to drop the heavy fields so the reply still
+    // lands. We accept losing this turn's value detection in exchange for a
+    // working coaching flow.
+    if (!parsed) {
+      console.warn('[hypnosis/chat] First response unparseable (stop_reason=%s); retrying in slim mode', response?.stop_reason);
+      response = await anthropic.messages.create({
+        ...baseChatRequest,
+        system: systemPrompt + SLIM_CHAT_INSTRUCTION,
+      });
+      text = response?.content?.[0]?.text || '';
+      parsed = tryParseChatJson(text);
+    }
+
+    // Last-resort recovery: if both calls failed but the leading "reply"
+    // field is still extractable, use it. Better than dumping JSON into
+    // the chat.
+    if (!parsed) {
+      const recoveredReply = extractReplyField(text);
+      if (recoveredReply && !looksLikeRawJson(recoveredReply)) {
+        parsed = {
+          reply: recoveredReply,
+          readyToGenerate: extractReadyFlag(text),
+          profileUpdates: {},
+        };
+      }
+    }
+
+    // Nothing we can salvage — surface a graceful error and DO NOT persist
+    // a broken assistant turn into the session history.
+    if (!parsed || !parsed.reply || looksLikeRawJson(parsed.reply)) {
+      console.error('[hypnosis/chat] Unrecoverable model response, len=%d, stop_reason=%s', text.length, response?.stop_reason);
+      return res.status(502).json({
+        error: 'I had trouble responding to that. Please try sending your message again.',
+      });
     }
 
     // Save messages to session
     updateSessionMessages(currentSessionId, messages.concat([
-      { role: 'assistant', content: parsed.reply || text }
+      { role: 'assistant', content: parsed.reply }
     ]));
 
     updateSessionMetadata(currentSessionId, {
@@ -427,7 +484,7 @@ router.post('/chat', async (req, res) => {
     }
 
     res.json({
-      reply: parsed.reply || text,
+      reply: parsed.reply,
       readyToGenerate: parsed.readyToGenerate === true,
       sessionId: currentSessionId,
       profileUpdates: parsed.profileUpdates || {},
