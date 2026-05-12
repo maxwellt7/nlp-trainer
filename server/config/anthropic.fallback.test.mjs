@@ -105,6 +105,95 @@ test('createMessagesApi falls back to OpenAI when Anthropic is rate limited or o
   });
 });
 
+test('createMessagesApi falls back to Gemini when both Anthropic and OpenAI fail', async () => {
+  const mod = await import('./anthropic.js');
+
+  let geminiPayload = null;
+  const api = mod.createMessagesApi({
+    anthropicClient: {
+      messages: {
+        create: async () => {
+          const error = new Error('rate limit exceeded');
+          error.status = 429;
+          throw error;
+        },
+      },
+    },
+    openAiClient: {
+      chat: {
+        completions: {
+          create: async () => {
+            throw new Error('OpenAI is also unavailable');
+          },
+        },
+      },
+    },
+    geminiClient: {
+      generateContent: async (payload) => {
+        geminiPayload = payload;
+        return {
+          candidates: [
+            { content: { parts: [{ text: '{"reply":"Gemini fallback reply"}' }] } },
+          ],
+          usageMetadata: { promptTokenCount: 11, candidatesTokenCount: 22 },
+        };
+      },
+    },
+    fallbackModel: 'gpt-4.1-mini',
+  });
+
+  const result = await api.create(anthropicRequest);
+
+  assert.deepEqual(geminiPayload, {
+    contents: [
+      { role: 'user', parts: [{ text: 'Help me process what happened today.' }] },
+    ],
+    generationConfig: {
+      maxOutputTokens: 512,
+      responseMimeType: 'application/json',
+    },
+    systemInstruction: { parts: [{ text: 'You are a coaching assistant.' }] },
+  });
+  assert.deepEqual(result, {
+    content: [{ text: '{"reply":"Gemini fallback reply"}' }],
+    usage: { input_tokens: 11, output_tokens: 22 },
+    provider: 'gemini',
+  });
+});
+
+test('createMessagesApi falls back directly to Gemini when no OpenAI client is configured', async () => {
+  const mod = await import('./anthropic.js');
+
+  let geminiCalled = false;
+  const api = mod.createMessagesApi({
+    anthropicClient: {
+      messages: {
+        create: async () => {
+          const error = new Error('credit balance is too low');
+          error.status = 429;
+          throw error;
+        },
+      },
+    },
+    openAiClient: null,
+    geminiClient: {
+      generateContent: async () => {
+        geminiCalled = true;
+        return {
+          candidates: [{ content: { parts: [{ text: '{"reply":"gemini only"}' }] } }],
+          usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 2 },
+        };
+      },
+    },
+    fallbackModel: 'gpt-4.1-mini',
+  });
+
+  const result = await api.create(anthropicRequest);
+
+  assert.equal(geminiCalled, true);
+  assert.equal(result.provider, 'gemini');
+});
+
 test('createMessagesApi rethrows non-fallback Anthropic errors', async () => {
   const mod = await import('./anthropic.js');
 

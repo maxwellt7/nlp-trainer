@@ -110,30 +110,129 @@ function toOpenAiPayload(request, fallbackModel) {
   };
 }
 
-export function createMessagesApi({ anthropicClient, openAiClient, fallbackModel }) {
+function toGeminiPayload(request) {
+  const contents = [];
+
+  for (const message of request.messages ?? []) {
+    if (message.role !== 'user' && message.role !== 'assistant') {
+      continue;
+    }
+    contents.push({
+      role: message.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: normalizeContentToString(message.content) }],
+    });
+  }
+
+  const payload = {
+    contents,
+    generationConfig: {
+      maxOutputTokens: request.max_tokens,
+      // Same JSON contract as the OpenAI fallback above.
+      responseMimeType: 'application/json',
+    },
+  };
+
+  if (request.system) {
+    payload.systemInstruction = {
+      parts: [{ text: normalizeContentToString(request.system) }],
+    };
+  }
+
+  return payload;
+}
+
+function normalizeGeminiResponse(response) {
+  const parts = response?.candidates?.[0]?.content?.parts ?? [];
+  const text = parts.map((p) => (typeof p?.text === 'string' ? p.text : '')).join('\n').trim();
+
+  return {
+    content: [{ text }],
+    usage: {
+      input_tokens: response?.usageMetadata?.promptTokenCount ?? 0,
+      output_tokens: response?.usageMetadata?.candidatesTokenCount ?? 0,
+    },
+    provider: 'gemini',
+  };
+}
+
+class GeminiClient {
+  constructor({ apiKey, model = 'gemini-2.0-flash' }) {
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+
+  async generateContent(payload) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.model)}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      const err = new Error(`Gemini API error ${response.status}: ${text.slice(0, 500)}`);
+      err.status = response.status;
+      throw err;
+    }
+
+    return await response.json();
+  }
+}
+
+export function createMessagesApi({ anthropicClient, openAiClient, geminiClient, fallbackModel }) {
   const resolvedFallbackModel = fallbackModel || process.env.OPENAI_FALLBACK_MODEL || process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+
+  const callOpenAi = async (request) => {
+    const openAiResponse = await openAiClient.chat.completions.create(toOpenAiPayload(request, resolvedFallbackModel));
+    return normalizeOpenAiResponse(openAiResponse);
+  };
+
+  const callGemini = async (request) => {
+    const geminiResponse = await geminiClient.generateContent(toGeminiPayload(request));
+    return normalizeGeminiResponse(geminiResponse);
+  };
 
   return {
     async create(request) {
       if (!anthropicClient) {
-        if (!openAiClient) {
-          throw new Error('No LLM provider is configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.');
+        if (!openAiClient && !geminiClient) {
+          throw new Error('No LLM provider is configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY.');
         }
 
-        const openAiResponse = await openAiClient.chat.completions.create(toOpenAiPayload(request, resolvedFallbackModel));
-        return normalizeOpenAiResponse(openAiResponse);
+        if (openAiClient) {
+          try {
+            return await callOpenAi(request);
+          } catch (openAiError) {
+            if (!geminiClient) throw openAiError;
+            console.warn('[LLM] OpenAI failed, falling back to Gemini:', openAiError.message);
+            return await callGemini(request);
+          }
+        }
+
+        return await callGemini(request);
       }
 
       try {
         return await anthropicClient.messages.create(request);
       } catch (error) {
-        if (!openAiClient || !shouldFallbackToOpenAI(error)) {
+        if (!shouldFallbackToOpenAI(error) || (!openAiClient && !geminiClient)) {
           throw error;
         }
 
-        console.warn('[LLM] Anthropic unavailable, falling back to OpenAI:', error.message);
-        const openAiResponse = await openAiClient.chat.completions.create(toOpenAiPayload(request, resolvedFallbackModel));
-        return normalizeOpenAiResponse(openAiResponse);
+        if (openAiClient) {
+          try {
+            console.warn('[LLM] Anthropic unavailable, falling back to OpenAI:', error.message);
+            return await callOpenAi(request);
+          } catch (openAiError) {
+            if (!geminiClient) throw openAiError;
+            console.warn('[LLM] OpenAI fallback failed, falling back to Gemini:', openAiError.message);
+            return await callGemini(request);
+          }
+        }
+
+        console.warn('[LLM] Anthropic unavailable, falling back to Gemini:', error.message);
+        return await callGemini(request);
       }
     },
   };
@@ -141,13 +240,18 @@ export function createMessagesApi({ anthropicClient, openAiClient, fallbackModel
 
 const anthropicKey = process.env.ANTHROPIC_API_KEY;
 const openAiKey = process.env.OPENAI_API_KEY;
+const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 if (!hasUsableKey(anthropicKey)) {
-  console.warn('WARNING: ANTHROPIC_API_KEY is not set or is a placeholder. Anthropic-backed chat will fall back to OpenAI when configured.');
+  console.warn('WARNING: ANTHROPIC_API_KEY is not set or is a placeholder. Anthropic-backed chat will fall back to OpenAI/Gemini when configured.');
 }
 
 if (!hasUsableKey(openAiKey)) {
   console.warn('WARNING: OPENAI_API_KEY is not set or is a placeholder. OpenAI fallback is unavailable until a valid key is provided.');
+}
+
+if (!hasUsableKey(geminiKey)) {
+  console.warn('WARNING: GEMINI_API_KEY is not set or is a placeholder. Gemini fallback is unavailable until a valid key is provided.');
 }
 
 const anthropicClient = hasUsableKey(anthropicKey)
@@ -161,13 +265,21 @@ const openAiClient = hasUsableKey(openAiKey)
     })
   : null;
 
+const geminiClient = hasUsableKey(geminiKey)
+  ? new GeminiClient({
+      apiKey: geminiKey,
+      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    })
+  : null;
+
 const anthropic = {
   messages: createMessagesApi({
     anthropicClient,
     openAiClient,
+    geminiClient,
     fallbackModel: process.env.OPENAI_FALLBACK_MODEL || process.env.OPENAI_MODEL || 'gpt-4.1-mini',
   }),
 };
 
-export { normalizeOpenAiResponse, shouldFallbackToOpenAI };
+export { normalizeOpenAiResponse, normalizeGeminiResponse, shouldFallbackToOpenAI, GeminiClient };
 export default anthropic;
