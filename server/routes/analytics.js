@@ -98,8 +98,8 @@ router.get('/overview', (req, res) => {
     const purchases = db.prepare(`
       SELECT COUNT(*) as count
       FROM paid_users
-      WHERE created_at >= ? OR provisioned_at >= ?
-    `).get(since, since);
+      WHERE provisioned_at >= ?
+    `).get(since);
 
     const funnelBreakdown = buildFunnelBreakdown({
       quizPageViews: quizPageViews?.count || 0,
