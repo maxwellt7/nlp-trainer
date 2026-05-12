@@ -17,7 +17,7 @@ export function buildRuntimeHealthPayload({ clerkEnabled, env = process.env } = 
       openAiConfigured: hasUsableKey(env.OPENAI_API_KEY),
       openAiFallbackModel: env.OPENAI_FALLBACK_MODEL || env.OPENAI_MODEL || 'gpt-4.1-mini',
       geminiConfigured: hasUsableKey(env.GEMINI_API_KEY || env.GOOGLE_API_KEY),
-      geminiFallbackModel: env.GEMINI_MODEL || 'gemini-2.0-flash',
+      geminiFallbackModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
       pineconeEnabled: env.ENABLE_PINECONE === 'true' && hasUsableKey(env.PINECONE_API_KEY) && Boolean(env.PINECONE_INDEX_KNOWLEDGE),
       pineconeIndex: env.PINECONE_INDEX_KNOWLEDGE || null,
       dropboxConfigured: hasUsableKey(env.DROPBOX_ACCESS_TOKEN),

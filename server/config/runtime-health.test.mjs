@@ -23,7 +23,7 @@ test('buildRuntimeHealthPayload reports commit, auth state, and OpenAI fallback 
       openAiConfigured: true,
       openAiFallbackModel: 'gpt-4.1-mini',
       geminiConfigured: false,
-      geminiFallbackModel: 'gemini-2.0-flash',
+      geminiFallbackModel: 'gemini-2.5-flash',
       pineconeEnabled: false,
       pineconeIndex: null,
       dropboxConfigured: false,
@@ -39,12 +39,12 @@ test('buildRuntimeHealthPayload reports Gemini fallback readiness when GEMINI_AP
     clerkEnabled: true,
     env: {
       GEMINI_API_KEY: 'AIzaSy-test-key',
-      GEMINI_MODEL: 'gemini-2.0-flash',
+      GEMINI_MODEL: 'gemini-2.5-flash',
     },
   });
 
   assert.equal(payload.runtime.geminiConfigured, true);
-  assert.equal(payload.runtime.geminiFallbackModel, 'gemini-2.0-flash');
+  assert.equal(payload.runtime.geminiFallbackModel, 'gemini-2.5-flash');
 });
 
 test('buildRuntimeHealthPayload omits false confidence when commit or OpenAI key are missing', async () => {
@@ -63,7 +63,7 @@ test('buildRuntimeHealthPayload omits false confidence when commit or OpenAI key
       openAiConfigured: false,
       openAiFallbackModel: 'gpt-4.1-mini',
       geminiConfigured: false,
-      geminiFallbackModel: 'gemini-2.0-flash',
+      geminiFallbackModel: 'gemini-2.5-flash',
       pineconeEnabled: false,
       pineconeIndex: null,
       dropboxConfigured: false,
