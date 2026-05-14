@@ -20,6 +20,7 @@ import OfflineBanner from './components/OfflineBanner';
 import SignupTracker from './components/SignupTracker';
 import Admin from './pages/Admin';
 import AnalyticsTracker from './components/AnalyticsTracker';
+import LeadConnectorWidget from './components/LeadConnectorWidget';
 
 function ProtectedRoutes() {
   return (
@@ -177,6 +178,7 @@ function App() {
   return (
     <BrowserRouter>
       <AnalyticsTracker />
+      {HAS_CLERK && <LeadConnectorWidget />}
       <Routes>
         <Route path="/quiz" element={<Quiz />} />
         <Route path="/admin" element={<AdminWrapper />} />
