@@ -1,4 +1,5 @@
 import { SignIn } from '@clerk/clerk-react';
+import PublicFooter from '../components/PublicFooter';
 
 export default function SignInPage() {
   const redirectUrl = new URLSearchParams(window.location.search).get('redirect_url') || '/';
@@ -118,6 +119,8 @@ export default function SignInPage() {
           </p>
         </div>
       </div>
+
+      <PublicFooter />
     </div>
   );
 }

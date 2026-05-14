@@ -1,4 +1,5 @@
 import { SignUp } from '@clerk/clerk-react';
+import PublicFooter from '../components/PublicFooter';
 
 const VALUE_PROPS = [
   {
@@ -316,6 +317,8 @@ export default function SignUpPage() {
           </div>
         </div>
       </div>
+
+      <PublicFooter />
     </div>
   );
 }

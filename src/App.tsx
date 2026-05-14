@@ -15,6 +15,8 @@ import Identity from './pages/Identity';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
 import Quiz from './pages/Quiz';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import SignupTracker from './components/SignupTracker';
@@ -181,6 +183,8 @@ function App() {
       {HAS_CLERK && <LeadConnectorWidget />}
       <Routes>
         <Route path="/quiz" element={<Quiz />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/admin" element={<AdminWrapper />} />
         <Route path="/sign-up/*" element={
           <AuthPageWrapper><SignUpPage /></AuthPageWrapper>
