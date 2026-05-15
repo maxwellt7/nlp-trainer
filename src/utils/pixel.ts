@@ -70,17 +70,6 @@ export function trackStartTrial(params?: {
   }
 }
 
-export function trackAddToCart(params?: {
-  content_name?: string;
-  content_ids?: string[];
-  value?: number;
-  currency?: string;
-}) {
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('track', 'AddToCart', params);
-  }
-}
-
 export function trackPurchase(params?: {
   value?: number;
   currency?: string;
@@ -103,40 +92,10 @@ export function trackAddPaymentInfo(params?: {
   }
 }
 
-// ── Custom Events for Quiz Funnel ──
-
 export function trackCustom(eventName: string, params?: Record<string, any>) {
   if (typeof window !== 'undefined' && window.fbq) {
     window.fbq('trackCustom', eventName, params);
   }
-}
-
-export function trackQuizStart() {
-  trackCustom('QuizStart', { content_name: 'Alignment Assessment' });
-}
-
-export function trackQuizProgress(step: number, totalSteps: number) {
-  trackCustom('QuizProgress', {
-    content_name: 'Alignment Assessment',
-    step,
-    totalSteps,
-    progress: Math.round((step / totalSteps) * 100),
-  });
-}
-
-export function trackQuizComplete(score: number, tier: string) {
-  trackCustom('QuizComplete', {
-    content_name: 'Alignment Assessment',
-    score,
-    tier,
-  });
-}
-
-export function trackEmailCapture() {
-  trackLead({
-    content_name: 'Alignment Assessment Email',
-    content_category: 'quiz_funnel',
-  });
 }
 
 // ── Server-side CAPI call (via our backend) ──

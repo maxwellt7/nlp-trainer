@@ -14,7 +14,6 @@ import Insights from './pages/Insights';
 import Identity from './pages/Identity';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
-import Quiz from './pages/Quiz';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
@@ -61,7 +60,6 @@ function PublicRoutes() {
 function UnauthenticatedApp() {
   return (
     <Routes>
-      <Route path="/quiz" element={<Quiz />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
@@ -182,7 +180,6 @@ function App() {
       <AnalyticsTracker />
       {HAS_CLERK && <LeadConnectorWidget />}
       <Routes>
-        <Route path="/quiz" element={<Quiz />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/admin" element={<AdminWrapper />} />
