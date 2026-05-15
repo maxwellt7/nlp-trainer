@@ -9,6 +9,9 @@
       "includeFiles": "server/**"
     }
   },
+  "redirects": [
+    { "source": "/quiz", "destination": "https://start.sovereignty.app/quiz", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
