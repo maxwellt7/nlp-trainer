@@ -28,22 +28,95 @@ function categoryFromPath(dropboxPath) {
 
 const API_BASE = 'https://api.dropboxapi.com/2';
 const CONTENT_BASE = 'https://content.dropboxapi.com/2';
+const OAUTH_TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
 
-function getAccessToken() {
-  const t = process.env.DROPBOX_ACCESS_TOKEN;
-  if (!t) throw new Error('DROPBOX_ACCESS_TOKEN is not set');
-  return t;
+// Module-scoped cache for refreshed access tokens. Avoids hitting the oauth
+// endpoint on every Dropbox call.
+let cachedAccessToken = null; // { token, expiresAt }
+
+function hasRefreshFlow() {
+  return Boolean(
+    process.env.DROPBOX_REFRESH_TOKEN &&
+    process.env.DROPBOX_APP_KEY &&
+    process.env.DROPBOX_APP_SECRET
+  );
+}
+
+async function exchangeRefreshToken() {
+  const params = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: process.env.DROPBOX_REFRESH_TOKEN,
+  });
+  const basic = Buffer.from(
+    `${process.env.DROPBOX_APP_KEY}:${process.env.DROPBOX_APP_SECRET}`
+  ).toString('base64');
+
+  const res = await fetch(OAUTH_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${basic}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Dropbox token refresh failed (HTTP ${res.status}): ${text.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  // Refresh ~60s before expiry to avoid races.
+  cachedAccessToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + ((data.expires_in || 14400) * 1000) - 60_000,
+  };
+  return cachedAccessToken.token;
+}
+
+async function getAccessToken({ forceRefresh = false } = {}) {
+  if (hasRefreshFlow()) {
+    if (!forceRefresh && cachedAccessToken && cachedAccessToken.expiresAt > Date.now()) {
+      return cachedAccessToken.token;
+    }
+    return exchangeRefreshToken();
+  }
+
+  // Legacy path: static long-lived (or now-short-lived) access token.
+  const legacy = process.env.DROPBOX_ACCESS_TOKEN;
+  if (!legacy) {
+    throw new Error('Dropbox not configured: set DROPBOX_REFRESH_TOKEN + DROPBOX_APP_KEY + DROPBOX_APP_SECRET (preferred), or DROPBOX_ACCESS_TOKEN (legacy)');
+  }
+  return legacy;
+}
+
+function isExpiredTokenError(status, bodyText) {
+  if (status !== 401) return false;
+  return typeof bodyText === 'string' && /expired_access_token|invalid_access_token/i.test(bodyText);
 }
 
 async function api(endpoint, body) {
-  const res = await fetch(`${API_BASE}/${endpoint}`, {
+  const doRequest = async (token) => fetch(`${API_BASE}/${endpoint}`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${getAccessToken()}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
   });
+
+  let token = await getAccessToken();
+  let res = await doRequest(token);
+  if (!res.ok && hasRefreshFlow()) {
+    const text = await res.text();
+    if (isExpiredTokenError(res.status, text)) {
+      cachedAccessToken = null;
+      token = await getAccessToken({ forceRefresh: true });
+      res = await doRequest(token);
+    } else {
+      throw new Error(`Dropbox ${endpoint} HTTP ${res.status}: ${text.slice(0, 300)}`);
+    }
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Dropbox ${endpoint} HTTP ${res.status}: ${text.slice(0, 300)}`);
@@ -52,7 +125,7 @@ async function api(endpoint, body) {
 }
 
 export function isConfigured() {
-  return Boolean(process.env.DROPBOX_ACCESS_TOKEN) &&
+  return (hasRefreshFlow() || Boolean(process.env.DROPBOX_ACCESS_TOKEN)) &&
     typeof process.env.DROPBOX_KNOWLEDGE_FOLDER === 'string';
 }
 
@@ -90,13 +163,26 @@ async function listAllFiles() {
 
 async function downloadFile(path) {
   // Dropbox's content endpoint puts the JSON arg in a header instead of body.
-  const res = await fetch(`${CONTENT_BASE}/files/download`, {
+  const doRequest = async (token) => fetch(`${CONTENT_BASE}/files/download`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${getAccessToken()}`,
+      'Authorization': `Bearer ${token}`,
       'Dropbox-API-Arg': JSON.stringify({ path }),
     },
   });
+
+  let token = await getAccessToken();
+  let res = await doRequest(token);
+  if (!res.ok && hasRefreshFlow()) {
+    const text = await res.text();
+    if (isExpiredTokenError(res.status, text)) {
+      cachedAccessToken = null;
+      token = await getAccessToken({ forceRefresh: true });
+      res = await doRequest(token);
+    } else {
+      throw new Error(`Dropbox download HTTP ${res.status}: ${text.slice(0, 300)}`);
+    }
+  }
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Dropbox download HTTP ${res.status}: ${text.slice(0, 300)}`);

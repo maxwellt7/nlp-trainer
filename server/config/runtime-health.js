@@ -23,7 +23,13 @@ export function buildRuntimeHealthPayload({ clerkEnabled, env = process.env } = 
       llamaBaseUrl: env.LLAMA_BASE_URL || 'https://api.together.xyz/v1',
       pineconeEnabled: env.ENABLE_PINECONE === 'true' && hasUsableKey(env.PINECONE_API_KEY) && Boolean(env.PINECONE_INDEX_KNOWLEDGE),
       pineconeIndex: env.PINECONE_INDEX_KNOWLEDGE || null,
-      dropboxConfigured: hasUsableKey(env.DROPBOX_ACCESS_TOKEN),
+      dropboxConfigured:
+        (hasUsableKey(env.DROPBOX_REFRESH_TOKEN) && hasUsableKey(env.DROPBOX_APP_KEY) && hasUsableKey(env.DROPBOX_APP_SECRET)) ||
+        hasUsableKey(env.DROPBOX_ACCESS_TOKEN),
+      dropboxAuthMode:
+        (hasUsableKey(env.DROPBOX_REFRESH_TOKEN) && hasUsableKey(env.DROPBOX_APP_KEY) && hasUsableKey(env.DROPBOX_APP_SECRET))
+          ? 'refresh_token'
+          : (hasUsableKey(env.DROPBOX_ACCESS_TOKEN) ? 'static_token_legacy' : 'unconfigured'),
       dropboxFolder: typeof env.DROPBOX_KNOWLEDGE_FOLDER === 'string' ? env.DROPBOX_KNOWLEDGE_FOLDER : null,
     },
   };
