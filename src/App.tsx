@@ -1,17 +1,8 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SignedIn, SignedOut, useAuth } from '@clerk/clerk-react';
 import AuthProvider from './components/AuthProvider';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Learn from './pages/Learn';
-import Lesson from './pages/Lesson';
-import Practice from './pages/Practice';
-import Reference from './pages/Reference';
-import Hypnosis from './pages/Hypnosis';
-import Audios from './pages/Audios';
-import Sessions from './pages/Sessions';
-import Insights from './pages/Insights';
-import Identity from './pages/Identity';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
 import Privacy from './pages/Privacy';
@@ -19,31 +10,64 @@ import Terms from './pages/Terms';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import SignupTracker from './components/SignupTracker';
-import Admin from './pages/Admin';
 import AnalyticsTracker from './components/AnalyticsTracker';
 import LeadConnectorWidget from './components/LeadConnectorWidget';
 
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Learn = lazy(() => import('./pages/Learn'));
+const Lesson = lazy(() => import('./pages/Lesson'));
+const Practice = lazy(() => import('./pages/Practice'));
+const Reference = lazy(() => import('./pages/Reference'));
+const Hypnosis = lazy(() => import('./pages/Hypnosis'));
+const Audios = lazy(() => import('./pages/Audios'));
+const Sessions = lazy(() => import('./pages/Sessions'));
+const Insights = lazy(() => import('./pages/Insights'));
+const Identity = lazy(() => import('./pages/Identity'));
+const Admin = lazy(() => import('./pages/Admin'));
+
+function RouteSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        height: '100dvh', background: '#0B0F19',
+      }}>
+        <div style={{
+          width: 32, height: 32, border: '3px solid rgba(212,168,83,0.2)',
+          borderTopColor: '#D4A853', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    }>
+      {children}
+    </Suspense>
+  );
+}
+
 function ProtectedRoutes() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/hypnosis" element={<Hypnosis />} />
-        <Route path="/sessions" element={<Sessions />} />
-        <Route path="/insights" element={<Insights />} />
-        <Route path="/identity" element={<Identity />} />
-        <Route path="/audios" element={<Audios />} />
-        <Route path="/learn" element={<Learn />} />
-        <Route path="/learn/:lessonId" element={<Lesson />} />
-        <Route path="/practice" element={<Practice />} />
-        <Route path="/reference" element={<Reference />} />
-      </Route>
-      {/* Admin dashboard — outside Layout for full-page view */}
-      <Route path="/admin" element={<Admin />} />
-      {/* Redirect sign-in/sign-up to home if already signed in */}
-      <Route path="/sign-in/*" element={<Navigate to="/" replace />} />
-      <Route path="/sign-up/*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <RouteSuspense>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/hypnosis" element={<Hypnosis />} />
+          <Route path="/sessions" element={<Sessions />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/identity" element={<Identity />} />
+          <Route path="/audios" element={<Audios />} />
+          <Route path="/learn" element={<Learn />} />
+          <Route path="/learn/:lessonId" element={<Lesson />} />
+          <Route path="/practice" element={<Practice />} />
+          <Route path="/reference" element={<Reference />} />
+        </Route>
+        {/* Admin dashboard — outside Layout for full-page view */}
+        <Route path="/admin" element={<Admin />} />
+        {/* Redirect sign-in/sign-up to home if already signed in */}
+        <Route path="/sign-in/*" element={<Navigate to="/" replace />} />
+        <Route path="/sign-up/*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </RouteSuspense>
   );
 }
 
@@ -59,8 +83,9 @@ function PublicRoutes() {
 // Fallback for when Clerk is not configured (no publishable key)
 function UnauthenticatedApp() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
+    <RouteSuspense>
+      <Routes>
+        <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
         <Route path="/sessions" element={<Sessions />} />
@@ -70,9 +95,10 @@ function UnauthenticatedApp() {
         <Route path="/learn" element={<Learn />} />
         <Route path="/learn/:lessonId" element={<Lesson />} />
         <Route path="/practice" element={<Practice />} />
-        <Route path="/reference" element={<Reference />} />
-      </Route>
-    </Routes>
+          <Route path="/reference" element={<Reference />} />
+        </Route>
+      </Routes>
+    </RouteSuspense>
   );
 }
 
@@ -142,7 +168,9 @@ function AdminWrapper() {
     <>
       <SignedIn>
         <AuthProvider>
-          <Admin />
+          <RouteSuspense>
+            <Admin />
+          </RouteSuspense>
         </AuthProvider>
       </SignedIn>
       <SignedOut>

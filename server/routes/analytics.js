@@ -31,6 +31,10 @@ try {
   console.error('Failed to create analytics tables:', err.message);
 }
 
+// In-memory cache for /overview. Keyed by `days` param. Resets on process restart.
+const overviewCache = new Map();
+const OVERVIEW_CACHE_TTL_MS = 60_000;
+
 // ── POST /api/analytics/event — Track an analytics event ──
 router.post('/event', (req, res) => {
   try {
@@ -74,6 +78,12 @@ router.post('/pageview', (req, res) => {
 router.get('/overview', (req, res) => {
   try {
     const days = parseInt(req.query.days) || 30;
+    const cacheKey = `overview:${days}`;
+    const cached = overviewCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached.data);
+    }
     const since = new Date(Date.now() - days * 86400000).toISOString();
 
     // Quiz funnel metrics
@@ -249,7 +259,7 @@ router.get('/overview', (req, res) => {
       }
     })();
 
-    res.json({
+    const payload = {
       period: { days, since },
       funnel: {
         quizLeads: quizLeads?.count || 0,
@@ -290,7 +300,11 @@ router.get('/overview', (req, res) => {
         byPath: pageViewsByPath || [],
       },
       recentLeads: recentLeads || [],
-    });
+    };
+
+    overviewCache.set(cacheKey, { data: payload, expiresAt: Date.now() + OVERVIEW_CACHE_TTL_MS });
+    res.setHeader('X-Cache', 'MISS');
+    res.json(payload);
   } catch (err) {
     console.error('Analytics overview error:', err.message);
     res.status(500).json({ error: 'Failed to load analytics' });

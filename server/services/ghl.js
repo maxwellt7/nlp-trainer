@@ -11,7 +11,7 @@ const GHL_API_KEY = process.env.GHL_API_KEY || '';
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID || '5aJWX4BRf7medN5RImNo';
 
 // Pipeline & Stage IDs
-const PIPELINE_ID = process.env.GHL_PIPELINE_ID || '0bVJHqVVlRCLaRiAFuoI';
+const PIPELINE_ID = process.env.GHL_PIPELINE_ID || '1qqZSQ7AlOLthuqlbPX9';
 const STAGES = {
   quiz_lead: process.env.GHL_STAGE_QUIZ_LEAD || 'bd784975-1a3d-43b8-a10f-d8fd6e1f893f',
   signed_up: process.env.GHL_STAGE_SIGNED_UP || '5f36d393-1641-47f0-9936-2b042a158878',

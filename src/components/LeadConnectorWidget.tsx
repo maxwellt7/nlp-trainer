@@ -8,13 +8,22 @@ const RESOURCES_URL = 'https://widgets.leadconnectorhq.com/chat-widget/loader.js
 
 function injectWidget() {
   if (document.getElementById(SCRIPT_ID)) return;
-  const script = document.createElement('script');
-  script.id = SCRIPT_ID;
-  script.src = LOADER_SRC;
-  script.async = true;
-  script.setAttribute('data-resources-url', RESOURCES_URL);
-  script.setAttribute('data-widget-id', WIDGET_ID);
-  document.body.appendChild(script);
+  const append = () => {
+    if (document.getElementById(SCRIPT_ID)) return;
+    const script = document.createElement('script');
+    script.id = SCRIPT_ID;
+    script.src = LOADER_SRC;
+    script.async = true;
+    script.setAttribute('data-resources-url', RESOURCES_URL);
+    script.setAttribute('data-widget-id', WIDGET_ID);
+    document.body.appendChild(script);
+  };
+  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback;
+  if (typeof ric === 'function') {
+    ric(append, { timeout: 4000 });
+  } else {
+    window.setTimeout(append, 2000);
+  }
 }
 
 function removeWidget() {
