@@ -121,11 +121,19 @@ async function upsertContact({ email, name, phone, tags, customFields, source })
   }
 
   if (contact) {
-    // Update existing contact
+    // Update existing contact.
+    // GHL v2 PUT /contacts/{id} rejects `locationId` in the body (422 Unprocessable Entity).
+    // The contact ID in the URL already scopes the request to the right location.
+    // Also strip `tags` here — tag merge behavior on PUT is unreliable; we add tags
+    // explicitly via the dedicated /contacts/{id}/tags endpoint instead.
+    const { locationId: _locationId, tags: tagsToAdd, ...updateBody } = body;
     const result = await ghlFetch(`/contacts/${contact.id}`, {
       method: 'PUT',
-      body: JSON.stringify(body),
+      body: JSON.stringify(updateBody),
     });
+    if (tagsToAdd && tagsToAdd.length > 0) {
+      await addTags(contact.id, tagsToAdd);
+    }
     return result?.contact || contact;
   } else {
     // Create new contact
@@ -297,7 +305,7 @@ async function handleSubscription({ email, plan, amount }) {
 
   const contact = await upsertContact({
     email,
-    tags: ['subscribed'],
+    tags: ['subscribed', 'purchased', 'alignment-engine-paid'],
     customFields: {
       subscription_plan: plan || '$19/mo',
       subscription_status: 'active',
