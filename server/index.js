@@ -15,9 +15,7 @@ import ghlRoutes from './routes/ghl.js';
 import analyticsRoutes from './routes/analytics.js';
 import provisionRoutes from './routes/provision.js';
 import stripeWebhookRoutes from './routes/stripe-webhook.js';
-import emailRoutes from './routes/email.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
-import { initEmailScheduler } from './services/emailScheduler.js';
 import { initKnowledgeBaseScheduler } from './services/knowledge-base-scheduler.js';
 import { buildRuntimeHealthPayload } from './config/runtime-health.js';
 
@@ -40,13 +38,6 @@ try {
   console.log(`Database initialized. Default user: ${userId}`);
 } catch (err) {
   console.error('Database initialization error:', err.message);
-}
-
-// Initialize email drip scheduler
-try {
-  initEmailScheduler();
-} catch (err) {
-  console.error('Email scheduler initialization error:', err.message);
 }
 
 // Initialize Dropbox → Pinecone knowledge-base sync scheduler
@@ -266,7 +257,6 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/ghl', ghlRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/provision-access', provisionRoutes);
-app.use('/api/email', emailRoutes);
 
 // Global error handler
 app.use((err, req, res, _next) => {
