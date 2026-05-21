@@ -18,6 +18,7 @@ import {
 import { processValueDetections, processIdentityStatements, buildIdentityContext } from '../services/identity.js';
 import { onSessionComplete, updateStreakMultiplier } from '../services/gamification.js';
 import { generateChunkedScript } from '../services/hypnosis-script-generator.js';
+import { getLocalTimeContext } from '../services/timezone.js';
 import {
   createJob,
   setJobRunning,
@@ -247,10 +248,11 @@ router.post('/init', async (req, res) => {
 
     // /init has no user query yet, so we skip RAG retrieval here.
     const systemPrompt = await buildSystemPrompt(userId, 'coaching');
+    const timeContext = getLocalTimeContext(effectiveTimezone);
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
-      system: systemPrompt + '\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally, reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.',
+      system: systemPrompt + `\n\n${timeContext}\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally (matching the time of day above), reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.`,
       messages: [
         { role: 'user', content: session.session_type === 'general_chat' ? '[SESSION_START] The user has opened a general coaching conversation.' : '[SESSION_START] The user has opened the app for their daily hypnosis session.' }
       ],
@@ -325,7 +327,8 @@ router.post('/chat', async (req, res) => {
 
     // RAG: use the last user message as the retrieval query so the model
     // sees chunks relevant to what the user just said.
-    const systemPrompt = await buildSystemPrompt(userId, 'coaching', lastUserMessageContent(messages));
+    const baseSystemPrompt = await buildSystemPrompt(userId, 'coaching', lastUserMessageContent(messages));
+    const systemPrompt = `${baseSystemPrompt}\n\n${getLocalTimeContext(effectiveTimezone)}`;
 
     const apiMessages = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
