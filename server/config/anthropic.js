@@ -56,20 +56,6 @@ function normalizeOpenAiResponse(response) {
   };
 }
 
-function normalizeLlamaResponse(response) {
-  const rawContent = response?.choices?.[0]?.message?.content;
-  const text = normalizeContentToString(rawContent);
-
-  return {
-    content: [{ text }],
-    usage: {
-      input_tokens: response?.usage?.prompt_tokens ?? 0,
-      output_tokens: response?.usage?.completion_tokens ?? 0,
-    },
-    provider: 'llama',
-  };
-}
-
 function shouldFallbackToOpenAI(error) {
   const status = Number(error?.status ?? error?.statusCode ?? 0);
   const message = String(
@@ -194,9 +180,8 @@ class GeminiClient {
   }
 }
 
-export function createMessagesApi({ anthropicClient, openAiClient, geminiClient, llamaClient, fallbackModel, llamaModel }) {
+export function createMessagesApi({ anthropicClient, openAiClient, geminiClient, fallbackModel }) {
   const resolvedFallbackModel = fallbackModel || process.env.OPENAI_FALLBACK_MODEL || process.env.OPENAI_MODEL || 'gpt-4.1-mini';
-  const resolvedLlamaModel = llamaModel || process.env.LLAMA_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
 
   const callOpenAi = async (request) => {
     const openAiResponse = await openAiClient.chat.completions.create(toOpenAiPayload(request, resolvedFallbackModel));
@@ -208,31 +193,16 @@ export function createMessagesApi({ anthropicClient, openAiClient, geminiClient,
     return normalizeGeminiResponse(geminiResponse);
   };
 
-  const callLlama = async (request) => {
-    const llamaResponse = await llamaClient.chat.completions.create(toOpenAiPayload(request, resolvedLlamaModel));
-    return normalizeLlamaResponse(llamaResponse);
-  };
-
   const tryGemini = async (request, priorError) => {
-    if (!geminiClient) {
-      if (!llamaClient) throw priorError;
-      console.warn('[LLM] Falling back to Llama:', priorError.message);
-      return await callLlama(request);
-    }
-    try {
-      return await callGemini(request);
-    } catch (geminiError) {
-      if (!llamaClient) throw geminiError;
-      console.warn('[LLM] Gemini fallback failed, falling back to Llama:', geminiError.message);
-      return await callLlama(request);
-    }
+    if (!geminiClient) throw priorError;
+    return await callGemini(request);
   };
 
   return {
     async create(request) {
       if (!anthropicClient) {
-        if (!openAiClient && !geminiClient && !llamaClient) {
-          throw new Error('No LLM provider is configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, or LLAMA_API_KEY.');
+        if (!openAiClient && !geminiClient) {
+          throw new Error('No LLM provider is configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY.');
         }
 
         if (openAiClient) {
@@ -243,23 +213,13 @@ export function createMessagesApi({ anthropicClient, openAiClient, geminiClient,
           }
         }
 
-        if (geminiClient) {
-          try {
-            return await callGemini(request);
-          } catch (geminiError) {
-            if (!llamaClient) throw geminiError;
-            console.warn('[LLM] Gemini failed, falling back to Llama:', geminiError.message);
-            return await callLlama(request);
-          }
-        }
-
-        return await callLlama(request);
+        return await callGemini(request);
       }
 
       try {
         return await anthropicClient.messages.create(request);
       } catch (error) {
-        if (!shouldFallbackToOpenAI(error) || (!openAiClient && !geminiClient && !llamaClient)) {
+        if (!shouldFallbackToOpenAI(error) || (!openAiClient && !geminiClient)) {
           throw error;
         }
 
@@ -272,7 +232,7 @@ export function createMessagesApi({ anthropicClient, openAiClient, geminiClient,
           }
         }
 
-        console.warn('[LLM] Anthropic unavailable, falling back to Gemini/Llama:', error.message);
+        console.warn('[LLM] Anthropic unavailable, falling back to Gemini:', error.message);
         return await tryGemini(request, error);
       }
     },
@@ -282,10 +242,9 @@ export function createMessagesApi({ anthropicClient, openAiClient, geminiClient,
 const anthropicKey = process.env.ANTHROPIC_API_KEY;
 const openAiKey = process.env.OPENAI_API_KEY;
 const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const llamaKey = process.env.LLAMA_API_KEY;
 
 if (!hasUsableKey(anthropicKey)) {
-  console.warn('WARNING: ANTHROPIC_API_KEY is not set or is a placeholder. Anthropic-backed chat will fall back to OpenAI/Gemini/Llama when configured.');
+  console.warn('WARNING: ANTHROPIC_API_KEY is not set or is a placeholder. Anthropic-backed chat will fall back to OpenAI/Gemini when configured.');
 }
 
 if (!hasUsableKey(openAiKey)) {
@@ -294,10 +253,6 @@ if (!hasUsableKey(openAiKey)) {
 
 if (!hasUsableKey(geminiKey)) {
   console.warn('WARNING: GEMINI_API_KEY is not set or is a placeholder. Gemini fallback is unavailable until a valid key is provided.');
-}
-
-if (!hasUsableKey(llamaKey)) {
-  console.warn('WARNING: LLAMA_API_KEY is not set or is a placeholder. Llama fallback is unavailable until a valid key is provided.');
 }
 
 const anthropicClient = hasUsableKey(anthropicKey)
@@ -318,27 +273,14 @@ const geminiClient = hasUsableKey(geminiKey)
     })
   : null;
 
-// Together AI is the default Llama host — it exposes an OpenAI-compatible API,
-// so we reuse the OpenAI SDK with a different baseURL. Swap LLAMA_BASE_URL to
-// point at Groq (https://api.groq.com/openai/v1), Fireworks, or an HF Inference
-// Provider without code changes.
-const llamaClient = hasUsableKey(llamaKey)
-  ? new OpenAI({
-      apiKey: llamaKey,
-      baseURL: process.env.LLAMA_BASE_URL || 'https://api.together.xyz/v1',
-    })
-  : null;
-
 const anthropic = {
   messages: createMessagesApi({
     anthropicClient,
     openAiClient,
     geminiClient,
-    llamaClient,
     fallbackModel: process.env.OPENAI_FALLBACK_MODEL || process.env.OPENAI_MODEL || 'gpt-4.1-mini',
-    llamaModel: process.env.LLAMA_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
   }),
 };
 
-export { normalizeOpenAiResponse, normalizeGeminiResponse, normalizeLlamaResponse, shouldFallbackToOpenAI, GeminiClient };
+export { normalizeOpenAiResponse, normalizeGeminiResponse, shouldFallbackToOpenAI, GeminiClient };
 export default anthropic;
