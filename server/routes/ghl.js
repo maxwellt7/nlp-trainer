@@ -8,7 +8,6 @@ import {
   updateEngagement,
   isConfigured,
 } from '../services/ghl.js';
-import { registerTrialSignup, triggerWinBack } from '../services/emailScheduler.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -143,14 +142,16 @@ router.post('/webhook', (req, res) => {
       ? `${contact.firstName}${contact.lastName ? ` ${contact.lastName}` : ''}`
       : null;
 
+    // Stage-change notifications are now informational only — GHL handles all
+    // customer email automations natively. The internal Nodemailer drip system
+    // was removed; this endpoint stays so GHL webhook config doesn't break and
+    // future per-stage server-side actions have a hook to plug into.
     if (stageId === SIGNED_UP_STAGE_ID) {
-      registerTrialSignup({ email, name });
-      console.log(`[GHL Webhook] Signed up → registered trial nurture: ${email}`);
+      console.log(`[GHL Webhook] Signed up: ${email} (email handled by GHL)`);
     } else if (stageId === CHURNED_STAGE_ID) {
-      triggerWinBack({ email, name });
-      console.log(`[GHL Webhook] Churned → triggered win-back: ${email}`);
+      console.log(`[GHL Webhook] Churned: ${email} (email handled by GHL)`);
     } else {
-      console.log(`[GHL Webhook] Unhandled stage ${stageId} for ${email} — no action`);
+      console.log(`[GHL Webhook] Stage ${stageId} for ${email} — no action`);
     }
 
     res.json({ ok: true });
