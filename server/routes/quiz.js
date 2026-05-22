@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { requireAdmin } from '../middleware/auth.js';
+import { signLeadToken } from '../middleware/tokens.js';
 
 const router = express.Router();
 
@@ -94,31 +95,139 @@ try {
 }
 
 // ── POST /api/quiz/lead — Store quiz lead + fire CAPI Lead event ──
+//
+// Supports two caller paths:
+//   Legacy path  — POST { email, name, score, tier, answers, sourceUrl, userAgent, fbp, fbc }
+//                  → returns { success: true }
+//   New funnel   — POST with any of pattern_scores | result_program | depth_score also present
+//                  → persists funnel fields + enqueues 6 drip emails in quiz_email_sends
+//                  → returns { success: true, lead_id, lead_token }
+//
+// NOTE on idempotence: duplicate POSTs (e.g. double-tap) will create duplicate rows.
+// Deduplication via ON CONFLICT(email) is deferred to a future task.
+//
+// Drip email schedule offsets from gate_at (hours): 1, 24, 48, 72, 96, 144
+const DRIP_OFFSETS_HOURS = [1, 24, 48, 72, 96, 144];
+
 router.post('/lead', async (req, res) => {
   try {
-    const { email, name, score, tier, answers, sourceUrl, userAgent, fbp, fbc } = req.body;
+    const {
+      // Legacy fields
+      email, name, score, tier, answers,
+      sourceUrl, userAgent, fbp, fbc,
+      // New funnel fields (all optional)
+      pattern_scores,
+      result_program,
+      depth_score,
+      depth_band,
+      q2_style,
+      q9_fear,
+      utm,
+    } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Store in database
-    db.prepare(`
-      INSERT INTO quiz_leads (email, name, score, tier, answers, source_url, user_agent, fbp, fbc)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      email,
-      name || null,
-      score || null,
-      tier || null,
-      answers ? JSON.stringify(answers) : null,
-      sourceUrl || null,
-      userAgent || null,
-      fbp || null,
-      fbc || null
+    // Determine whether this is a new-funnel submission.
+    // Presence of any of these three fields signals the align funnel.
+    const isFunnelSubmission = (
+      pattern_scores !== undefined ||
+      result_program !== undefined ||
+      depth_score !== undefined
     );
 
-    // Fire CAPI Lead event
+    // Flatten utm object → individual columns
+    const utmSource   = utm?.source   || null;
+    const utmMedium   = utm?.medium   || null;
+    const utmCampaign = utm?.campaign || null;
+    const utmContent  = utm?.content  || null;
+
+    let leadId;
+
+    if (isFunnelSubmission) {
+      // ── New funnel path: all inserts in one transaction ──
+      // db.transaction() uses rawDb directly (no intermediate save()) to avoid
+      // sql.js's export()-triggered auto-commit that would break BEGIN/COMMIT.
+      try {
+        leadId = db.transaction((txDb) => {
+          txDb.prepare(`
+            INSERT INTO quiz_leads (
+              email, name, score, tier, answers,
+              source_url, user_agent, fbp, fbc,
+              pattern_scores, result_program, depth_score, depth_band,
+              q2_style, q9_fear,
+              utm_source, utm_medium, utm_campaign, utm_content,
+              gate_at
+            )
+            VALUES (
+              ?, ?, ?, ?, ?,
+              ?, ?, ?, ?,
+              ?, ?, ?, ?,
+              ?, ?,
+              ?, ?, ?, ?,
+              datetime('now')
+            )
+          `).run(
+            email,
+            name || null,
+            score != null ? score : null,
+            tier || null,
+            answers ? JSON.stringify(answers) : null,
+            sourceUrl || null,
+            userAgent || null,
+            fbp || null,
+            fbc || null,
+            pattern_scores ? JSON.stringify(pattern_scores) : null,
+            result_program || null,
+            depth_score != null ? depth_score : null,
+            depth_band || null,
+            q2_style || null,
+            q9_fear || null,
+            utmSource,
+            utmMedium,
+            utmCampaign,
+            utmContent,
+          );
+
+          // Get the auto-incremented lead id
+          const row = txDb.prepare('SELECT last_insert_rowid() as rowid').get();
+          const newLeadId = row.rowid;
+
+          // Enqueue 6 drip emails
+          const insertSend = txDb.prepare(`
+            INSERT INTO quiz_email_sends (quiz_lead_id, email_num, status, scheduled_for)
+            VALUES (?, ?, 'queued', datetime('now', ? || ' hours'))
+          `);
+          for (let i = 0; i < DRIP_OFFSETS_HOURS.length; i++) {
+            insertSend.run(newLeadId, i + 1, String('+' + DRIP_OFFSETS_HOURS[i]));
+          }
+
+          return newLeadId;
+        });
+      } catch (txErr) {
+        console.error('Quiz lead transaction error:', txErr.message);
+        return res.status(500).json({ error: 'Failed to save lead' });
+      }
+    } else {
+      // ── Legacy path: single insert, no transaction needed ──
+      db.prepare(`
+        INSERT INTO quiz_leads (email, name, score, tier, answers, source_url, user_agent, fbp, fbc)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        email,
+        name || null,
+        score != null ? score : null,
+        tier || null,
+        answers ? JSON.stringify(answers) : null,
+        sourceUrl || null,
+        userAgent || null,
+        fbp || null,
+        fbc || null
+      );
+    }
+
+    // Fire CAPI Lead event (both paths)
     await sendCapiEvent('Lead', {
       email,
       sourceUrl,
@@ -133,10 +242,19 @@ router.post('/lead', async (req, res) => {
       },
     });
 
-    // Push to GoHighLevel CRM (async, don't block response)
-    handleQuizLead({ email, name, score, tier, answers }).catch(err => {
+    // Push to GoHighLevel CRM (async, don't block response).
+    // Pass funnel fields through so A.5 can use them when it extends handleQuizLead.
+    handleQuizLead({
+      email, name, score, tier, answers,
+      result_program, depth_band, q9_fear, pattern_scores,
+    }).catch(err => {
       console.error('[GHL] Quiz lead push failed:', err.message);
     });
+
+    if (isFunnelSubmission) {
+      const lead_token = signLeadToken(leadId);
+      return res.json({ success: true, lead_id: leadId, lead_token });
+    }
 
     res.json({ success: true });
   } catch (err) {

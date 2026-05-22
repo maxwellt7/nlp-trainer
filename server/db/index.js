@@ -324,6 +324,82 @@ const db = {
   pragma(str) {
     // sql.js doesn't support pragmas the same way, silently ignore
   },
+
+  /**
+   * Run a synchronous callback inside a BEGIN/COMMIT transaction.
+   *
+   * sql.js's rawDb.export() (called inside save()) implicitly commits any open
+   * transaction, so we cannot interleave individual prepare().run() calls (each
+   * of which calls save()) with an open transaction.  This method solves that by
+   * running all statements against rawDb directly — without save() — and only
+   * persisting once after COMMIT.
+   *
+   * Usage:
+   *   db.transaction((txDb) => {
+   *     txDb.prepare('INSERT …').run(…);
+   *   });
+   *
+   * WARNING: Do NOT call db.prepare(…) from inside the callback — that goes
+   * through the outer db wrapper which calls save() and will prematurely commit
+   * the transaction.  Always use the txDb argument exclusively within the callback.
+   *
+   * @param {function(txDb: object): any} fn - Synchronous callback.  Any throw
+   *   triggers a ROLLBACK.  The return value of fn is returned from transaction().
+   * @returns {any} Return value of fn.
+   * @throws {Error} If called while another db.transaction() is already active (nested transactions are not supported).
+   * @throws Re-throws any error from fn after ROLLBACK.
+   */
+  transaction(fn) {
+    if (!rawDb) throw new Error('DB not initialized');
+    if (db._inTransaction) {
+      throw new Error('Nested db.transaction() is not supported');
+    }
+
+    // Thin wrapper that talks directly to rawDb — no save() between steps.
+    const txDb = {
+      prepare(sql) {
+        return {
+          run(...params) {
+            rawDb.run(sql, params);
+            return { changes: rawDb.getRowsModified() };
+          },
+          get(...params) {
+            const stmt = rawDb.prepare(sql);
+            stmt.bind(params);
+            if (stmt.step()) {
+              const row = stmt.getAsObject();
+              stmt.free();
+              return row;
+            }
+            stmt.free();
+            return undefined;
+          },
+          all(...params) {
+            const results = [];
+            const stmt = rawDb.prepare(sql);
+            stmt.bind(params);
+            while (stmt.step()) results.push(stmt.getAsObject());
+            stmt.free();
+            return results;
+          },
+        };
+      },
+    };
+
+    db._inTransaction = true;
+    rawDb.run('BEGIN');
+    try {
+      const result = fn(txDb);
+      rawDb.run('COMMIT');
+      save(); // persist to disk once after commit
+      return result;
+    } catch (err) {
+      try { rawDb.run('ROLLBACK'); } catch (_) { /* ignore secondary errors */ }
+      throw err;
+    } finally {
+      db._inTransaction = false;
+    }
+  },
 };
 
 // Wait for init before exporting
