@@ -428,3 +428,183 @@ test('10. Backwards compat — null optional fields do not crash legacy INSERT',
   assert.equal(leads[0].name, null);
   assert.equal(leads[0].score, null);
 });
+
+// ── GET /api/quiz/lead/:token tests ──────────────────────────────────────────
+//
+// These tests exercise the handler logic directly (same pattern as above):
+// we build the DB state, call the handler function, and assert on the result.
+
+/**
+ * Minimal handler simulation for GET /api/quiz/lead/:token.
+ * Mirrors the actual handler logic so we can test it without standing up Express.
+ */
+function handleGetLeadByToken(db, token) {
+  const payload = verifyLeadToken(token);
+  if (!payload) {
+    return { status: 404, body: { error: 'Not found' }, headers: { 'Cache-Control': 'no-store' } };
+  }
+
+  const lead = db.prepare(
+    'SELECT name, result_program, depth_band FROM quiz_leads WHERE id = ?'
+  ).get(payload.lead_id);
+
+  if (!lead) {
+    return { status: 404, body: { error: 'Not found' }, headers: { 'Cache-Control': 'no-store' } };
+  }
+
+  const firstName = lead.name
+    ? (lead.name.trim().split(/\s+/)[0] || 'there')
+    : 'there';
+
+  return {
+    status: 200,
+    body: {
+      first_name: firstName,
+      result_program: lead.result_program,
+      depth_band: lead.depth_band,
+    },
+    headers: { 'Cache-Control': 'no-store' },
+  };
+}
+
+test('11. GET /lead/:token — valid token returns 200 with expected fields', async () => {
+  const db = await makeDb();
+
+  const { leadId } = funnelInsert(db, {
+    email: 'alice@test.com',
+    name: 'Alice Wonder',
+    result_program: 'over-preparer',
+    depth_band: 'deep-rooted',
+    depth_score: 8,
+    pattern_scores: { A: 3, B: 2, C: 4, D: 1 },
+  });
+
+  const token = signLeadToken(leadId);
+  const result = handleGetLeadByToken(db, token);
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.first_name, 'Alice', 'first_name should be first word of name');
+  assert.equal(result.body.result_program, 'over-preparer');
+  assert.equal(result.body.depth_band, 'deep-rooted');
+});
+
+test('12. GET /lead/:token — response contains ONLY first_name, result_program, depth_band', async () => {
+  const db = await makeDb();
+
+  const { leadId } = funnelInsert(db, {
+    email: 'bob@test.com',
+    name: 'Bob Smith',
+    result_program: 'self-censor',
+    depth_band: 'surface',
+    depth_score: 3,
+    q9_fear: 'being seen',
+    pattern_scores: { A: 1, B: 4, C: 2, D: 3 },
+  });
+
+  const token = signLeadToken(leadId);
+  const result = handleGetLeadByToken(db, token);
+
+  assert.equal(result.status, 200);
+
+  // Exact key match — no other columns (email, score, q9_fear, etc.) must be present
+  const keys = Object.keys(result.body).sort();
+  assert.deepEqual(keys, ['depth_band', 'first_name', 'result_program'],
+    'Response must contain EXACTLY these three keys');
+});
+
+test('13. GET /lead/:token — tampered token returns 404', async () => {
+  const db = await makeDb();
+
+  const { leadId } = funnelInsert(db, {
+    email: 'carol@test.com',
+    result_program: 'loop',
+    depth_band: 'mid',
+    depth_score: 5,
+    pattern_scores: { A: 2, B: 2, C: 3, D: 3 },
+  });
+
+  const validToken = signLeadToken(leadId);
+  // Tamper: flip a character in the signature portion
+  const [payloadPart, sigPart] = validToken.split('.');
+  const tamperedSig = sigPart.slice(0, -1) + (sigPart.endsWith('a') ? 'b' : 'a');
+  const tamperedToken = `${payloadPart}.${tamperedSig}`;
+
+  const result = handleGetLeadByToken(db, tamperedToken);
+
+  assert.equal(result.status, 404);
+  assert.deepEqual(result.body, { error: 'Not found' });
+});
+
+test('14. GET /lead/:token — expired token returns 404', async () => {
+  const db = await makeDb();
+
+  const { leadId } = funnelInsert(db, {
+    email: 'dave@test.com',
+    result_program: 'collapse',
+    depth_band: 'shallow',
+    depth_score: 2,
+    pattern_scores: { A: 4, B: 1, C: 2, D: 3 },
+  });
+
+  // Sign with a TTL of -1ms (already expired by the time verifyLeadToken checks)
+  const expiredToken = signLeadToken(leadId, -1);
+
+  const result = handleGetLeadByToken(db, expiredToken);
+
+  assert.equal(result.status, 404);
+  assert.deepEqual(result.body, { error: 'Not found' });
+});
+
+test('15. GET /lead/:token — token for non-existent lead_id returns 404', async () => {
+  const db = await makeDb();
+
+  // Sign a token for an id that doesn't exist in the DB
+  const ghostToken = signLeadToken(99999);
+  const result = handleGetLeadByToken(db, ghostToken);
+
+  assert.equal(result.status, 404);
+  assert.deepEqual(result.body, { error: 'Not found' });
+});
+
+test('16. GET /lead/:token — Cache-Control: no-store header is always set', async () => {
+  const db = await makeDb();
+
+  // Case A: valid token
+  const { leadId } = funnelInsert(db, {
+    email: 'eve@test.com',
+    result_program: 'perfectionist',
+    depth_band: 'deep-rooted',
+    depth_score: 9,
+    pattern_scores: { A: 1, B: 2, C: 3, D: 4 },
+  });
+  const validToken = signLeadToken(leadId);
+  const okResult = handleGetLeadByToken(db, validToken);
+  assert.equal(okResult.headers['Cache-Control'], 'no-store',
+    'Cache-Control: no-store must be set on 200 response');
+
+  // Case B: invalid token
+  const errResult = handleGetLeadByToken(db, 'bad.token');
+  assert.equal(errResult.headers['Cache-Control'], 'no-store',
+    'Cache-Control: no-store must be set on 404 response');
+});
+
+test('17. GET /lead/:token — null name returns first_name "there"', async () => {
+  const db = await makeDb();
+
+  // Insert via funnel path but with no name field
+  const { leadId } = funnelInsert(db, {
+    email: 'noname@test.com',
+    // name is intentionally omitted → NULL in DB
+    result_program: 'loop',
+    depth_band: 'mid',
+    depth_score: 5,
+    pattern_scores: { A: 2, B: 2, C: 3, D: 3 },
+  });
+
+  const token = signLeadToken(leadId);
+  const result = handleGetLeadByToken(db, token);
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.first_name, 'there',
+    'first_name should be "there" when name is null');
+});

@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { requireAdmin } from '../middleware/auth.js';
-import { signLeadToken } from '../middleware/tokens.js';
+import { signLeadToken, verifyLeadToken } from '../middleware/tokens.js';
 
 const router = express.Router();
 
@@ -325,6 +325,39 @@ router.post('/event', async (req, res) => {
     console.error('Quiz event error:', err.message);
     res.status(500).json({ error: 'Failed to send event' });
   }
+});
+
+// ── GET /api/quiz/lead/:token — Token-scoped read for funnel result page ──
+//
+// Public — no Clerk auth required. The token IS the auth.
+// Returns only the three fields needed by the align-funnel /start/result SSR page.
+// Always returns 404 on any failure (bad token, expired, forged, missing lead) — no info leak.
+router.get('/lead/:token', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+
+  const payload = verifyLeadToken(req.params.token);
+  if (!payload) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const lead = db.prepare(
+    'SELECT name, result_program, depth_band FROM quiz_leads WHERE id = ?'
+  ).get(payload.lead_id);
+
+  if (!lead) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  // Derive first_name from the name column: first word of name, or 'there' if null/empty
+  const firstName = lead.name
+    ? (lead.name.trim().split(/\s+/)[0] || 'there')
+    : 'there';
+
+  return res.json({
+    first_name: firstName,
+    result_program: lead.result_program,
+    depth_band: lead.depth_band,
+  });
 });
 
 // ── GET /api/quiz/leads — List leads (admin only) ──
