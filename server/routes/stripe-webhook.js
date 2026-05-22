@@ -363,6 +363,40 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       console.error(`[Stripe Webhook] GHL failed:`, err.message);
     }
 
+    // 5. Mark quiz_leads row as purchased (so funnel-drip-scheduler stops nurture emails)
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Detect if bump was purchased
+      // Priority 1: Check line_items if available
+      let hasBump = false;
+      if (session.line_items?.data && Array.isArray(session.line_items.data)) {
+        hasBump = session.line_items.data.some(item =>
+          item.description?.includes('bump') ||
+          item.name?.includes('bump') ||
+          (item.price?.metadata?.type === 'bump')
+        );
+      }
+      // Fallback: Check if amount_total >= 3400 cents ($34 = $7 + $27 bump)
+      if (!hasBump && session.amount_total && session.amount_total >= 3400) {
+        hasBump = true;
+      }
+
+      if (hasBump) {
+        // Update both purchased and bump_purchased
+        db.prepare(`UPDATE quiz_leads SET purchased = 1, bump_purchased = 1 WHERE email = ?`)
+          .run(normalizedEmail);
+        console.log(`[Stripe Webhook] Marked lead as purchased + bump for: ${email}`);
+      } else {
+        // Update only purchased
+        db.prepare(`UPDATE quiz_leads SET purchased = 1 WHERE email = ?`)
+          .run(normalizedEmail);
+        console.log(`[Stripe Webhook] Marked lead as purchased for: ${email}`);
+      }
+    } catch (err) {
+      console.error('[Stripe Webhook] Failed to mark lead purchased:', err.message);
+    }
+
     console.log(`[Stripe Webhook] ✅ All post-purchase actions completed for: ${email}`);
   }
 
