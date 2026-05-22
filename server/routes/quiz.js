@@ -42,6 +42,53 @@ try {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `).run();
+
+  // ── Additive migrations for quiz_leads (idempotent via try/catch) ──
+  function tryAddColumn(table, columnDef) {
+    try {
+      db.prepare(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`).run();
+    } catch (err) {
+      // SQLite throws "duplicate column name" when column already exists; ignore it
+      if (!String(err.message || '').includes('duplicate column')) throw err;
+    }
+  }
+
+  tryAddColumn('quiz_leads', 'pattern_scores TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'result_program TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'depth_score INTEGER DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'depth_band TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'q2_style TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'q9_fear TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'utm_source TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'utm_medium TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'utm_campaign TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'utm_content TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'gate_at TEXT DEFAULT NULL');
+  tryAddColumn('quiz_leads', 'unsubscribed INTEGER DEFAULT 0');
+  tryAddColumn('quiz_leads', 'purchased INTEGER DEFAULT 0');
+  tryAddColumn('quiz_leads', 'bump_purchased INTEGER DEFAULT 0');
+
+  // ── New table: quiz_email_sends ──
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS quiz_email_sends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quiz_lead_id INTEGER NOT NULL REFERENCES quiz_leads(id),
+      email_num INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      resend_message_id TEXT,
+      error_message TEXT,
+      scheduled_for TEXT NOT NULL,
+      sent_at TEXT,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (quiz_lead_id, email_num)
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_qes_due
+      ON quiz_email_sends (status, scheduled_for)
+  `).run();
 } catch (err) {
   console.error('Failed to create quiz_leads table:', err.message);
 }
