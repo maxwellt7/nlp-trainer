@@ -18,6 +18,7 @@ import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import emailRoutes from './routes/email.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
 import { initKnowledgeBaseScheduler } from './services/knowledge-base-scheduler.js';
+import { initFunnelDripScheduler } from './services/funnel-drip-scheduler.js';
 import { buildRuntimeHealthPayload } from './config/runtime-health.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +48,9 @@ try {
 } catch (err) {
   console.error('Knowledge base scheduler initialization error:', err.message);
 }
+
+// Initialize funnel drip email scheduler
+try { initFunnelDripScheduler(); } catch (err) { console.error('Funnel drip scheduler init error:', err.message); }
 
 app.use(cors({
   origin: (origin, callback) => {
