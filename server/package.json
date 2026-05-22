@@ -12,6 +12,8 @@
     "@anthropic-ai/sdk": "^0.79.0",
     "@clerk/express": "^2.0.8",
     "@pinecone-database/pinecone": "^7.2.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.8",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "dropbox": "^10.34.0",
@@ -20,7 +22,11 @@
     "nodemailer": "^6.9.16",
     "openai": "^6.36.0",
     "pdf-parse": "^2.4.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resend": "^3.5.0",
     "sql.js": "^1.14.1",
+    "svix": "^1.16.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
