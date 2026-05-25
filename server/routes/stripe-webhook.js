@@ -22,7 +22,12 @@ import { handleSubscription, upsertContact, addTags } from '../services/ghl.js';
 
 const router = express.Router();
 
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+// Multiple signing secrets — one per Stripe account/destination wired to this endpoint.
+// Signature verification accepts the event if ANY of these secrets matches.
+const STRIPE_WEBHOOK_SECRETS = [
+  process.env.STRIPE_WEBHOOK_SECRET,    // start.sovereignty.app funnel
+  process.env.STRIPE_WEBHOOK_SECRET_2,  // Lovable funnel (separate Stripe account)
+].filter(Boolean);
 const META_PIXEL_ID = '2035820893688270';
 const META_CAPI_TOKEN = process.env.META_CAPI_TOKEN || '';
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
@@ -30,8 +35,9 @@ const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || '';
 /**
  * Verify Stripe webhook signature
  */
-function verifyStripeSignature(payload, sigHeader, secret) {
-  if (!secret) {
+function verifyStripeSignature(payload, sigHeader, secrets) {
+  const validSecrets = (Array.isArray(secrets) ? secrets : [secrets]).filter(Boolean);
+  if (validSecrets.length === 0) {
     console.error('[Stripe Webhook] No STRIPE_WEBHOOK_SECRET configured');
     return false;
   }
@@ -59,23 +65,24 @@ function verifyStripeSignature(payload, sigHeader, secret) {
     return false;
   }
 
-  // Compute expected signature
   const signedPayload = `${timestamp}.${payload}`;
-  const expectedSig = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('hex');
 
-  // Compare with constant-time comparison
-  return signatures.some(sig => {
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(expectedSig, 'hex'),
-        Buffer.from(sig, 'hex')
-      );
-    } catch {
-      return false;
-    }
+  // Accept if ANY configured secret produces a matching v1 signature.
+  return validSecrets.some(secret => {
+    const expectedSig = crypto
+      .createHmac('sha256', secret)
+      .update(signedPayload)
+      .digest('hex');
+    return signatures.some(sig => {
+      try {
+        return crypto.timingSafeEqual(
+          Buffer.from(expectedSig, 'hex'),
+          Buffer.from(sig, 'hex')
+        );
+      } catch {
+        return false;
+      }
+    });
   });
 }
 
@@ -291,7 +298,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
   const rawBody = req.body.toString('utf8');
 
   // Verify signature
-  if (!verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRET)) {
+  if (!verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRETS)) {
     console.error('[Stripe Webhook] Signature verification failed');
     return res.status(400).json({ error: 'Invalid signature' });
   }
@@ -319,6 +326,15 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     const stripeSessionId = session.id;
     const stripeCustomerId = typeof session.customer === 'string' ? session.customer : null;
     const amountTotal = session.amount_total ? session.amount_total / 100 : 7;
+    const currency = (session.currency || 'usd').toUpperCase();
+
+    // Derive a GHL plan label. Prefer metadata set by the funnel; fall back to
+    // the Stripe-rendered amount so the label is at least accurate for the SKU.
+    const planLabel =
+      session.metadata?.plan_label ||
+      session.metadata?.product_name ||
+      session.metadata?.plan ||
+      `${currency} ${amountTotal} — checkout`;
 
     if (!email) {
       console.error('[Stripe Webhook] No email in checkout session:', stripeSessionId);
@@ -355,7 +371,7 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
     try {
       await handleSubscription({
         email: email.toLowerCase().trim(),
-        plan: 'Alignment Engine Full Access ($7)',
+        plan: planLabel,
         amount: amountTotal,
       });
       console.log(`[Stripe Webhook] GHL updated for: ${email}`);
