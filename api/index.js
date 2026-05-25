@@ -13,7 +13,6 @@ import ghlRoutes from '../server/routes/ghl.js';
 import analyticsRoutes from '../server/routes/analytics.js';
 import provisionRoutes from '../server/routes/provision.js';
 import stripeWebhookRoutes from '../server/routes/stripe-webhook.js';
-import emailRoutes from '../server/routes/email.js';
 import { ensureDefaultUser, ensureUser } from '../server/services/profile.js';
 
 const app = express();
@@ -93,7 +92,6 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/ghl', ghlRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/provision-access', provisionRoutes);
-app.use('/api/email', emailRoutes);
 
 app.use((err, req, res, _next) => {
   console.error('Unhandled error:', err.message);
