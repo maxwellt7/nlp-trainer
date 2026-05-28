@@ -10,6 +10,8 @@
 // metadata (title, sessionSummary, keyThemes). Subsequent segments only
 // return their script chunk.
 
+import { recoverScriptText } from './message-sanitizer.js';
+
 export const SEGMENT_PLAN = [
   {
     name: 'intro_induction',
@@ -129,14 +131,15 @@ export async function generateChunkedScript({
     });
 
     const text = response?.content?.[0]?.text || '';
-    let parsed;
+    let parsed = {};
     try {
       parsed = parseJson(text);
     } catch (err) {
-      // Treat the entire response as the segment text if JSON parsing fails — better
-      // than aborting a 4-call generation halfway through.
-      console.warn(`[hypnosis] segment ${segIndex} JSON parse failed, using raw text:`, err.message);
-      parsed = { script: text };
+      // JSON parsing failed (typically max_tokens truncation). Don't blindly
+      // use raw text — if the truncation happened inside the JSON wrapper,
+      // the leading `{ "title": "...", "script": "...` would be fed to TTS
+      // and the synth would speak the literal word "script".
+      console.warn(`[hypnosis] segment ${segIndex} JSON parse failed, attempting recovery:`, err.message);
     }
 
     if (segPlan.expectsMetadata) {
@@ -145,7 +148,9 @@ export async function generateChunkedScript({
       if (Array.isArray(parsed.keyThemes)) metadata.keyThemes = parsed.keyThemes;
     }
 
-    const segmentText = String(parsed.script || '').trim();
+    // recoverScriptText prefers parsed.script, strips a leaked JSON wrapper
+    // when parsing failed, and returns '' when nothing usable remains.
+    const segmentText = recoverScriptText(text, parsed.script).trim();
     if (!segmentText) {
       throw new Error(`Hypnosis segment ${segIndex} (${segPlan.name}) returned empty script`);
     }

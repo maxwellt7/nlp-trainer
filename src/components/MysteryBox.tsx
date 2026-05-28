@@ -2,16 +2,33 @@ import { useState } from 'react';
 import { api } from '../services/api';
 
 interface MysteryBoxProps {
+  // Accept either snake_case (DB / GET /mystery-boxes) or camelCase
+  // (legacy callers) — normalized internally so the renderer can rely on
+  // a single shape.
   box: {
     id: string;
     rarity: string;
-    reward_type: string;
-    reward_title: string;
+    reward_type?: string;
+    reward_title?: string;
     reward_content?: string | null;
+    rewardType?: string;
+    rewardTitle?: string;
+    rewardContent?: string | null;
     opened?: number;
-    created_at: string;
+    created_at?: string;
   };
   onOpened?: (box: any) => void;
+}
+
+function normalizeBox(box: MysteryBoxProps['box']) {
+  return {
+    id: box.id,
+    rarity: box.rarity,
+    reward_type: box.reward_type ?? box.rewardType ?? '',
+    reward_title: box.reward_title ?? box.rewardTitle ?? '',
+    reward_content: box.reward_content ?? box.rewardContent ?? null,
+    opened: box.opened,
+  };
 }
 
 const rarityConfig: Record<string, { label: string; color: string; bg: string; glow: string; border: string }> = {
@@ -54,21 +71,27 @@ function parseRewardContent(content: string, _type: string) {
 }
 
 export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
+  const normalized = normalizeBox(box);
   const [opening, setOpening] = useState(false);
-  const [revealed, setRevealed] = useState(!!box.opened);
-  const [rewardContent, setRewardContent] = useState<any>(box.reward_content ? parseRewardContent(box.reward_content, box.reward_type) : null);
+  const [revealed, setRevealed] = useState(!!normalized.opened);
+  const [rewardContent, setRewardContent] = useState<any>(normalized.reward_content ? parseRewardContent(normalized.reward_content, normalized.reward_type) : null);
 
-  const config = rarityConfig[box.rarity] || rarityConfig.common;
+  const config = rarityConfig[normalized.rarity] || rarityConfig.common;
 
   const handleOpen = async () => {
     if (opening || revealed) return;
     setOpening(true);
     if (navigator.vibrate) navigator.vibrate(50);
     try {
-      const result = await api.openMysteryBox(box.id);
+      const result = await api.openMysteryBox(normalized.id);
+      const resultNormalized = normalizeBox(result);
       setTimeout(() => {
         setRevealed(true);
-        setRewardContent(parseRewardContent(result.reward_content, result.reward_type));
+        setRewardContent(
+          resultNormalized.reward_content
+            ? parseRewardContent(resultNormalized.reward_content, resultNormalized.reward_type)
+            : null
+        );
         if (navigator.vibrate) navigator.vibrate([30, 50, 100]);
         onOpened?.(result);
       }, 800);
@@ -134,14 +157,16 @@ export default function MysteryBox({ box, onOpened }: MysteryBoxProps) {
         boxShadow: `0 0 20px ${config.glow}`,
       }}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm font-semibold" style={{ color: config.color }}>{box.reward_title}</span>
+        <span className="text-sm font-semibold" style={{ color: config.color }}>
+          {normalized.reward_title || 'Sealed Intel'}
+        </span>
         <span className="text-uppercase-spaced px-1.5 py-0.5 rounded"
           style={{ background: config.bg, color: config.color, border: `1px solid ${config.border}`, fontSize: '0.55rem' }}>
           {config.label}
         </span>
       </div>
       <div className="text-sm leading-relaxed" style={{ color: 'var(--color-text-primary)' }}>
-        {renderRewardContent(rewardContent, box.reward_type)}
+        {renderRewardContent(rewardContent, normalized.reward_type)}
       </div>
     </div>
   );
@@ -203,5 +228,17 @@ function renderRewardContent(content: any, _type: string) {
     );
   }
 
-  return <p style={{ color: 'var(--color-text-secondary)' }}>{JSON.stringify(content)}</p>;
+  // Unknown shape: pull the most reasonable text field rather than dumping
+  // raw JSON into the chat. Falls back to a friendly placeholder if nothing
+  // string-like is present.
+  const fallbackText =
+    (typeof content.content === 'string' && content.content) ||
+    (typeof content.text === 'string' && content.text) ||
+    (typeof content.description === 'string' && content.description) ||
+    (typeof content.message === 'string' && content.message) ||
+    '';
+  if (fallbackText) {
+    return <p style={{ color: 'var(--color-text-secondary)' }}>{fallbackText}</p>;
+  }
+  return <p style={{ color: 'var(--color-text-muted)' }}>Content unavailable</p>;
 }

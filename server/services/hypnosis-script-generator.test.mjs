@@ -109,6 +109,36 @@ test('generateChunkedScript throws if any segment is empty (script generation mu
   );
 });
 
+test('generateChunkedScript recovers the script field when a segment is JSON-truncated mid-value', async () => {
+  // Reproduces the audio bug: max_tokens cut a segment off mid-string. Old
+  // code stored the raw model text as the script, so TTS spoke the literal
+  // `"script": "..."` JSON wrapper (the word "script" appeared in the audio).
+  const mock = makeMockLlm([
+    { title: 't', sessionSummary: 's', keyThemes: [], script: 'intro' },
+    // Truncated JSON: no closing quote, no closing brace. JSON.parse will throw.
+    '{\n  "script": "Allow your eyes to soften and your breath to slow',
+    { script: 'three' },
+    { script: 'four' },
+  ]);
+
+  const result = await generateChunkedScript({
+    systemPrompt: 'sys',
+    apiMessages: [{ role: 'user', content: 'help' }],
+    llm: mock.fn,
+    parseJson: trivialParseJson,
+  });
+
+  assert.equal(
+    result.segments[1],
+    'Allow your eyes to soften and your breath to slow',
+  );
+  // The leaked JSON wrapper key MUST NOT appear in any stitched segment text
+  // — that's what TTS receives.
+  for (const seg of result.segments) {
+    assert.doesNotMatch(seg, /"script"\s*:/);
+  }
+});
+
 test('generateChunkedScript only the FIRST segment is asked for metadata', async () => {
   const mock = makeMockLlm([
     { title: 't', sessionSummary: 's', keyThemes: [], script: 'a' },

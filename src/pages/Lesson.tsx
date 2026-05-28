@@ -62,6 +62,39 @@ export default function Lesson() {
   );
   if (!lesson) return <div className="p-8 text-gray-400">Loading lesson...</div>;
 
+  // Render an inline value inside a key:value row. Recurses into nested
+  // objects so a shape like `neuro: {definition, senses}` reads as nested
+  // labelled rows instead of dumping `{"definition":"...","senses":[...]}`.
+  const renderInlineValue = (v: any): React.ReactNode => {
+    if (v === null || v === undefined) return null;
+    if (Array.isArray(v)) {
+      // Mixed arrays render each item; object items recurse into a sub-block.
+      if (v.some((item) => typeof item === 'object' && item !== null)) {
+        return (
+          <div className="mt-1 ml-3 space-y-1">
+            {v.map((item, i) => (
+              <div key={i}>{renderInlineValue(item)}</div>
+            ))}
+          </div>
+        );
+      }
+      return v.map((item) => String(item)).join(', ');
+    }
+    if (typeof v === 'object') {
+      return (
+        <div className="mt-1 ml-3 space-y-1">
+          {Object.entries(v).map(([k, sub]) => (
+            <div key={k}>
+              <span className="text-gray-500 capitalize">{k.replace(/([A-Z])/g, ' $1').trim()}:</span>{' '}
+              {renderInlineValue(sub)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return String(v);
+  };
+
   const renderContent = (data: any): React.ReactNode => {
     if (Array.isArray(data)) {
       return data.map((item: any, i: number) => {
@@ -90,7 +123,10 @@ export default function Lesson() {
               <h3 className="font-semibold capitalize mb-2">{key.replace(/([A-Z])/g, ' $1').trim()}</h3>
               <div className="text-sm text-gray-300 space-y-1">
                 {Object.entries(value).map(([k, v]) => (
-                  <div key={k}><span className="text-gray-500">{k}:</span> {Array.isArray(v) ? v.map(item => typeof item === 'object' ? JSON.stringify(item) : String(item)).join(', ') : (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v))}</div>
+                  <div key={k}>
+                    <span className="text-gray-500 capitalize">{k.replace(/([A-Z])/g, ' $1').trim()}:</span>{' '}
+                    {renderInlineValue(v)}
+                  </div>
                 ))}
               </div>
             </div>

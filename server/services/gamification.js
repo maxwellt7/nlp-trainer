@@ -336,8 +336,12 @@ export function generateMysteryBox(userId, sessionId = null) {
   return {
     id: boxId,
     rarity,
-    rewardType: template.type,
-    rewardTitle: template.title,
+    // snake_case matches the DB columns and what every consumer (the
+    // /mystery-boxes GET, the MysteryBox React component) reads. Previously
+    // returned camelCase, which silently broke the Hypnosis post-session
+    // reward render (title vanished, body fell through to the JSON dump).
+    reward_type: template.type,
+    reward_title: template.title,
     // Don't include content until opened
   };
 }
