@@ -4,6 +4,8 @@
  * and pipeline stage updates for the Alignment Engine funnel.
  */
 
+import { ensureOpportunityForContact } from './ghl-opportunity.js';
+
 const GHL_API_BASE = 'https://services.leadconnectorhq.com';
 
 // Config — loaded from env vars (set in Railway)
@@ -242,11 +244,19 @@ async function handleQuizLead({ email, name, score, tier, answers }) {
     await addTags(contact.id, [archetypeTag]);
   }
 
-  // Create opportunity at Quiz Lead stage
-  await createOpportunity(contact.id, {
+  // Idempotent — re-taking the quiz must not duplicate-reject from GHL.
+  await ensureOpportunityForContact(contact.id, {
     stageId: STAGES.quiz_lead,
     name: `${name || email} — Quiz Lead`,
     monetaryValue: 0,
+  }, {
+    find: () => findOpportunities(contact.id),
+    create: () => createOpportunity(contact.id, {
+      stageId: STAGES.quiz_lead,
+      name: `${name || email} — Quiz Lead`,
+      monetaryValue: 0,
+    }),
+    update: (id, payload) => updateOpportunity(id, payload),
   });
 
   console.log(`[GHL] Quiz lead created: ${contact.id}`);
@@ -277,19 +287,22 @@ async function handleSignup({ email, clerkUserId, name }) {
   // Remove quiz-lead tag (they've progressed)
   await removeTags(contact.id, ['quiz-lead']);
 
-  // Find and update existing opportunity, or create new one
-  const opportunities = await findOpportunities(contact.id);
-  if (opportunities.length > 0) {
-    await updateOpportunity(opportunities[0].id, {
-      stageId: STAGES.signed_up,
-    });
-  } else {
-    await createOpportunity(contact.id, {
+  // Idempotent opp-at-stage upsert — survives GHL's "duplicate" error path
+  // (find sometimes misses an opp that exists; then create rejects with
+  // duplicate-contact; we re-find and update instead of logging an error).
+  await ensureOpportunityForContact(contact.id, {
+    stageId: STAGES.signed_up,
+    name: `${name || email} — Signed Up`,
+    monetaryValue: 0,
+  }, {
+    find: () => findOpportunities(contact.id),
+    create: () => createOpportunity(contact.id, {
       stageId: STAGES.signed_up,
       name: `${name || email} — Signed Up`,
       monetaryValue: 0,
-    });
-  }
+    }),
+    update: (id, payload) => updateOpportunity(id, payload),
+  });
 
   console.log(`[GHL] Signup processed: ${contact.id}`);
   return contact;
@@ -317,20 +330,19 @@ async function handleSubscription({ email, plan, amount }) {
   // Remove free-trial tag
   await removeTags(contact.id, ['free-trial']);
 
-  // Update opportunity
-  const opportunities = await findOpportunities(contact.id);
-  if (opportunities.length > 0) {
-    await updateOpportunity(opportunities[0].id, {
-      stageId: STAGES.subscribed,
-      monetaryValue: amount || 19,
-    });
-  } else {
-    await createOpportunity(contact.id, {
+  await ensureOpportunityForContact(contact.id, {
+    stageId: STAGES.subscribed,
+    name: `${email} — Subscribed`,
+    monetaryValue: amount || 19,
+  }, {
+    find: () => findOpportunities(contact.id),
+    create: () => createOpportunity(contact.id, {
       stageId: STAGES.subscribed,
       name: `${email} — Subscribed`,
       monetaryValue: amount || 19,
-    });
-  }
+    }),
+    update: (id, payload) => updateOpportunity(id, payload),
+  });
 
   console.log(`[GHL] Subscription processed: ${contact.id}`);
   return contact;
