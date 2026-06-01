@@ -11,6 +11,11 @@ import { runSyncOnce } from '../services/dropbox-sync.js';
 import { sendWelcomeEmail } from '../services/welcome-email.js';
 import { runWelcomeEmailBackfill } from '../services/welcome-email-backfill.js';
 
+// Defensive migration so the admin endpoints below don't 500 on a
+// freshly-deployed instance where no Stripe webhook has fired yet (the
+// webhook handler is the other place this ALTER is run).
+try { db.exec(`ALTER TABLE paid_users ADD COLUMN welcome_email_sent_at DATETIME`); } catch { /* already there or table missing */ }
+
 // Exposed as a factory so the test can inject a fake `runSync` and verify
 // the response shaping without touching Dropbox / Pinecone for real.
 export function syncKbHandler({ runSync }) {
