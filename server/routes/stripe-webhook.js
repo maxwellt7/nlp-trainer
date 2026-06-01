@@ -19,6 +19,7 @@ import crypto from 'crypto';
 import db from '../db/index.js';
 import { ensureUser } from '../services/profile.js';
 import { handleSubscription, upsertContact, addTags } from '../services/ghl.js';
+import { sendWelcomeEmail } from '../services/welcome-email.js';
 
 const router = express.Router();
 
@@ -243,6 +244,11 @@ function provisionAccess(email, name, stripeSessionId, stripeCustomerId) {
     )
   `);
 
+  // Best-effort migration — older deployments missed this column. It records
+  // when we successfully delivered the post-purchase welcome email, used by
+  // the backfill endpoint and to prevent double-sends on Stripe retries.
+  try { db.exec(`ALTER TABLE paid_users ADD COLUMN welcome_email_sent_at DATETIME`); } catch { /* already there */ }
+
   const existing = db.prepare('SELECT * FROM paid_users WHERE email = ?').get(normalizedEmail);
 
   if (existing) {
@@ -361,6 +367,33 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
       console.log(`[Stripe Webhook] GHL updated for: ${email}`);
     } catch (err) {
       console.error(`[Stripe Webhook] GHL failed:`, err.message);
+    }
+
+    // 5. Send the welcome email. Before this step existed, paying customers
+    //    were never told where to log in — De'Yona Moore's dispute proved
+    //    every customer was hitting the same silent gap. Idempotent: we
+    //    check welcome_email_sent_at first so Stripe webhook retries don't
+    //    spam the customer.
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      const row = db.prepare('SELECT welcome_email_sent_at FROM paid_users WHERE email = ?')
+        .get(normalizedEmail);
+      if (row && row.welcome_email_sent_at) {
+        console.log(`[Stripe Webhook] Welcome email already sent for: ${email} — skipping`);
+      } else {
+        const result = await sendWelcomeEmail({ email: normalizedEmail, name });
+        if (result.ok) {
+          db.prepare(`UPDATE paid_users SET welcome_email_sent_at = datetime('now') WHERE email = ?`)
+            .run(normalizedEmail);
+          console.log(`[Stripe Webhook] ✉️  Welcome email sent for: ${email} (resend id: ${result.id})`);
+        } else if (result.skipped) {
+          console.warn(`[Stripe Webhook] Welcome email skipped (no RESEND_API_KEY) for: ${email}`);
+        } else {
+          console.error(`[Stripe Webhook] Welcome email failed for ${email}:`, result.error);
+        }
+      }
+    } catch (err) {
+      console.error(`[Stripe Webhook] Welcome email step crashed (non-blocking):`, err.message);
     }
 
     console.log(`[Stripe Webhook] ✅ All post-purchase actions completed for: ${email}`);
