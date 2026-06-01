@@ -3,6 +3,7 @@ import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
 import { getAllSessions, getRecentSessions, getSessionForUser, getTodaySession, isSessionLocked, updateSessionMetadata } from '../services/memory.js';
 import { sanitizeMessageHistory } from '../services/message-sanitizer.js';
+import { safeJsonParse } from '../services/safe-json.js';
 
 const router = Router();
 
@@ -69,10 +70,11 @@ router.get('/sessions', (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     const sessions = getAllSessions(userId, limit, offset);
 
-    // Parse JSON fields
+    // Parse JSON fields. Use safeJsonParse so a single malformed key_themes
+    // (legacy / corrupted row) can't 500 the whole list endpoint.
     const parsed = sessions.map(s => ({
       ...s,
-      key_themes: JSON.parse(s.key_themes || '[]'),
+      key_themes: safeJsonParse(s.key_themes, []),
     }));
 
     res.json({ sessions: parsed });
@@ -91,8 +93,8 @@ router.get('/sessions/:sessionId', (req, res) => {
     }
     res.json({
       ...session,
-      chat_messages: sanitizeMessageHistory(JSON.parse(session.chat_messages || '[]')),
-      key_themes: JSON.parse(session.key_themes || '[]'),
+      chat_messages: sanitizeMessageHistory(safeJsonParse(session.chat_messages, [])),
+      key_themes: safeJsonParse(session.key_themes, []),
     });
   } catch (error) {
     console.error('Error getting session:', error.message);
