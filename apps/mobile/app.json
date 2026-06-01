@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Sacred Heart App",
+    "slug": "sacred-heart-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "sacredheart",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.sovereignty.sacredheart"
+    },
+    "android": {
+      "package": "app.sovereignty.sacredheart",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
