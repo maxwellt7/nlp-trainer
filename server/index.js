@@ -18,6 +18,7 @@ import adminKbRoutes from './routes/admin-kb.js';
 import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
 import { initKnowledgeBaseScheduler } from './services/knowledge-base-scheduler.js';
+import { initClerkPaidSyncScheduler } from './services/clerk-paid-sync-scheduler.js';
 import { buildRuntimeHealthPayload } from './config/runtime-health.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,15 @@ try {
   initKnowledgeBaseScheduler();
 } catch (err) {
   console.error('Knowledge base scheduler initialization error:', err.message);
+}
+
+// Initialize Clerk → paid_users sync scheduler — belt-and-suspenders for
+// the Stripe webhook so customers always get their welcome email even if
+// the webhook drops a delivery.
+try {
+  initClerkPaidSyncScheduler();
+} catch (err) {
+  console.error('Clerk paid sync scheduler initialization error:', err.message);
 }
 
 app.use(cors({
