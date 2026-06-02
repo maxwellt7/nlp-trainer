@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
+import { derivePaidPlanFromClerk } from './clerk-paid-status.js';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://nlp-training-backend-production.up.railway.app';
 
@@ -118,8 +119,30 @@ export function useAccessGate(): AccessState {
       return;
     }
 
-    // Check local cache first (valid for 5 minutes)
-    const cacheKey = `access-gate-${user.id}`;
+    // Clerk public_metadata source-of-truth — start.sovereignty.app's
+    // checkout writes purchase data to Clerk, not to our paid_users table.
+    // Without this check, customers from that funnel get paywall-looped
+    // even though Clerk knows they paid (De'Yona Moore's dispute).
+    // public_metadata is backend/dashboard-only writeable, so trusting it
+    // client-side is safe.
+    const clerkPaidPlan = derivePaidPlanFromClerk(user);
+    if (clerkPaidPlan) {
+      console.log('[AccessGate] Clerk public_metadata access granted, plan:', clerkPaidPlan);
+      setState({
+        hasAccess: true,
+        loading: false,
+        status: 'clerk-metadata',
+        plan: clerkPaidPlan,
+        purchaseUrl: 'https://start.sovereignty.app',
+      });
+      return;
+    }
+
+    // Check local cache first (valid for 5 minutes).
+    // v2 in the key forces a one-time cache bust on this deploy so any
+    // user whose previous (pre-fix) result was cached as hasAccess:false
+    // re-runs the full check instead of being locked out for up to 5 min.
+    const cacheKey = `access-gate-v2-${user.id}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try {
