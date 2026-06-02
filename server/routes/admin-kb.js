@@ -11,6 +11,7 @@ import { runSyncOnce } from '../services/dropbox-sync.js';
 import { sendWelcomeEmail } from '../services/welcome-email.js';
 import { runWelcomeEmailBackfill } from '../services/welcome-email-backfill.js';
 import { diagnoseCustomer, grantAccess } from '../services/customer-diagnostic.js';
+import { syncClerkPaidUsers } from '../services/clerk-paid-sync.js';
 
 // Defensive migration so the admin endpoints below don't 500 on a
 // freshly-deployed instance where no Stripe webhook has fired yet (the
@@ -122,6 +123,60 @@ router.post('/backfill-welcome-emails', requireAdmin, async (_req, res) => {
     return res.status(200).json({ ok: true, summary });
   } catch (err) {
     console.error('[admin/backfill-welcome-emails] failed:', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/admin/sync-clerk-paid-users — backfill paid_users from Clerk
+// public_metadata for every paying customer. Use after a checkout/funnel
+// that doesn't fire our local Stripe webhook (start.sovereignty.app's
+// flow). Idempotent. Optional ?sendWelcome=false to skip emails.
+router.post('/sync-clerk-paid-users', requireAdmin, async (req, res) => {
+  try {
+    const apiKey = process.env.CLERK_SECRET_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ ok: false, error: 'CLERK_SECRET_KEY not configured' });
+    }
+    const wantEmails = String(req.query.sendWelcome ?? 'true') !== 'false';
+
+    // Generator that walks the Clerk Backend API `/v1/users` endpoint with
+    // limit/offset pagination. 100 is Clerk's max page size for this route.
+    const listAllUsers = async function* () {
+      const LIMIT = 100;
+      let offset = 0;
+      let safety = 0;
+      while (safety < 200) {
+        safety += 1;
+        const url = `https://api.clerk.com/v1/users?limit=${LIMIT}&offset=${offset}`;
+        const resp = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => '');
+          throw new Error(`Clerk users list HTTP ${resp.status}: ${text.slice(0, 300)}`);
+        }
+        const page = await resp.json();
+        if (!Array.isArray(page) || page.length === 0) return;
+        for (const u of page) yield u;
+        if (page.length < LIMIT) return;
+        offset += page.length;
+      }
+    };
+
+    const summary = await syncClerkPaidUsers({
+      listAllUsers,
+      db,
+      sendWelcome: wantEmails
+        ? ({ email, name }) => sendWelcomeEmail({ email, name })
+        : undefined,
+    });
+    console.log('[admin/sync-clerk-paid-users] summary:', JSON.stringify(summary));
+    return res.status(200).json({ ok: true, summary });
+  } catch (err) {
+    console.error('[admin/sync-clerk-paid-users] failed:', err.message);
     return res.status(500).json({ ok: false, error: err.message });
   }
 });
