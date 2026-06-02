@@ -20,6 +20,7 @@ import db from '../db/index.js';
 import { ensureUser } from '../services/profile.js';
 import { handleSubscription, upsertContact, addTags } from '../services/ghl.js';
 import { sendWelcomeEmail } from '../services/welcome-email.js';
+import { applyPaidUsersMigrations } from '../services/paid-users-schema.js';
 
 const router = express.Router();
 
@@ -227,27 +228,10 @@ async function sendCapiPurchaseEvent(email, amount, eventSourceUrl) {
 function provisionAccess(email, name, stripeSessionId, stripeCustomerId) {
   const normalizedEmail = email.toLowerCase().trim();
 
-  // Ensure paid_users table exists
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS paid_users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL,
-      name TEXT,
-      clerk_user_id TEXT,
-      stripe_session_id TEXT,
-      stripe_customer_id TEXT,
-      paid_status TEXT DEFAULT 'active',
-      amount INTEGER DEFAULT 7,
-      plan TEXT DEFAULT 'alignment-engine-full-access',
-      created_at DATETIME DEFAULT (datetime('now')),
-      updated_at DATETIME DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Best-effort migration — older deployments missed this column. It records
-  // when we successfully delivered the post-purchase welcome email, used by
-  // the backfill endpoint and to prevent double-sends on Stripe retries.
-  try { db.exec(`ALTER TABLE paid_users ADD COLUMN welcome_email_sent_at DATETIME`); } catch { /* already there */ }
+  // Canonical schema migration — handles every shape this table has been
+  // born in (provision.js's provisioned_at flavor, stripe-webhook's
+  // created_at flavor, plus the welcome_email_sent_at addition).
+  applyPaidUsersMigrations(db);
 
   const existing = db.prepare('SELECT * FROM paid_users WHERE email = ?').get(normalizedEmail);
 

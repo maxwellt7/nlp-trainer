@@ -14,29 +14,15 @@ import db from '../db/index.js';
 import { ensureUser } from '../services/profile.js';
 import { handleSubscription, upsertContact, addTags } from '../services/ghl.js';
 import { isAdminEmail } from '../middleware/auth.js';
+import { applyPaidUsersMigrations } from '../services/paid-users-schema.js';
 
 const router = express.Router();
 
 const PROVISION_SECRET = process.env.PROVISION_SECRET || '';
 
-// Ensure paid_users table exists
+// Ensure paid_users table exists — single source of truth for the schema.
 try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS paid_users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL,
-      name TEXT,
-      clerk_user_id TEXT,
-      stripe_session_id TEXT,
-      stripe_customer_id TEXT,
-      paid_status TEXT DEFAULT 'active',
-      amount INTEGER DEFAULT 7,
-      plan TEXT DEFAULT 'alignment-engine-full-access',
-      provisioned_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now')),
-      UNIQUE(email)
-    );
-  `);
+  applyPaidUsersMigrations(db);
   console.log('paid_users table ready');
 } catch (err) {
   console.error('Failed to create paid_users table:', err.message);

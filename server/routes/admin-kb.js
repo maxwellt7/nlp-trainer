@@ -12,11 +12,13 @@ import { sendWelcomeEmail } from '../services/welcome-email.js';
 import { runWelcomeEmailBackfill } from '../services/welcome-email-backfill.js';
 import { diagnoseCustomer, grantAccess } from '../services/customer-diagnostic.js';
 import { syncClerkPaidUsers } from '../services/clerk-paid-sync.js';
+import { applyPaidUsersMigrations } from '../services/paid-users-schema.js';
 
 // Defensive migration so the admin endpoints below don't 500 on a
-// freshly-deployed instance where no Stripe webhook has fired yet (the
-// webhook handler is the other place this ALTER is run).
-try { db.exec(`ALTER TABLE paid_users ADD COLUMN welcome_email_sent_at DATETIME`); } catch { /* already there or table missing */ }
+// freshly-deployed instance — specifically the case where provision.js
+// created paid_users first (with provisioned_at, no created_at) and the
+// welcome-email code path then tries to ORDER BY created_at.
+applyPaidUsersMigrations(db);
 
 // Exposed as a factory so the test can inject a fake `runSync` and verify
 // the response shaping without touching Dropbox / Pinecone for real.
