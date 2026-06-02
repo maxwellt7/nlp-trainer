@@ -20,7 +20,7 @@ test('sendWelcomeEmail posts a Resend email with the customer email, name, and l
   const { calls, fetchSpy } = makeFetchSpy();
   const result = await sendWelcomeEmail(
     { email: 'deyona@example.com', name: "De'Yona Moore" },
-    { fetch: fetchSpy, apiKey: 'rs_test_key', from: 'Sovereignty <support@sovereignty.app>' },
+    { fetch: fetchSpy, apiKey: 'rs_test_key', from: 'Alignment Engine <hello@maxmayes.io>' },
   );
 
   assert.equal(result.ok, true);
@@ -34,7 +34,7 @@ test('sendWelcomeEmail posts a Resend email with the customer email, name, and l
   assert.equal(opts.headers['Content-Type'], 'application/json');
 
   const body = JSON.parse(opts.body);
-  assert.equal(body.from, 'Sovereignty <support@sovereignty.app>');
+  assert.equal(body.from, 'Alignment Engine <hello@maxmayes.io>');
   assert.deepEqual(body.to, ['deyona@example.com']);
   assert.match(body.subject, /Alignment Engine|welcome|access|ready/i);
   // The HTML and text bodies must contain the login URL and address the
@@ -88,6 +88,30 @@ test('sendWelcomeEmail returns ok:false with the Resend error body when the API 
   assert.equal(result.status, 422);
   assert.match(result.error, /invalid recipient|validation_error/);
   assert.equal(calls.length, 1);
+});
+
+test('sendWelcomeEmail defaults the From address to the verified maxmayes.io domain when no from arg or RESEND_FROM_EMAIL env is set', async () => {
+  // The verified Resend sending domain is maxmayes.io. Production can still
+  // override via RESEND_FROM_EMAIL, but the baked-in default must never
+  // regress to an unverified domain (which would silently 422 every send).
+  const { calls, fetchSpy } = makeFetchSpy();
+  const prevEnv = process.env.RESEND_FROM_EMAIL;
+  delete process.env.RESEND_FROM_EMAIL;
+  try {
+    const result = await sendWelcomeEmail(
+      { email: 'default-from@example.com', name: 'Default From' },
+      { fetch: fetchSpy, apiKey: 'rs_test_key' },
+    );
+    assert.equal(result.ok, true);
+    const body = JSON.parse(calls[0].opts.body);
+    assert.equal(body.from, 'Alignment Engine <hello@maxmayes.io>');
+  } finally {
+    if (prevEnv === undefined) {
+      delete process.env.RESEND_FROM_EMAIL;
+    } else {
+      process.env.RESEND_FROM_EMAIL = prevEnv;
+    }
+  }
 });
 
 test('sendWelcomeEmail returns ok:false when email is missing — never silently no-ops the caller', async () => {

@@ -5,6 +5,10 @@
 // no instructions at all (the team had assumed GHL native automation would
 // handle it, but the workflow wasn't wired up). De'Yona Moore disputed
 // access; she was not unlucky — every customer hit the same gap.
+//
+// From address defaults to `Alignment Engine <hello@maxmayes.io>` — the
+// verified sending domain in Resend. Override with the RESEND_FROM_EMAIL
+// env var in production if you need a different mailbox or display name.
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const APP_URL = 'https://heart.sovereignty.app';
@@ -88,7 +92,7 @@ export async function sendWelcomeEmail(
   {
     fetch: fetchImpl = globalThis.fetch,
     apiKey = process.env.RESEND_API_KEY || '',
-    from = process.env.RESEND_FROM_EMAIL || 'Sovereignty <support@sovereignty.app>',
+    from = process.env.RESEND_FROM_EMAIL || 'Alignment Engine <hello@maxmayes.io>',
   } = {},
 ) {
   if (!email || !String(email).trim()) {
