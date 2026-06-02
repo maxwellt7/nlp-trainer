@@ -10,6 +10,7 @@ import { requireAdmin } from '../middleware/auth.js';
 import { runSyncOnce } from '../services/dropbox-sync.js';
 import { sendWelcomeEmail } from '../services/welcome-email.js';
 import { runWelcomeEmailBackfill } from '../services/welcome-email-backfill.js';
+import { diagnoseCustomer, grantAccess } from '../services/customer-diagnostic.js';
 
 // Defensive migration so the admin endpoints below don't 500 on a
 // freshly-deployed instance where no Stripe webhook has fired yet (the
@@ -62,6 +63,50 @@ router.get('/welcome-status', requireAdmin, (_req, res) => {
   } catch (err) {
     console.error('[admin/welcome-status] failed:', err.message);
     res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET /api/admin/diagnose-customer?email=foo@bar.com — show everything we
+// know about this customer's paid_users row, or surface close-match
+// candidates when there's no exact hit (typo / different mailbox).
+router.get('/diagnose-customer', requireAdmin, (req, res) => {
+  try {
+    const email = req.query.email;
+    if (!email) return res.status(400).json({ ok: false, error: 'email query param required' });
+    const result = diagnoseCustomer(db, email);
+    return res.status(200).json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[admin/diagnose-customer] failed:', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/admin/grant-access — body { email, name?, sendWelcome? }.
+// Inserts or reactivates the paid_users row and (optionally) sends the
+// welcome email. Use to unblock stuck customers like De'Yona whose webhook
+// failed during the May-21–25 outage window.
+router.post('/grant-access', requireAdmin, async (req, res) => {
+  try {
+    const { email, name, sendWelcome = true } = req.body || {};
+    if (!email) return res.status(400).json({ ok: false, error: 'email required' });
+
+    const grant = grantAccess(db, { email, name });
+    if (grant.action === 'error') {
+      return res.status(500).json({ ok: false, error: grant.error });
+    }
+
+    let email_result = null;
+    if (sendWelcome) {
+      email_result = await sendWelcomeEmail({ email: grant.email, name: name || null });
+      if (email_result.ok) {
+        db.prepare(`UPDATE paid_users SET welcome_email_sent_at = datetime('now') WHERE email = ?`)
+          .run(grant.email);
+      }
+    }
+    return res.status(200).json({ ok: true, grant, email_result });
+  } catch (err) {
+    console.error('[admin/grant-access] failed:', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
   }
 });
 
