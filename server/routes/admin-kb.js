@@ -12,6 +12,7 @@ import { sendWelcomeEmail } from '../services/welcome-email.js';
 import { runWelcomeEmailBackfill } from '../services/welcome-email-backfill.js';
 import { diagnoseCustomer, grantAccess } from '../services/customer-diagnostic.js';
 import { syncClerkPaidUsers } from '../services/clerk-paid-sync.js';
+import { paginateClerkUsers } from '../services/clerk-users-paginator.js';
 import { applyPaidUsersMigrations } from '../services/paid-users-schema.js';
 
 // Defensive migration so the admin endpoints below don't 500 on a
@@ -141,32 +142,11 @@ router.post('/sync-clerk-paid-users', requireAdmin, async (req, res) => {
     }
     const wantEmails = String(req.query.sendWelcome ?? 'true') !== 'false';
 
-    // Generator that walks the Clerk Backend API `/v1/users` endpoint with
-    // limit/offset pagination. 100 is Clerk's max page size for this route.
-    const listAllUsers = async function* () {
-      const LIMIT = 100;
-      let offset = 0;
-      let safety = 0;
-      while (safety < 200) {
-        safety += 1;
-        const url = `https://api.clerk.com/v1/users?limit=${LIMIT}&offset=${offset}`;
-        const resp = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        if (!resp.ok) {
-          const text = await resp.text().catch(() => '');
-          throw new Error(`Clerk users list HTTP ${resp.status}: ${text.slice(0, 300)}`);
-        }
-        const page = await resp.json();
-        if (!Array.isArray(page) || page.length === 0) return;
-        for (const u of page) yield u;
-        if (page.length < LIMIT) return;
-        offset += page.length;
-      }
-    };
+    // Walks the Clerk Backend API `/v1/users` endpoint with limit/offset
+    // pagination via the extracted helper. The helper throws (rather than
+    // silently returning) if it hits the safety cap on still-full pages,
+    // so an admin can never mistake a truncated sync for a complete one.
+    const listAllUsers = () => paginateClerkUsers({ apiKey });
 
     const summary = await syncClerkPaidUsers({
       listAllUsers,
