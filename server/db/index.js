@@ -1,8 +1,9 @@
 import initSqlJs from 'sql.js';
 import { applySessionMigrations } from './session-migrations.js';
+import { withRecovery } from './db-recovery.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -39,23 +40,26 @@ try {
 let SQL;
 let rawDb;
 
-const initPromise = initSqlJs(sqlJsConfig).then(sqlJs => {
-  SQL = sqlJs;
+// Build a fresh in-memory database from the last good on-disk snapshot
+// (falling back to the bundled seed, then an empty DB) and apply the schema
+// and migrations. Used both at startup and by the self-heal reload path.
+function loadRawDatabase() {
   // Load existing DB from runtime path, falling back to bundled seed (e.g. on Vercel cold start)
   const sourcePath = existsSync(dbPath) ? dbPath : (existsSync(seedDbPath) ? seedDbPath : null);
+  let database;
   if (sourcePath) {
     try {
       const buffer = readFileSync(sourcePath);
-      rawDb = new SQL.Database(buffer);
+      database = new SQL.Database(buffer);
     } catch {
-      rawDb = new SQL.Database();
+      database = new SQL.Database();
     }
   } else {
-    rawDb = new SQL.Database();
+    database = new SQL.Database();
   }
 
   // Create tables
-  rawDb.run(`
+  database.run(`
     CREATE TABLE IF NOT EXISTS users (
       id            TEXT PRIMARY KEY,
       created_at    TEXT DEFAULT (datetime('now')),
@@ -254,17 +258,41 @@ const initPromise = initSqlJs(sqlJsConfig).then(sqlJs => {
     CREATE INDEX IF NOT EXISTS idx_hypnosis_jobs_user_session ON hypnosis_jobs(user_id, session_id);
   `);
 
-  applySessionMigrations(rawDb);
+  applySessionMigrations(database);
 
+  return database;
+}
+
+const initPromise = initSqlJs(sqlJsConfig).then(sqlJs => {
+  SQL = sqlJs;
+  rawDb = loadRawDatabase();
   save();
 });
+
+// Self-heal: when the in-memory sql.js database wedges with a fatal error
+// (e.g. "disk I/O error" from WASM memory exhaustion on a long-running
+// process), discard it and reload a fresh copy from the last good on-disk
+// snapshot. Without this, every DB-backed endpoint 500s until a manual
+// restart of the service.
+function reloadDatabase() {
+  const wedged = rawDb;
+  rawDb = null;
+  try { wedged?.close(); } catch { /* already unusable */ }
+  rawDb = loadRawDatabase();
+  console.warn('DB self-heal: reloaded in-memory database from disk after a fatal error');
+}
 
 function save() {
   if (rawDb) {
     try {
       const data = rawDb.export();
       const buffer = Buffer.from(data);
-      writeFileSync(dbPath, buffer);
+      // Write atomically: a crash or full disk mid-write must never leave a
+      // truncated/corrupt alignment-engine.db behind. Write to a temp file on
+      // the same filesystem, then rename (atomic) over the real path.
+      const tmpPath = `${dbPath}.tmp`;
+      writeFileSync(tmpPath, buffer);
+      renameSync(tmpPath, dbPath);
     } catch (err) {
       console.error('DB save error:', err.message);
     }
@@ -284,41 +312,49 @@ const db = {
   prepare(sql) {
     return {
       run(...params) {
-        if (!rawDb) throw new Error('DB not initialized');
-        rawDb.run(sql, params);
-        save();
-        return { changes: rawDb.getRowsModified() };
+        return withRecovery(() => {
+          if (!rawDb) throw new Error('DB not initialized');
+          rawDb.run(sql, params);
+          save();
+          return { changes: rawDb.getRowsModified() };
+        }, { reload: reloadDatabase });
       },
       get(...params) {
-        if (!rawDb) throw new Error('DB not initialized');
-        const stmt = rawDb.prepare(sql);
-        stmt.bind(params);
-        if (stmt.step()) {
-          const row = stmt.getAsObject();
+        return withRecovery(() => {
+          if (!rawDb) throw new Error('DB not initialized');
+          const stmt = rawDb.prepare(sql);
+          stmt.bind(params);
+          if (stmt.step()) {
+            const row = stmt.getAsObject();
+            stmt.free();
+            return row;
+          }
           stmt.free();
-          return row;
-        }
-        stmt.free();
-        return undefined;
+          return undefined;
+        }, { reload: reloadDatabase });
       },
       all(...params) {
-        if (!rawDb) throw new Error('DB not initialized');
-        const results = [];
-        const stmt = rawDb.prepare(sql);
-        stmt.bind(params);
-        while (stmt.step()) {
-          results.push(stmt.getAsObject());
-        }
-        stmt.free();
-        return results;
+        return withRecovery(() => {
+          if (!rawDb) throw new Error('DB not initialized');
+          const results = [];
+          const stmt = rawDb.prepare(sql);
+          stmt.bind(params);
+          while (stmt.step()) {
+            results.push(stmt.getAsObject());
+          }
+          stmt.free();
+          return results;
+        }, { reload: reloadDatabase });
       },
     };
   },
 
   exec(sql) {
-    if (!rawDb) throw new Error('DB not initialized');
-    rawDb.run(sql);
-    save();
+    return withRecovery(() => {
+      if (!rawDb) throw new Error('DB not initialized');
+      rawDb.run(sql);
+      save();
+    }, { reload: reloadDatabase });
   },
 
   pragma(str) {
