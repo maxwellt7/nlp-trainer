@@ -1,19 +1,11 @@
-import initSqlJs from 'sql.js';
+import { DatabaseSync } from 'node:sqlite';
 import { applySessionMigrations } from './session-migrations.js';
 import { withRecovery } from './db-recovery.js';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, copyFileSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// sql.js looks up its wasm via fetch/fs. On Vercel the bundler doesn't trace it
-// into /var/task/node_modules, so we ship a copy under server/db/ (server/** is
-// bundled by vercel.json includeFiles) and point initSqlJs at it.
-const bundledWasmPath = join(__dirname, 'sql-wasm.wasm');
-const sqlJsConfig = existsSync(bundledWasmPath)
-  ? { locateFile: () => bundledWasmPath }
-  : undefined;
 
 // Pick a writable storage root:
 // - /app/storage on Railway (volume mount)
@@ -27,39 +19,31 @@ const storageRoot = existsSync('/app/storage')
 const seedDbPath = join(__dirname, '..', 'data', 'alignment-engine.db');
 const dbPath = join(storageRoot, 'alignment-engine.db');
 
-// Ensure storage directory exists (best-effort: read-only fs is fine, sql.js falls back to in-memory)
+// Ensure storage directory exists (best-effort).
 try {
   if (!existsSync(storageRoot)) {
     mkdirSync(storageRoot, { recursive: true });
   }
 } catch (err) {
-  console.warn('DB storage root not writable, continuing in-memory:', err.message);
+  console.warn('DB storage root not writable:', err.message);
 }
 
-// Initialize sql.js synchronously by blocking on the promise
-let SQL;
-let rawDb;
-
-// Build a fresh in-memory database from the last good on-disk snapshot
-// (falling back to the bundled seed, then an empty DB) and apply the schema
-// and migrations. Used both at startup and by the self-heal reload path.
-function loadRawDatabase() {
-  // Load existing DB from runtime path, falling back to bundled seed (e.g. on Vercel cold start)
-  const sourcePath = existsSync(dbPath) ? dbPath : (existsSync(seedDbPath) ? seedDbPath : null);
-  let database;
-  if (sourcePath) {
-    try {
-      const buffer = readFileSync(sourcePath);
-      database = new SQL.Database(buffer);
-    } catch {
-      database = new SQL.Database();
-    }
-  } else {
-    database = new SQL.Database();
+// On a fresh runtime with no DB yet (e.g. a Vercel /tmp cold start), seed from
+// the bundled snapshot so the app starts with reference data instead of empty.
+// On Railway the volume already holds the real DB, so this is a no-op there.
+// IMPORTANT: we ONLY copy when the destination is missing — we never overwrite
+// an existing database. (The previous sql.js implementation rebuilt the whole
+// file on every write and could clobber good data with an empty fallback; with
+// node:sqlite the on-disk file is the live database and is never overwritten.)
+if (!existsSync(dbPath) && existsSync(seedDbPath) && seedDbPath !== dbPath) {
+  try {
+    copyFileSync(seedDbPath, dbPath);
+  } catch (err) {
+    console.warn('DB seed copy failed:', err.message);
   }
+}
 
-  // Create tables
-  database.run(`
+const SCHEMA_SQL = `
     CREATE TABLE IF NOT EXISTS users (
       id            TEXT PRIMARY KEY,
       created_at    TEXT DEFAULT (datetime('now')),
@@ -256,115 +240,70 @@ function loadRawDatabase() {
       updated_at      TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_hypnosis_jobs_user_session ON hypnosis_jobs(user_id, session_id);
-  `);
+`;
 
+// Open the on-disk SQLite database with node:sqlite (built into Node — no native
+// module to compile, no WASM heap to exhaust). Unlike the previous sql.js
+// implementation, the database lives on disk and writes are incremental, so a
+// long-running process no longer ratchets WASM memory until every query throws
+// "disk I/O error".
+function openDatabase() {
+  const database = new DatabaseSync(dbPath);
+  try {
+    // WAL: durable, concurrent reads, incremental writes (no whole-file rewrite).
+    database.exec('PRAGMA journal_mode = WAL;');
+    // Wait instead of immediately failing with SQLITE_BUSY under concurrency.
+    database.exec('PRAGMA busy_timeout = 5000;');
+  } catch (err) {
+    console.warn('DB pragma setup failed:', err.message);
+  }
+  database.exec(SCHEMA_SQL);
   applySessionMigrations(database);
-
   return database;
 }
 
-const initPromise = initSqlJs(sqlJsConfig).then(sqlJs => {
-  SQL = sqlJs;
-  rawDb = loadRawDatabase();
-  save();
-});
+let rawDb = openDatabase();
 
-// Self-heal: when the in-memory sql.js database wedges with a fatal error
-// (e.g. "disk I/O error" from WASM memory exhaustion on a long-running
-// process), discard it and reload a fresh copy from the last good on-disk
-// snapshot. Without this, every DB-backed endpoint 500s until a manual
-// restart of the service.
-function reloadDatabase() {
-  const wedged = rawDb;
-  rawDb = null;
-  try { wedged?.close(); } catch { /* already unusable */ }
-  rawDb = loadRawDatabase();
-  console.warn('DB self-heal: reloaded in-memory database from disk after a fatal error');
+// Self-heal: reopen the on-disk database after a fatal connection-level error.
+// node:sqlite persists continuously, so the file is always the source of truth
+// — reopening never loses or zeroes data.
+function reopenDatabase() {
+  try { rawDb?.close(); } catch { /* already broken */ }
+  rawDb = openDatabase();
+  console.warn('DB self-heal: reopened on-disk database after a fatal error');
 }
 
-function save() {
-  if (rawDb) {
-    try {
-      const data = rawDb.export();
-      const buffer = Buffer.from(data);
-      // Write atomically: a crash or full disk mid-write must never leave a
-      // truncated/corrupt alignment-engine.db behind. Write to a temp file on
-      // the same filesystem, then rename (atomic) over the real path.
-      const tmpPath = `${dbPath}.tmp`;
-      writeFileSync(tmpPath, buffer);
-      renameSync(tmpPath, dbPath);
-    } catch (err) {
-      console.error('DB save error:', err.message);
-    }
-  }
-}
-
-// Wrapper that provides a better-sqlite3-compatible API
+// Wrapper that preserves the better-sqlite3-compatible API the rest of the app
+// (and the previous sql.js wrapper) relied on: prepare().run/get/all, exec,
+// pragma, waitReady.
 const db = {
-  _ready: false,
-
-  async waitReady() {
-    if (this._ready) return;
-    await initPromise;
-    this._ready = true;
-  },
+  // node:sqlite is synchronous and ready at import time. Kept for callers that
+  // still `await db.waitReady()`.
+  async waitReady() { /* no-op: synchronous driver */ },
 
   prepare(sql) {
     return {
-      run(...params) {
-        return withRecovery(() => {
-          if (!rawDb) throw new Error('DB not initialized');
-          rawDb.run(sql, params);
-          save();
-          return { changes: rawDb.getRowsModified() };
-        }, { reload: reloadDatabase });
-      },
-      get(...params) {
-        return withRecovery(() => {
-          if (!rawDb) throw new Error('DB not initialized');
-          const stmt = rawDb.prepare(sql);
-          stmt.bind(params);
-          if (stmt.step()) {
-            const row = stmt.getAsObject();
-            stmt.free();
-            return row;
-          }
-          stmt.free();
-          return undefined;
-        }, { reload: reloadDatabase });
-      },
-      all(...params) {
-        return withRecovery(() => {
-          if (!rawDb) throw new Error('DB not initialized');
-          const results = [];
-          const stmt = rawDb.prepare(sql);
-          stmt.bind(params);
-          while (stmt.step()) {
-            results.push(stmt.getAsObject());
-          }
-          stmt.free();
-          return results;
-        }, { reload: reloadDatabase });
-      },
+      run: (...params) =>
+        withRecovery(() => rawDb.prepare(sql).run(...params), { reload: reopenDatabase }),
+      get: (...params) =>
+        withRecovery(() => rawDb.prepare(sql).get(...params), { reload: reopenDatabase }),
+      all: (...params) =>
+        withRecovery(() => rawDb.prepare(sql).all(...params), { reload: reopenDatabase }),
     };
   },
 
   exec(sql) {
-    return withRecovery(() => {
-      if (!rawDb) throw new Error('DB not initialized');
-      rawDb.run(sql);
-      save();
-    }, { reload: reloadDatabase });
+    return withRecovery(() => rawDb.exec(sql), { reload: reopenDatabase });
   },
 
   pragma(str) {
-    // sql.js doesn't support pragmas the same way, silently ignore
+    try {
+      return rawDb.exec(`PRAGMA ${str};`);
+    } catch {
+      /* ignore */
+    }
   },
 };
-
-// Wait for init before exporting
-await initPromise;
-db._ready = true;
 
 export default db;
 export { storageRoot };

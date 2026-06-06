@@ -6,7 +6,7 @@
     "buildCommand": "cd server && npm install"
   },
   "deploy": {
-    "startCommand": "cd server && node index.js",
+    "startCommand": "cd server && node --experimental-sqlite index.js",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

@@ -1,6 +1,12 @@
-export function applySessionMigrations(rawDb) {
-  const sessionColumnsResult = rawDb.exec(`PRAGMA table_info(sessions);`);
-  const sessionColumns = new Set((sessionColumnsResult[0]?.values || []).map((row) => row[1]));
+// Idempotently bring a legacy `sessions` table up to the current schema.
+//
+// Driver-agnostic: `db` only needs a better-sqlite3 / node:sqlite-style API —
+// `db.prepare(sql).all()` and `db.exec(sql)`. Safe to run on every startup; it
+// only ALTERs columns that are missing.
+export function applySessionMigrations(db) {
+  const existingColumns = new Set(
+    db.prepare('PRAGMA table_info(sessions)').all().map((row) => row.name),
+  );
 
   const sessionMigrations = [
     ['session_type', `ALTER TABLE sessions ADD COLUMN session_type TEXT DEFAULT 'daily_hypnosis'`],
@@ -12,12 +18,12 @@ export function applySessionMigrations(rawDb) {
   ];
 
   for (const [columnName, statement] of sessionMigrations) {
-    if (!sessionColumns.has(columnName)) {
-      rawDb.run(statement);
+    if (!existingColumns.has(columnName)) {
+      db.exec(statement);
     }
   }
 
-  rawDb.run(`
+  db.exec(`
     UPDATE sessions
     SET session_type = COALESCE(NULLIF(session_type, ''), 'daily_hypnosis'),
         session_status = COALESCE(NULLIF(session_status, ''), 'active'),
