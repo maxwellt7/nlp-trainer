@@ -135,7 +135,7 @@ router.post('/quiz', async (req, res) => {
     const typeGuidance = getQuizTypeGuidance(moduleNumber);
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       system: systemPrompt,
       messages: [
@@ -187,7 +187,7 @@ router.post('/quiz/evaluate', async (req, res) => {
     const systemPrompt = loadPrompt('quiz-master.txt', content);
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       system: systemPrompt,
       messages: [

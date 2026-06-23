@@ -102,7 +102,7 @@ export async function generateChunkedScript({
   apiMessages,
   llm,
   parseJson,
-  model = 'claude-sonnet-4-20250514',
+  model = 'claude-sonnet-4-6',
   maxTokensPerSegment = 4096,
   segmentPlan = SEGMENT_PLAN,
 }) {

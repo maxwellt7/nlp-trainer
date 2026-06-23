@@ -249,7 +249,7 @@ router.post('/init', async (req, res) => {
     // /init has no user query yet, so we skip RAG retrieval here.
     const systemPrompt = await buildSystemPrompt(userId, 'coaching');
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt + '\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally, reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.',
       messages: [
@@ -348,7 +348,7 @@ router.post('/chat', async (req, res) => {
     }
 
     const baseChatRequest = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: systemPrompt,
       messages: apiMessages,
