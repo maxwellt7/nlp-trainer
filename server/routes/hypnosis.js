@@ -34,6 +34,7 @@ import {
   CATEGORY_COACHING,
 } from '../services/knowledge-base.js';
 import { saveScriptForUser } from '../services/scripts.js';
+import { deferTask } from '../services/defer.js';
 import {
   extractReplyField,
   extractReadyFlag,
@@ -175,6 +176,24 @@ function tryParseChatJson(text) {
 const SLIM_CHAT_INSTRUCTION =
   '\n\nIMPORTANT: Your previous response was truncated. Respond again with ONLY the "reply", "readyToGenerate", and "profileUpdates" fields. OMIT "valueDetections" and "identityStatements" entirely so the response fits the token budget. Keep the reply concise.';
 
+// The user-facing reply must come back fast and reliably — on mobile a long
+// synchronous call simply dies as "Load failed". So the BLOCKING call asks only
+// for the lightweight, bounded fields (reply + readyToGenerate + profileUpdates).
+// The heavy, unbounded detection arrays — the original source of mid-JSON
+// truncation and the doubled-up retry latency — are computed separately in a
+// deferred analysis pass (ANALYSIS_INSTRUCTION) that can neither block nor break
+// the reply.
+const REPLY_ONLY_INSTRUCTION =
+  '\n\nIMPORTANT: Respond with ONLY the "reply", "readyToGenerate", and "profileUpdates" fields. ' +
+  'OMIT "valueDetections" and "identityStatements" entirely — they are collected by a separate pass. ' +
+  'Keep the reply to 2-4 sentences as specified in the format.';
+
+const ANALYSIS_INSTRUCTION =
+  '\n\nYou are running a SILENT ANALYSIS pass over the conversation above — the user will NOT see this output, ' +
+  'so do NOT write a coaching reply. Respond with ONLY a JSON object containing the "valueDetections" and ' +
+  '"identityStatements" arrays exactly as defined in the COACHING JSON format. If nothing is detectable in the ' +
+  'latest user message, return empty arrays: {"valueDetections": [], "identityStatements": []}.';
+
 function parseStoredMessages(rawMessages) {
   if (!rawMessages) return null;
   try {
@@ -251,7 +270,7 @@ router.post('/init', async (req, res) => {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: systemPrompt + '\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally, reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.',
+      system: systemPrompt + '\n\nThis is the START of a new session. The user just opened the app. Generate your opening message — greet them naturally, reference any relevant context from past sessions, and ask your first coaching question. Do NOT wait for them to speak first. Respond in the COACHING JSON format.' + REPLY_ONLY_INSTRUCTION,
       messages: [
         { role: 'user', content: session.session_type === 'general_chat' ? '[SESSION_START] The user has opened a general coaching conversation.' : '[SESSION_START] The user has opened the app for their daily hypnosis session.' }
       ],
@@ -347,10 +366,14 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'No valid messages provided' });
     }
 
+    // Blocking call: lean output (reply + readyToGenerate + bounded
+    // profileUpdates) so it comes back fast and never truncates mid-JSON. The
+    // 1024-token budget comfortably fits a 2-4 sentence reply plus the small
+    // profileUpdates object; the heavy detection arrays are deferred below.
     const baseChatRequest = {
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: systemPrompt,
+      max_tokens: 1024,
+      system: systemPrompt + REPLY_ONLY_INSTRUCTION,
       messages: apiMessages,
     };
 
@@ -358,11 +381,8 @@ router.post('/chat', async (req, res) => {
     let text = response?.content?.[0]?.text || '';
     let parsed = tryParseChatJson(text);
 
-    // Self-heal: if the model returned unparseable JSON (typically because it
-    // ran out of tokens emitting valueDetections / identityStatements), retry
-    // once with an instruction to drop the heavy fields so the reply still
-    // lands. We accept losing this turn's value detection in exchange for a
-    // working coaching flow.
+    // Self-heal: a lean reply should rarely be unparseable now, but if it is,
+    // retry once asking for the bare minimum.
     if (!parsed) {
       console.warn('[hypnosis/chat] First response unparseable (stop_reason=%s); retrying in slim mode', response?.stop_reason);
       response = await anthropic.messages.create({
@@ -474,22 +494,8 @@ router.post('/chat', async (req, res) => {
       }
     }
 
-    // Process identity data
-    if (parsed.valueDetections) {
-      try {
-        processValueDetections(userId, currentSessionId, parsed.valueDetections);
-      } catch (err) {
-        console.warn('Value detection processing error:', err.message);
-      }
-    }
-    if (parsed.identityStatements) {
-      try {
-        processIdentityStatements(userId, currentSessionId, parsed.identityStatements);
-      } catch (err) {
-        console.warn('Identity statement processing error:', err.message);
-      }
-    }
-
+    // Reply is ready — send it now. Everything the UI needs (reply,
+    // readyToGenerate, profileUpdates, session) is already in hand.
     res.json({
       reply: parsed.reply,
       readyToGenerate: parsed.readyToGenerate === true,
@@ -497,6 +503,41 @@ router.post('/chat', async (req, res) => {
       profileUpdates: parsed.profileUpdates || {},
       session: getSessionForUser(currentSessionId, userId),
     });
+
+    // Deferred analysis pass: compute the heavy valueDetections /
+    // identityStatements arrays in a separate call so they can never delay or
+    // break the reply. On Vercel this is held open by waitUntil(); on a
+    // persistent server it just runs in the background. Failures are logged,
+    // never surfaced — the values/identity pages simply pick up the update once
+    // it lands instead of this exact turn.
+    deferTask(async () => {
+      const analysis = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: systemPrompt + ANALYSIS_INSTRUCTION,
+        messages: apiMessages,
+      });
+      const analysisText = analysis?.content?.[0]?.text || '';
+      const analysisParsed = tryParseChatJson(analysisText);
+      if (!analysisParsed) {
+        console.warn('[hypnosis/chat] Analysis pass unparseable (stop_reason=%s)', analysis?.stop_reason);
+        return;
+      }
+      if (Array.isArray(analysisParsed.valueDetections) && analysisParsed.valueDetections.length > 0) {
+        try {
+          processValueDetections(userId, currentSessionId, analysisParsed.valueDetections);
+        } catch (err) {
+          console.warn('Value detection processing error:', err.message);
+        }
+      }
+      if (Array.isArray(analysisParsed.identityStatements) && analysisParsed.identityStatements.length > 0) {
+        try {
+          processIdentityStatements(userId, currentSessionId, analysisParsed.identityStatements);
+        } catch (err) {
+          console.warn('Identity statement processing error:', err.message);
+        }
+      }
+    }, 'hypnosis-analysis');
   } catch (error) {
     console.error('Hypnosis chat error:', error.message);
     res.status(500).json({ error: 'Failed to process message' });
