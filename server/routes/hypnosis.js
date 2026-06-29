@@ -184,9 +184,11 @@ const SLIM_CHAT_INSTRUCTION =
 // deferred analysis pass (ANALYSIS_INSTRUCTION) that can neither block nor break
 // the reply.
 const REPLY_ONLY_INSTRUCTION =
-  '\n\nIMPORTANT: Respond with ONLY the "reply", "readyToGenerate", and "profileUpdates" fields. ' +
-  'OMIT "valueDetections" and "identityStatements" entirely — they are collected by a separate pass. ' +
-  'Keep the reply to 2-4 sentences as specified in the format.';
+  '\n\nIMPORTANT OUTPUT CONTRACT: Respond with a SINGLE valid JSON object and nothing else — no prose ' +
+  'before or after, no markdown fences. Include ONLY these three fields: "reply", "readyToGenerate", and ' +
+  '"profileUpdates". The "reply" field MUST come first. Do NOT include "valueDetections" or ' +
+  '"identityStatements" — those are collected by a separate pass. Keep "reply" to 2-4 sentences so the ' +
+  'JSON is always complete and never truncated.';
 
 const ANALYSIS_INSTRUCTION =
   '\n\nYou are running a SILENT ANALYSIS pass over the conversation above — the user will NOT see this output, ' +
@@ -393,36 +395,52 @@ router.post('/chat', async (req, res) => {
       parsed = tryParseChatJson(text);
     }
 
-    // Last-resort recovery: if both calls failed but the leading "reply"
-    // field is still extractable, use it. Better than dumping JSON into
-    // the chat.
-    if (!parsed) {
-      const recoveredReply = extractReplyField(text);
-      if (recoveredReply && !looksLikeRawJson(recoveredReply)) {
-        parsed = {
-          reply: recoveredReply,
-          readyToGenerate: extractReadyFlag(text),
-          profileUpdates: {},
-        };
+    // Derive a usable reply as robustly as possible — it's the only field the
+    // user actually sees, so we exhaust every recovery path before erroring:
+    //   1. a clean parsed.reply,
+    //   2. the "reply" field pulled out of raw/truncated JSON,
+    //   3. plain prose, when the model answered conversationally instead of
+    //      emitting JSON (mirrors how the Practice route tolerates raw text).
+    let replyText = '';
+    if (parsed && typeof parsed.reply === 'string' && parsed.reply.trim() && !looksLikeRawJson(parsed.reply)) {
+      replyText = parsed.reply.trim();
+    }
+    if (!replyText) {
+      const extracted = extractReplyField(text);
+      if (extracted && extracted.trim() && !looksLikeRawJson(extracted)) {
+        replyText = extracted.trim();
+      }
+    }
+    if (!replyText) {
+      const cleaned = (text || '').trim();
+      if (cleaned && !looksLikeRawJson(cleaned)) {
+        replyText = cleaned;
       }
     }
 
-    // Nothing we can salvage — surface a graceful error and DO NOT persist
-    // a broken assistant turn into the session history.
-    if (!parsed || !parsed.reply || looksLikeRawJson(parsed.reply)) {
-      console.error('[hypnosis/chat] Unrecoverable model response, len=%d, stop_reason=%s', text.length, response?.stop_reason);
+    const readyToGenerate = (parsed && parsed.readyToGenerate === true) || extractReadyFlag(text);
+    const profileUpdates = (parsed && parsed.profileUpdates && typeof parsed.profileUpdates === 'object')
+      ? parsed.profileUpdates
+      : {};
+
+    // Nothing we can salvage — surface a graceful error and DO NOT persist a
+    // broken assistant turn. Includes a compact diagnostic (temporary) so we
+    // can see WHY on the rare occasion this still trips.
+    if (!replyText) {
+      const head = (text || '').replace(/\s+/g, ' ').slice(0, 90);
+      console.error('[hypnosis/chat] Unrecoverable model response, len=%d, stop_reason=%s, head=%j', text.length, response?.stop_reason, head);
       return res.status(502).json({
-        error: 'I had trouble responding to that. Please try sending your message again.',
+        error: `I had trouble responding to that. Please try again. [diag len=${text.length} stop=${response?.stop_reason || 'n/a'} head=${head}]`,
       });
     }
 
     // Save messages to session
     updateSessionMessages(currentSessionId, messages.concat([
-      { role: 'assistant', content: parsed.reply }
+      { role: 'assistant', content: replyText }
     ]));
 
     updateSessionMetadata(currentSessionId, {
-      session_status: parsed.readyToGenerate === true ? 'ready_for_hypnosis' : 'active',
+      session_status: readyToGenerate ? 'ready_for_hypnosis' : 'active',
     });
 
     if (session.session_type === 'general_chat' && !(session.title || '').trim()) {
@@ -433,8 +451,8 @@ router.post('/chat', async (req, res) => {
     }
 
     // Apply profile updates if detected
-    if (parsed.profileUpdates) {
-      const pu = parsed.profileUpdates;
+    if (profileUpdates && Object.keys(profileUpdates).length > 0) {
+      const pu = profileUpdates;
       const profileUpdate = {};
 
       if (pu.detected_map) {
@@ -497,10 +515,10 @@ router.post('/chat', async (req, res) => {
     // Reply is ready — send it now. Everything the UI needs (reply,
     // readyToGenerate, profileUpdates, session) is already in hand.
     res.json({
-      reply: parsed.reply,
-      readyToGenerate: parsed.readyToGenerate === true,
+      reply: replyText,
+      readyToGenerate,
       sessionId: currentSessionId,
-      profileUpdates: parsed.profileUpdates || {},
+      profileUpdates,
       session: getSessionForUser(currentSessionId, userId),
     });
 
