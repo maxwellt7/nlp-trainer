@@ -424,13 +424,13 @@ router.post('/chat', async (req, res) => {
       : {};
 
     // Nothing we can salvage — surface a graceful error and DO NOT persist a
-    // broken assistant turn. Includes a compact diagnostic (temporary) so we
-    // can see WHY on the rare occasion this still trips.
+    // broken assistant turn. The cause is logged server-side for diagnosis;
+    // the user sees a clean, actionable message.
     if (!replyText) {
-      const head = (text || '').replace(/\s+/g, ' ').slice(0, 90);
+      const head = (text || '').replace(/\s+/g, ' ').slice(0, 120);
       console.error('[hypnosis/chat] Unrecoverable model response, len=%d, stop_reason=%s, head=%j', text.length, response?.stop_reason, head);
       return res.status(502).json({
-        error: `I had trouble responding to that. Please try again. [diag len=${text.length} stop=${response?.stop_reason || 'n/a'} head=${head}]`,
+        error: 'I had trouble responding to that. Please try sending your message again.',
       });
     }
 
