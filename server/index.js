@@ -3,8 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import learnRoutes from './routes/learn.js';
-import practiceRoutes from './routes/practice.js';
 import hypnosisRoutes from './routes/hypnosis.js';
 import audioRoutes from './routes/audio.js';
 import profileRoutes from './routes/profile.js';
@@ -257,8 +255,6 @@ const extractUserId = async (req, res, next) => {
 app.use('/api', extractUserId);
 
 // Mount routes
-app.use('/api/learn', learnRoutes);
-app.use('/api/practice', practiceRoutes);
 app.use('/api/hypnosis', hypnosisRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/profile', profileRoutes);
