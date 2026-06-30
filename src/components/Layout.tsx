@@ -10,9 +10,6 @@ const navItems = [
   { to: '/insights', label: 'Intel', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4', section: 'ops' },
   { to: '/identity', label: 'Identity', icon: 'M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z', section: 'ops' },
   { to: '/audios', label: 'Audio', icon: 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z', section: 'ops' },
-  { to: '/learn', label: 'Learn', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', section: 'train' },
-  { to: '/practice', label: 'Drill', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', section: 'train' },
-  { to: '/reference', label: 'Codex', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', section: 'train' },
 ];
 
 function NavIcon({ path, size = 16 }: { path: string; size?: number }) {
@@ -49,7 +46,6 @@ export default function Layout() {
   }, []);
 
   const opsItems = navItems.filter(i => i.section === 'ops');
-  const trainItems = navItems.filter(i => i.section === 'train');
 
   return (
     <div className="flex flex-col md:flex-row"
@@ -184,23 +180,6 @@ export default function Layout() {
                 {unopenedBoxes}
               </span>
             )}
-          </NavLink>
-        ))}
-
-        {/* Training nav */}
-        <div className="text-uppercase-spaced px-3 mb-2 mt-5" style={{ color: 'var(--color-text-dim)' }}>Training</div>
-        {trainItems.map(item => (
-          <NavLink key={item.to} to={item.to} onClick={closeSidebar}
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all duration-200 ${isActive ? 'text-white font-semibold' : 'hover:text-white'}`
-            }
-            style={({ isActive }) => ({
-              background: isActive ? 'linear-gradient(135deg, rgba(212,168,83,0.15), rgba(212,168,83,0.08))' : 'transparent',
-              color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-              borderLeft: isActive ? '2px solid var(--color-accent-gold)' : '2px solid transparent',
-            })}>
-            <NavIcon path={item.icon} />
-            <span>{item.label}</span>
           </NavLink>
         ))}
 

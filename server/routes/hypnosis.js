@@ -35,6 +35,7 @@ import {
 } from '../services/knowledge-base.js';
 import { saveScriptForUser } from '../services/scripts.js';
 import { deferTask } from '../services/defer.js';
+import { renderNlpDigest, jsonToMarkdown } from '../services/nlp-content.js';
 import {
   extractReplyField,
   extractReadyFlag,
@@ -125,14 +126,22 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
     }
   }
 
+  // NLP corpus is injected as a CONDENSED markdown digest (~8k tokens) instead
+  // of a raw JSON.stringify dump (~26k tokens) — same techniques, every turn,
+  // at a third of the weight and far more readable for the model. Per-turn
+  // specifics still come from the RAG block below ({{NLP_RETRIEVED}}).
+  // Function-form replacements so a literal "$" in any injected content (RAG
+  // chunks, user memory) is never interpreted as a replace pattern token.
+  const nlpDigest = renderNlpDigest(nlpContent, { maxArrayItems: 3 });
+  const coachingDigest = jsonToMarkdown(coachingFrameworks, { maxArrayItems: 3 });
   let prompt = template
-    .replace('{{NLP_CONTENT}}', JSON.stringify(nlpContent, null, 2))
-    .replace('{{COACHING_FRAMEWORKS}}', JSON.stringify(coachingFrameworks, null, 2))
-    .replace('{{USER_PROFILE}}', profile ? JSON.stringify(profile, null, 2) : 'No profile data yet — this is a new user.')
-    .replace('{{MEMORY_CONTEXT}}', memoryContext)
-    .replace('{{IDENTITY_CONTEXT}}', identityContext)
-    .replace('{{NLP_RETRIEVED}}', nlpBlock)
-    .replace('{{COACHING_RETRIEVED}}', coachingBlock);
+    .replace('{{NLP_CONTENT}}', () => nlpDigest)
+    .replace('{{COACHING_FRAMEWORKS}}', () => coachingDigest)
+    .replace('{{USER_PROFILE}}', () => (profile ? JSON.stringify(profile, null, 2) : 'No profile data yet — this is a new user.'))
+    .replace('{{MEMORY_CONTEXT}}', () => memoryContext)
+    .replace('{{IDENTITY_CONTEXT}}', () => identityContext)
+    .replace('{{NLP_RETRIEVED}}', () => nlpBlock)
+    .replace('{{COACHING_RETRIEVED}}', () => coachingBlock);
 
   if (phase === 'coaching') {
     prompt += '\n\nYou are in COACHING phase. Conduct the daily coaching conversation. Ask ONE question at a time. Respond in the COACHING JSON format.';

@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { clerkMiddleware, getAuth } from '@clerk/express';
-import learnRoutes from '../server/routes/learn.js';
-import practiceRoutes from '../server/routes/practice.js';
 import hypnosisRoutes from '../server/routes/hypnosis.js';
 import audioRoutes from '../server/routes/audio.js';
 import profileRoutes from '../server/routes/profile.js';
@@ -81,8 +79,6 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api', extractUserId);
-app.use('/api/learn', learnRoutes);
-app.use('/api/practice', practiceRoutes);
 app.use('/api/hypnosis', hypnosisRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/profile', profileRoutes);

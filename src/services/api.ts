@@ -94,32 +94,6 @@ export const api = {
       `/hypnosis/generate-active/${encodeURIComponent(sessionId)}`,
     ),
 
-  // ── Learn ──
-  getModules: () => request<any>('/learn/modules'),
-  getLesson: (lessonId: string) => request<any>(`/learn/lesson/${lessonId}`),
-  generateQuiz: (lessonId: string) =>
-    request<any>('/learn/quiz', { method: 'POST', body: JSON.stringify({ lessonId }) }),
-  evaluateQuiz: (lessonId: string, questions: any[], userAnswers: any[]) =>
-    request<any>('/learn/quiz/evaluate', {
-      method: 'POST',
-      body: JSON.stringify({ lessonId, questions, userAnswers }),
-    }),
-
-  // ── Practice ──
-  sendMessage: (scenario: string, messages: any[], coached: boolean, scenarioSetup?: string) => {
-    const conversationHistory = messages.slice(0, -1);
-    const message = messages.length > 0 ? messages[messages.length - 1].content : '';
-    return request<any>('/practice/chat', {
-      method: 'POST',
-      body: JSON.stringify({ scenario, message, conversationHistory, coached, customSetup: scenarioSetup }),
-    });
-  },
-  getDebrief: (scenario: string, messages: any[]) =>
-    request<any>('/practice/debrief', {
-      method: 'POST',
-      body: JSON.stringify({ scenario, conversationHistory: messages }),
-    }),
-
   // ── Audio / Scripts ──
   listScripts: () => request<any>('/audio/scripts'),
   listVoices: () => request<any>('/audio/voices'),
@@ -157,8 +131,6 @@ export const api = {
   getValueEvidence: (valueName: string) =>
     request<any>(`/identity/values/${encodeURIComponent(valueName)}/evidence`),
 
-  // ── Reference ──
-  getReference: () => request<any>('/learn/reference'),
 
   // ── Gamification ──
   getXp: () => request<any>('/gamification/xp'),

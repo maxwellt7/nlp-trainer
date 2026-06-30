@@ -15,10 +15,6 @@ import LeadConnectorWidget from './components/LeadConnectorWidget';
 import PaywallGate from './components/PaywallGate';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Learn = lazy(() => import('./pages/Learn'));
-const Lesson = lazy(() => import('./pages/Lesson'));
-const Practice = lazy(() => import('./pages/Practice'));
-const Reference = lazy(() => import('./pages/Reference'));
 const Hypnosis = lazy(() => import('./pages/Hypnosis'));
 const Audios = lazy(() => import('./pages/Audios'));
 const Sessions = lazy(() => import('./pages/Sessions'));
@@ -57,10 +53,6 @@ function ProtectedRoutes() {
           <Route path="/insights" element={<Insights />} />
           <Route path="/identity" element={<Identity />} />
           <Route path="/audios" element={<Audios />} />
-          <Route path="/learn" element={<Learn />} />
-          <Route path="/learn/:lessonId" element={<Lesson />} />
-          <Route path="/practice" element={<Practice />} />
-          <Route path="/reference" element={<Reference />} />
         </Route>
         {/* Admin dashboard — outside Layout for full-page view */}
         <Route path="/admin" element={<Admin />} />
@@ -93,10 +85,6 @@ function UnauthenticatedApp() {
         <Route path="/insights" element={<Insights />} />
         <Route path="/identity" element={<Identity />} />
         <Route path="/audios" element={<Audios />} />
-        <Route path="/learn" element={<Learn />} />
-        <Route path="/learn/:lessonId" element={<Lesson />} />
-        <Route path="/practice" element={<Practice />} />
-          <Route path="/reference" element={<Reference />} />
         </Route>
       </Routes>
     </RouteSuspense>
