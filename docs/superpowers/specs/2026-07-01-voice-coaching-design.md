@@ -202,15 +202,76 @@ User taps Start Call
 6. **Bug fixes:** backgrounding resilience (7.1) + Intel page (7.2).
 7. **Verify + cost pass + ship behind the paywall.**
 
-## 11. Cost (to quantify in the plan)
-- ElevenLabs Agents per-minute + TTS characters (your existing voices).
-- Claude tokens per turn (same as text; the NLP digest is already ~8k, RAG small).
-- Add a per-session soft cap and surface usage.
+## 11. Cost (quantified in §12.7)
+- Voice layer ≈ $0.08/min (95% silence discount); Claude tokens on our Anthropic
+  account (~same per-turn as text). ≈ $1.20 + Claude per 15-min session.
+- Pick an ElevenLabs Agents tier covering expected minutes; add a per-session soft cap.
 
-## 12. Design challenges & resolutions (quality pass — see task #5)
-- Deeper adversarial review (latency budgets, failure modes, iOS specifics, cost
-  ceilings, security of the custom-LLM endpoint) happens after this spec is approved,
-  with improvements folded into the implementation plan.
+## 12. Challenge pass — findings & design changes (2026-07-01)
+
+Grounded against ElevenLabs docs + iOS WebRTC reality. Changes are folded into the
+sections above where noted.
+
+### 12.1 ⚠️ iOS installed-PWA microphone is a GO/NO-GO gate (highest risk)
+- WebKit bug #185448: `getUserMedia` historically **does not work in a home-screen
+  (standalone-mode) PWA** — which is exactly how Max runs the app on iPad. Safari
+  also re-prompts for mic on in-app navigation.
+- **Consequence:** the whole real-time approach could be blocked *in the installed
+  app* even though it works in a Safari tab. This must be proven on the real device
+  before ANY feature build.
+- **Change:** Phase 1 becomes a hard **mic spike** on Max's actual iPad/iOS version:
+  test `getUserMedia` (a) in a Safari tab and (b) in the installed standalone PWA.
+  Decision tree:
+  - Works in standalone PWA → proceed as designed.
+  - Works only in Safari tab → ship the Call screen with a "open in Safari to talk"
+    affordance / detect `navigator.standalone` and guide the user; accept text stays
+    the in-PWA path.
+  - Works in neither on that iOS → reconsider (native wrapper / Capacitor) before
+    investing in the feature.
+- No feature code is written until this gate passes.
+
+### 12.2 Custom-LLM request shape (refines §5.3)
+- Confirmed OpenAI Chat Completions: `messages`, `model`, `temperature`, `max_tokens`,
+  `stream`, `user_id`, **`elevenlabs_extra_body`** (custom params).
+- **Change:** pass `sessionId` (and a signing nonce) via `elevenlabs_extra_body`
+  rather than inventing a transport. `userId` is bound server-side from the signed
+  session, never trusted from the payload.
+
+### 12.3 Auth to the custom-LLM endpoint (refines §5.4)
+- ElevenLabs sends a configurable secret ("API key") to the custom endpoint.
+- **Change:** set that secret to a strong value stored only in ElevenLabs + Railway;
+  `/api/voice/llm` rejects any request whose `Authorization: Bearer` ≠ the secret.
+  This is the endpoint's primary gate (it is not behind the Clerk user JWT).
+
+### 12.4 Persistence via post-call webhook (refines §5.5) — simplification
+- The custom-LLM endpoint is stateless per turn (ElevenLabs resends full `messages`);
+  persisting per-chunk there is awkward and risks dupes.
+- **Change:** make the **ElevenLabs post-call webhook** the authoritative persistence
+  point. On `conversation ended`, it delivers the full transcript → we
+  `updateSessionMessages` into the shared session and run the values/identity
+  analysis once over the whole conversation via `deferTask`. Cheaper and cleaner than
+  per-turn writes. Webhook must be signature-verified.
+- Live captions still come from the SDK client-side during the call.
+
+### 12.5 Effectiveness parity — the real tension, resolved (refines §6)
+- Real-time barge-in favors shorter turns; "not shorter/less effective" is about the
+  *coaching*, not literal per-turn length.
+- **Resolution:** depth is preserved across the *conversation* + the full transcript;
+  the voice-delivery instruction keeps replies substantive but speakable, and
+  barge-in makes richer replies comfortable. During verification, A/B a few identical
+  prompts text vs voice and confirm parity of substance.
+
+### 12.6 Latency budget (refines §8)
+- Target: first audio < ~1.5s after the user stops speaking.
+- **Change:** cache the static NLP digest (it never changes within a process); keep
+  RAG topK small; stream Claude tokens; use ElevenLabs "buffer words." First-token is
+  the metric that matters, not total.
+
+### 12.7 Cost, quantified (refines §11)
+- Voice layer ≈ **$0.08/min** overage (95% discount on >10s silence); Claude tokens on
+  our own Anthropic account (≈ same per-turn as text). ~**$1.20 + Claude** per 15-min
+  session. Pick an ElevenLabs Agents tier whose included minutes cover expected usage
+  (Creator 275 min / Pro 1,238 min). Add a per-session soft cap.
 
 ## 13. Open questions
 - Exact ElevenLabs custom-LLM request/response shape + how dynamic variables surface
