@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mic Test</title>
+<body style="font:16px/1.5 system-ui;padding:24px;max-width:640px;margin:0 auto;background:#0B0F19;color:#e5e7eb">
+  <h1 style="font-size:20px">Microphone capability test</h1>
+  <p id="mode" style="opacity:.8"></p>
+  <button id="go" style="font-size:18px;padding:14px 22px;border:none;border-radius:10px;background:#4f46e5;color:#fff;font-weight:600">
+    Tap to test the mic
+  </button>
+  <pre id="out" style="white-space:pre-wrap;margin-top:16px;padding:12px;background:#111827;border-radius:8px;min-height:48px"></pre>
+  <p style="opacity:.6;font-size:13px">Run this both ways: (1) in a normal Safari tab, and (2) from the app on your home screen. Tell me the OK/FAIL line and the "standalone" value for each.</p>
+  <script>
+    var out = function (m) { document.getElementById('out').textContent += m + "\n"; };
+    var standalone = (window.navigator.standalone === true);
+    document.getElementById('mode').textContent =
+      'standalone (launched from home screen): ' + standalone +
+      '  |  secure context: ' + window.isSecureContext;
+    document.getElementById('go').onclick = async function () {
+      out('requesting mic…');
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          out('FAIL: getUserMedia is not available in this context.');
+          return;
+        }
+        var s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        out('OK: got audio stream, tracks=' + s.getAudioTracks().length);
+        s.getTracks().forEach(function (t) { t.stop(); });
+      } catch (e) {
+        out('FAIL: ' + e.name + ' — ' + e.message);
+      }
+    };
+  </script>
+</body>

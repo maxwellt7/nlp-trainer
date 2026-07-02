@@ -5,6 +5,7 @@ export default function Insights() {
   const [profile, setProfile] = useState<any>(null);
   const [streak, setStreak] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -12,8 +13,9 @@ export default function Insights() {
         const data = await api.getProfile();
         setProfile(data.profile);
         setStreak(data.streak);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load insights:', err);
+        setError(err?.message || 'Could not load your insights.');
       } finally {
         setLoading(false);
       }
@@ -23,6 +25,21 @@ export default function Insights() {
 
   if (loading) {
     return <div className="p-8 text-gray-500">Loading insights...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 max-w-2xl mx-auto text-center">
+        <h1 className="text-2xl font-bold mb-4">Insights</h1>
+        <p className="text-red-300 text-sm mb-4">Couldn’t load your insights: {error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-indigo-600 hover:bg-indigo-500 rounded-lg px-4 py-2 text-sm font-medium"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   if (!profile) {
