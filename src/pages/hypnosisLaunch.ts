@@ -18,6 +18,7 @@ export type InitialHypnosisTarget =
 export function resolveInitialHypnosisTarget(
   search: string,
   conversations: HypnosisConversationTarget[],
+  preferGeneralChat = false,
 ): InitialHypnosisTarget {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   const requestedSessionId = params.get('sessionId');
@@ -29,11 +30,13 @@ export function resolveInitialHypnosisTarget(
     };
   }
 
-  if (params.get('mode') === 'daily') {
-    return {
-      action: 'start',
-      sessionType: 'daily_hypnosis',
-    };
+  const mode = params.get('mode');
+  if (mode === 'daily') {
+    return { action: 'start', sessionType: 'daily_hypnosis' };
+  }
+  if (mode === 'general' || preferGeneralChat) {
+    // The "General Chat" route/nav always opens a fresh open-ended chat.
+    return { action: 'start', sessionType: 'general_chat' };
   }
 
   const [mostRecentConversation] = conversations;

@@ -5,7 +5,8 @@ import { api } from '../services/api';
 
 const navItems = [
   { to: '/', label: 'Command', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4', section: 'ops' },
-  { to: '/hypnosis', label: 'Session', icon: 'M13 10V3L4 14h7v7l9-11h-7z', section: 'ops' },
+  { to: '/hypnosis', label: 'Daily Session', icon: 'M13 10V3L4 14h7v7l9-11h-7z', section: 'ops' },
+  { to: '/chat', label: 'General Chat', icon: 'M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.85L3 20l1.4-3.5A7.72 7.72 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', section: 'ops' },
   { to: '/sessions', label: 'History', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', section: 'ops' },
   { to: '/insights', label: 'Intel', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4', section: 'ops' },
   { to: '/identity', label: 'Identity', icon: 'M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z', section: 'ops' },

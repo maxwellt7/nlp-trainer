@@ -52,6 +52,7 @@ function ProtectedRoutes() {
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/hypnosis" element={<Hypnosis />} />
+          <Route path="/chat" element={<Hypnosis />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/identity" element={<Identity />} />
@@ -84,6 +85,7 @@ function UnauthenticatedApp() {
         <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
+        <Route path="/chat" element={<Hypnosis />} />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/identity" element={<Identity />} />

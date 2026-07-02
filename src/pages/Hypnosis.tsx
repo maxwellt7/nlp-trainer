@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import XpPopup from '../components/XpPopup';
 import MysteryBox from '../components/MysteryBox';
@@ -184,6 +184,10 @@ export default function Hypnosis() {
   const detailSectionRef = useRef<HTMLElement>(null);
   const nextConversationViewportActionRef = useRef<'top' | 'bottom' | null>(null);
   const initCalled = useRef(false);
+  const location = useLocation();
+  // Which coaching route we last acted on, so the route-switch effect only fires
+  // on an actual change (not on every render).
+  const handledPathRef = useRef<string | null>(null);
 
   const hasConversationStarted = useMemo(
     () => messages.some((message) => message.role === 'user') || messages.filter((message) => message.role === 'assistant').length > 1,
@@ -362,9 +366,11 @@ export default function Hypnosis() {
       try {
         const launchSearch = window.location.search;
         const launchParams = new URLSearchParams(launchSearch);
+        const isChatRoute = window.location.pathname === '/chat';
+        handledPathRef.current = window.location.pathname;
         const existing = await refreshConversations();
-        const initialTarget = resolveInitialHypnosisTarget(launchSearch, existing);
-        const revealFromLaunchIntent = launchParams.has('mode') || launchParams.has('sessionId');
+        const initialTarget = resolveInitialHypnosisTarget(launchSearch, existing, isChatRoute);
+        const revealFromLaunchIntent = isChatRoute || launchParams.has('mode') || launchParams.has('sessionId');
 
         if (initialTarget.action === 'load') {
           await loadConversation(initialTarget.sessionId, { revealOnMobile: revealFromLaunchIntent });
@@ -380,6 +386,19 @@ export default function Hypnosis() {
 
     bootstrap();
   }, [loadConversation, refreshConversations, startConversation]);
+
+  // Sidebar "Daily Session" (/hypnosis) and "General Chat" (/chat) render this
+  // same page, so React Router does not remount when switching between them.
+  // React to the route change (after the initial bootstrap) by opening the
+  // matching conversation type.
+  useEffect(() => {
+    if (!initCalled.current) return;
+    const path = location.pathname;
+    if (path !== '/hypnosis' && path !== '/chat') return;
+    if (handledPathRef.current === path) return;
+    handledPathRef.current = path;
+    startConversation(path === '/chat' ? 'general_chat' : 'daily_hypnosis', { revealOnMobile: true });
+  }, [location.pathname, startConversation]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
