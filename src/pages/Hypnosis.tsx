@@ -300,6 +300,34 @@ export default function Hypnosis() {
     }
   }, [applyConversationState, isMobileViewport, resetScriptPanel, revealConversationPanelOnMobile]);
 
+  // Keep the latest messages in a ref so the foreground re-sync can compare
+  // without re-subscribing on every message change.
+  const latestMessagesRef = useRef<Message[]>(messages);
+  useEffect(() => { latestMessagesRef.current = messages; }, [messages]);
+
+  // Mobile resilience: iOS aborts in-flight fetches when the app is backgrounded,
+  // so a reply that the server generated + persisted can be missed by the client
+  // (the user sees their message with no answer). The server saves the assistant
+  // turn BEFORE responding, so on return to foreground we re-fetch the active
+  // session and adopt it when the server has more messages than we're showing —
+  // i.e. a reply landed while we were away.
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const cid = selectedConversationId;
+      if (!cid || loading || generating || initializing) return;
+      try {
+        const detailRaw = await api.getSession(cid);
+        const serverMsgs = parseMessages(detailRaw.chat_messages);
+        if (serverMsgs.length > latestMessagesRef.current.length) {
+          setMessages(serverMsgs);
+        }
+      } catch { /* ignore transient re-sync failures */ }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [selectedConversationId, loading, generating, initializing]);
+
   const startConversation = useCallback(async (sessionType: 'daily_hypnosis' | 'general_chat', options?: { revealOnMobile?: boolean }) => {
     setInitializing(true);
     setError(null);
