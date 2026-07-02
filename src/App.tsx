@@ -13,6 +13,7 @@ import SignupTracker from './components/SignupTracker';
 import AnalyticsTracker from './components/AnalyticsTracker';
 import LeadConnectorWidget from './components/LeadConnectorWidget';
 import PaywallGate from './components/PaywallGate';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Hypnosis = lazy(() => import('./pages/Hypnosis'));
@@ -24,6 +25,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 
 function RouteSuspense({ children }: { children: React.ReactNode }) {
   return (
+    <RouteErrorBoundary>
     <Suspense fallback={
       <div style={{
         display: 'flex', justifyContent: 'center', alignItems: 'center',
@@ -39,6 +41,7 @@ function RouteSuspense({ children }: { children: React.ReactNode }) {
     }>
       {children}
     </Suspense>
+    </RouteErrorBoundary>
   );
 }
 
