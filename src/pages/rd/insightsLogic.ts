@@ -57,3 +57,52 @@ export function alignmentRings(congruence: any): AlignmentRing[] {
   }
   return rings;
 }
+
+export type Pattern = { title: string; desc: string; colorVar: string };
+
+const PATTERN_COLORS = ['--rd-accent-bright', '--rd-muted', '--rd-sage'];
+
+const META_COPY: Record<string, Record<string, { title: string; desc: string }>> = {
+  direction: {
+    toward: { title: 'You move toward, not away', desc: 'You frame goals as things you want, rather than things you fear. That gives your sessions forward pull.' },
+    away: { title: "You move away from what you don't want", desc: "You're motivated by moving away from discomfort. Naming what you do want can add pull." },
+  },
+  frame: {
+    external: { title: "Other people's eyes matter a lot", desc: "Much of your stress traces back to how you imagine being seen. We're gently loosening this." },
+    internal: { title: 'You check decisions against your own compass', desc: 'You weigh choices by your own standards more than outside approval.' },
+  },
+  chunk: {
+    global: { title: 'You think in the big picture first', desc: 'You reach for the overall shape before the details.' },
+    specific: { title: 'You work from the details up', desc: 'You build understanding from specifics toward the whole.' },
+  },
+  rep_system: {
+    visual: { title: 'You think in pictures', desc: 'You process experience most vividly through images.' },
+    auditory: { title: 'You think in words and tone', desc: 'You process experience most vividly through sound and language.' },
+    kinesthetic: { title: 'You think through feeling', desc: 'You process experience most vividly through bodily sensation.' },
+  },
+};
+
+export function buildPatterns(profile: any): Pattern[] {
+  const out: Array<{ title: string; desc: string }> = [];
+  const mp = profile?.meta_programs || {};
+  for (const key of ['direction', 'frame', 'chunk', 'rep_system']) {
+    const val = mp[key];
+    const copy = val && META_COPY[key]?.[val];
+    if (copy) out.push(copy);
+  }
+
+  const vhScore = Number(profile?.victim_healer?.score);
+  if (Number.isFinite(vhScore)) {
+    if (vhScore >= 2) out.push({ title: "You're taking ownership of your part", desc: 'You increasingly meet situations as something you can shape, not just endure.' });
+    else if (vhScore <= -2) out.push({ title: 'Some things still feel done to you', desc: "A few areas still feel outside your control. We'll keep widening where you have a say." });
+  }
+
+  const clean = Number(profile?.force_audit?.clean);
+  const subtle = Number(profile?.force_audit?.subtle);
+  if (Number.isFinite(clean) && Number.isFinite(subtle)) {
+    if (clean - subtle >= 2) out.push({ title: 'You influence cleanly, without pushing', desc: 'You tend to create conditions where people want to follow, rather than forcing.' });
+    else if (subtle - clean >= 2) out.push({ title: 'You sometimes push harder than you need to', desc: 'Overexplaining or managing reactions can creep in. Trusting the point to land is the practice.' });
+  }
+
+  return out.map((p, i) => ({ ...p, colorVar: PATTERN_COLORS[i % PATTERN_COLORS.length] }));
+}

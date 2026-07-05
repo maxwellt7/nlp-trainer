@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { capacityBars, alignmentRings } from './insightsLogic';
+import { capacityBars, alignmentRings, buildPatterns } from './insightsLogic';
 
 describe('capacityBars', () => {
   it('returns null when capacity_index is missing', () => {
@@ -51,5 +51,39 @@ describe('alignmentRings', () => {
   it('ignores non-numeric values', () => {
     const rings = alignmentRings({ work: 5, bad: 'x' as any });
     expect(rings.map(r => r.label)).toEqual(['Work']);
+  });
+});
+
+describe('buildPatterns', () => {
+  it('returns [] when nothing is detected', () => {
+    expect(buildPatterns({})).toEqual([]);
+    expect(buildPatterns({ meta_programs: { direction: null, frame: null, chunk: null, rep_system: null } })).toEqual([]);
+  });
+
+  it('translates meta_programs to plain-language titles in order', () => {
+    const p = buildPatterns({ meta_programs: { direction: 'toward', frame: 'external', chunk: 'global', rep_system: 'visual' } });
+    expect(p.map(x => x.title)).toEqual([
+      'You move toward, not away',
+      "Other people's eyes matter a lot",
+      'You think in the big picture first',
+      'You think in pictures',
+    ]);
+  });
+
+  it('cycles dot colors by index', () => {
+    const p = buildPatterns({ meta_programs: { direction: 'toward', frame: 'external', chunk: 'global', rep_system: 'auditory' } });
+    expect(p.map(x => x.colorVar)).toEqual(['--rd-accent-bright', '--rd-muted', '--rd-sage', '--rd-accent-bright']);
+  });
+
+  it('folds in victim_healer only when strongly one-sided', () => {
+    expect(buildPatterns({ victim_healer: { score: 3 } }).map(x => x.title)).toEqual(["You're taking ownership of your part"]);
+    expect(buildPatterns({ victim_healer: { score: -3 } }).map(x => x.title)).toEqual(['Some things still feel done to you']);
+    expect(buildPatterns({ victim_healer: { score: 1 } })).toEqual([]);
+  });
+
+  it('folds in force_audit only on a clear margin', () => {
+    expect(buildPatterns({ force_audit: { clean: 8, subtle: 3 } }).map(x => x.title)).toEqual(['You influence cleanly, without pushing']);
+    expect(buildPatterns({ force_audit: { clean: 3, subtle: 8 } }).map(x => x.title)).toEqual(['You sometimes push harder than you need to']);
+    expect(buildPatterns({ force_audit: { clean: 5, subtle: 5 } })).toEqual([]);
   });
 });
