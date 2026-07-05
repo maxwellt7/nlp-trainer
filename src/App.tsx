@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SignedIn, SignedOut, useAuth } from '@clerk/clerk-react';
 import AuthProvider from './components/AuthProvider';
-import Layout from './components/Layout';
+import AppShell from './components/rd/AppShell';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
 import Privacy from './pages/Privacy';
@@ -49,7 +49,7 @@ function ProtectedRoutes() {
   return (
     <RouteSuspense>
       <Routes>
-        <Route element={<Layout />}>
+        <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/hypnosis" element={<Hypnosis />} />
           <Route path="/chat" element={<Hypnosis />} />
@@ -82,7 +82,7 @@ function UnauthenticatedApp() {
   return (
     <RouteSuspense>
       <Routes>
-        <Route element={<Layout />}>
+        <Route element={<AppShell />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
         <Route path="/chat" element={<Hypnosis />} />
