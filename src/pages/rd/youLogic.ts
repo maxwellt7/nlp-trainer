@@ -25,9 +25,13 @@ export type ValueBar = {
   desc: string;
 };
 
+// The coach can detect dozens of values; show only the most-confident few so the
+// screen stays calm (input arrives pre-sorted by confidence DESC from the backend).
+const MAX_VALUE_BARS = 8;
+
 export function valueBars(values: any): ValueBar[] {
   if (!Array.isArray(values)) return [];
-  return values.map((v: any) => {
+  return values.slice(0, MAX_VALUE_BARS).map((v: any) => {
     const confidence = Number(v?.confidence) || 0;
     const purity = Number(v?.purity_score) || 0;
     const pure = (v?.pure_expression || '').trim();

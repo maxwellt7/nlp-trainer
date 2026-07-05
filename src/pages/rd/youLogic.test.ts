@@ -49,6 +49,13 @@ describe('valueBars', () => {
     const [bar] = valueBars([{ value_name: 'growth', confidence: 0.5, purity_score: 7, expression: 'pure' }]);
     expect(bar.badge).toBe('living it');
   });
+  it('caps the list to the top 8 values (input is pre-sorted by confidence DESC)', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ value_name: `v${i}`, confidence: 0.9, purity_score: 7, expression: 'pure' }));
+    const bars = valueBars(many);
+    expect(bars).toHaveLength(8);
+    expect(bars[0].name).toBe('V0');
+    expect(bars[7].name).toBe('V7');
+  });
 });
 
 describe('topTension', () => {
