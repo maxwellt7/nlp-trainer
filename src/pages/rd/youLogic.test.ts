@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { overallCongruence, valueBars } from './youLogic';
+import { topTension, beliefs } from './youLogic';
 
 describe('overallCongruence', () => {
   it('returns null for missing scores or non-positive congruence', () => {
@@ -47,5 +48,40 @@ describe('valueBars', () => {
   it('treats confidence exactly 0.5 as not emerging', () => {
     const [bar] = valueBars([{ value_name: 'growth', confidence: 0.5, purity_score: 7, expression: 'pure' }]);
     expect(bar.badge).toBe('living it');
+  });
+});
+
+describe('topTension', () => {
+  it('returns null when there are no conflicts', () => {
+    expect(topTension([])).toBeNull();
+    expect(topTension(undefined)).toBeNull();
+  });
+  it('returns only the first conflict, title-cased', () => {
+    const t = topTension([
+      { value_a: 'freedom', value_b: 'belonging', description: 'You want both.' },
+      { value_a: 'x', value_b: 'y', description: 'ignored' },
+    ]);
+    expect(t).toEqual({ a: 'Freedom', b: 'Belonging', desc: 'You want both.' });
+  });
+});
+
+describe('beliefs', () => {
+  it('returns [] for empty or missing input', () => {
+    expect(beliefs([])).toEqual([]);
+    expect(beliefs(undefined)).toEqual([]);
+  });
+  it('colors empowering/core sage and limiting/worthiness/root danger', () => {
+    const b = beliefs([
+      { statement_type: 'empowering_belief', content: 'I can handle hard things.' },
+      { statement_type: 'core_identity', content: 'I am a builder.' },
+      { statement_type: 'limiting_belief', content: 'I am behind.' },
+      { statement_type: 'worthiness_pattern', content: 'I must earn rest.' },
+      { statement_type: 'root_belief', content: 'Love is conditional.' },
+    ]);
+    expect(b.map(x => x.colorVar)).toEqual(['--rd-sage', '--rd-sage', '--rd-danger', '--rd-danger', '--rd-danger']);
+    expect(b[0].content).toBe('I can handle hard things.');
+  });
+  it('skips items with empty content', () => {
+    expect(beliefs([{ statement_type: 'core_identity', content: '' }])).toEqual([]);
   });
 });
