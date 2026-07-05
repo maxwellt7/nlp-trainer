@@ -24,4 +24,13 @@ describe('weekDots', () => {
     expect(dots).toHaveLength(7);
     expect(dots.every(d => d.state !== 'filled')).toBe(true);
   });
+  it('maps the current week correctly when today is Sunday (regression)', () => {
+    // 2026-07-05 is a Sunday; streak of 3 covers Sun 07-05, Sat 07-04, Fri 07-03.
+    const dots = weekDots({ current_streak: 3, last_session_date: '2026-07-05' }, new Date('2026-07-05T12:00:00'));
+    expect(dots).toHaveLength(7);
+    expect(dots[6].state).toBe('today');   // Sunday slot
+    expect(dots[5].state).toBe('filled');  // Saturday 07-04
+    expect(dots[4].state).toBe('filled');  // Friday 07-03
+    expect(dots[0].state).toBe('empty');   // Monday
+  });
 });
