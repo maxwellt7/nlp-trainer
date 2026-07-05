@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SignedIn, SignedOut, useAuth } from '@clerk/clerk-react';
 import AuthProvider from './components/AuthProvider';
-import Layout from './components/Layout';
+import AppShell from './components/rd/AppShell';
 import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
 import Privacy from './pages/Privacy';
@@ -15,7 +15,7 @@ import LeadConnectorWidget from './components/LeadConnectorWidget';
 import PaywallGate from './components/PaywallGate';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Home = lazy(() => import('./pages/rd/Home'));
 const Hypnosis = lazy(() => import('./pages/Hypnosis'));
 const Audios = lazy(() => import('./pages/Audios'));
 const Sessions = lazy(() => import('./pages/Sessions'));
@@ -49,14 +49,16 @@ function ProtectedRoutes() {
   return (
     <RouteSuspense>
       <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<Home />} />
           <Route path="/hypnosis" element={<Hypnosis />} />
           <Route path="/chat" element={<Hypnosis />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/identity" element={<Identity />} />
           <Route path="/audios" element={<Audios />} />
+          <Route path="/library" element={<Audios />} />
+          <Route path="/you" element={<Identity />} />
         </Route>
         {/* Admin dashboard — outside Layout for full-page view */}
         <Route path="/admin" element={<Admin />} />
@@ -82,14 +84,16 @@ function UnauthenticatedApp() {
   return (
     <RouteSuspense>
       <Routes>
-        <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route element={<AppShell />}>
+        <Route path="/" element={<Home />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
         <Route path="/chat" element={<Hypnosis />} />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/identity" element={<Identity />} />
         <Route path="/audios" element={<Audios />} />
+        <Route path="/library" element={<Audios />} />
+        <Route path="/you" element={<Identity />} />
         </Route>
       </Routes>
     </RouteSuspense>
