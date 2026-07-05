@@ -15,7 +15,7 @@ import LeadConnectorWidget from './components/LeadConnectorWidget';
 import PaywallGate from './components/PaywallGate';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Home = lazy(() => import('./pages/rd/Home'));
 const Hypnosis = lazy(() => import('./pages/Hypnosis'));
 const Audios = lazy(() => import('./pages/Audios'));
 const Sessions = lazy(() => import('./pages/Sessions'));
@@ -50,7 +50,7 @@ function ProtectedRoutes() {
     <RouteSuspense>
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Home />} />
           <Route path="/hypnosis" element={<Hypnosis />} />
           <Route path="/chat" element={<Hypnosis />} />
           <Route path="/sessions" element={<Sessions />} />
@@ -83,7 +83,7 @@ function UnauthenticatedApp() {
     <RouteSuspense>
       <Routes>
         <Route element={<AppShell />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Home />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
         <Route path="/chat" element={<Hypnosis />} />
         <Route path="/sessions" element={<Sessions />} />
