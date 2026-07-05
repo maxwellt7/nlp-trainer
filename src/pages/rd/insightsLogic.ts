@@ -47,6 +47,10 @@ export type AlignmentRing = { label: string; score: number; dash: string };
 
 export function alignmentRings(congruence: any): AlignmentRing[] {
   if (!congruence || typeof congruence !== 'object') return [];
+  const nums = Object.values(congruence).map((v) => Number(v)).filter((v) => Number.isFinite(v));
+  // All-default seed (every domain 5) reads as "no real data yet". Require more
+  // than one value so a single legitimate domain scored 5 isn't mistaken for the seed.
+  if (nums.length > 1 && nums.every((v) => v === 5)) return [];
   const rings: AlignmentRing[] = [];
   for (const [key, raw] of Object.entries(congruence)) {
     const score = Number(raw);

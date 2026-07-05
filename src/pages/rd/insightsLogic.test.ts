@@ -52,6 +52,15 @@ describe('alignmentRings', () => {
     const rings = alignmentRings({ work: 5, bad: 'x' as any });
     expect(rings.map(r => r.label)).toEqual(['Work']);
   });
+
+  it('treats the all-default (every value 5) seed as empty', () => {
+    expect(alignmentRings({ career: 5, finance: 5, health: 5, relationships: 5, personal_growth: 5, fun: 5, spirituality: 5 })).toEqual([]);
+  });
+
+  it('still renders when at least one value differs from the default', () => {
+    const rings = alignmentRings({ career: 5, finance: 5, health: 6 });
+    expect(rings.map(r => r.label)).toEqual(['Career', 'Finance', 'Health']);
+  });
 });
 
 describe('buildPatterns', () => {
