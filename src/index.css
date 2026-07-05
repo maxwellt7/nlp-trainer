@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Albert+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ── Alignment Engine Brand System ── */
@@ -57,6 +58,29 @@
   --radius-button: 10px;
   --radius-badge: 6px;
   --radius-pill: 999px;
+
+  /* ── Redesign (calm) tokens — additive; do not replace brand tokens ── */
+  --font-display: 'Newsreader', ui-serif, Georgia, serif;
+  --font-sans: 'Albert Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --rd-bg: #06121c;
+  --rd-bg-deep: #081018;
+  --rd-ink: #eaf0f4;
+  --rd-ink-soft: #d3dee8;
+  --rd-muted: #9db4cc;
+  --rd-muted-2: #6b8095;
+  --rd-dim: #5b7085;
+  --rd-accent: #5a93bd;
+  --rd-accent-bright: #7fb4d9;
+  --rd-accent-deep: #3e6a8c;
+  --rd-sage: #a9c6b3;
+  --rd-sage-soft: #c9e0d1;
+  --rd-surface: rgba(255,255,255,0.05);
+  --rd-surface-2: rgba(255,255,255,0.07);
+  --rd-border: rgba(255,255,255,0.08);
+  --rd-accent-glow: rgba(90,147,189,0.35);
+  --rd-danger: #ff8a80;
+  --rd-radius-card: 20px;
 }
 
 /* ── Base Styles ── */
