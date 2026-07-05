@@ -57,6 +57,8 @@ function ProtectedRoutes() {
           <Route path="/insights" element={<Insights />} />
           <Route path="/identity" element={<Identity />} />
           <Route path="/audios" element={<Audios />} />
+          <Route path="/library" element={<Audios />} />
+          <Route path="/you" element={<Identity />} />
         </Route>
         {/* Admin dashboard — outside Layout for full-page view */}
         <Route path="/admin" element={<Admin />} />
@@ -90,6 +92,8 @@ function UnauthenticatedApp() {
         <Route path="/insights" element={<Insights />} />
         <Route path="/identity" element={<Identity />} />
         <Route path="/audios" element={<Audios />} />
+        <Route path="/library" element={<Audios />} />
+        <Route path="/you" element={<Identity />} />
         </Route>
       </Routes>
     </RouteSuspense>
