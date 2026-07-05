@@ -16,12 +16,11 @@ export default function BottomNav() {
   return (
     <>
       <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-        display: 'flex', justifyContent: 'center',
-        paddingBottom: 'env(safe-area-inset-bottom)', pointerEvents: 'none',
+        flexShrink: 0, display: 'flex', justifyContent: 'center',
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
         <div style={{
-          width: '100%', maxWidth: 440, margin: '0 auto 12px', pointerEvents: 'auto',
+          width: '100%', maxWidth: 440, margin: '0 auto 12px',
           display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'center',
           background: 'var(--rd-bg-deep)', border: '1px solid var(--rd-border)',
           borderRadius: 24, padding: '8px 6px', boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
