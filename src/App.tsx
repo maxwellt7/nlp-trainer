@@ -20,7 +20,7 @@ const Hypnosis = lazy(() => import('./pages/Hypnosis'));
 const Audios = lazy(() => import('./pages/Audios'));
 const Sessions = lazy(() => import('./pages/Sessions'));
 const Insights = lazy(() => import('./pages/rd/Insights'));
-const Identity = lazy(() => import('./pages/Identity'));
+const Identity = lazy(() => import('./pages/rd/You'));
 const Admin = lazy(() => import('./pages/Admin'));
 
 function RouteSuspense({ children }: { children: React.ReactNode }) {

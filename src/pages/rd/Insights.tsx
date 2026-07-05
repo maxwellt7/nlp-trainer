@@ -3,9 +3,7 @@ import { api } from '../../services/api';
 import Screen from '../../components/rd/Screen';
 import Card from '../../components/rd/Card';
 import SectionLabel from '../../components/rd/SectionLabel';
-import { capacityBars, alignmentRings, buildPatterns } from './insightsLogic';
-
-const ARC = 'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831';
+import { capacityBars, buildPatterns } from './insightsLogic';
 
 export default function Insights() {
   const [profile, setProfile] = useState<any>(null);
@@ -41,7 +39,6 @@ export default function Insights() {
   }
 
   const bars = capacityBars(profile?.capacity_index);
-  const rings = alignmentRings(profile?.congruence);
   const patterns = buildPatterns(profile);
 
   return (
@@ -72,36 +69,6 @@ export default function Insights() {
           </div>
         ))}
       </Card>
-
-      {/* Section 2 — Alignment */}
-      <div style={{ marginTop: 20 }}>
-        <Card>
-          <SectionLabel>Alignment</SectionLabel>
-          {rings.length === 0 && (
-            <div style={{ fontSize: 14, color: 'var(--rd-muted)', lineHeight: 1.55 }}>
-              As different areas of your life come up, you'll see how aligned they feel here.
-            </div>
-          )}
-          {rings.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: 12 }}>
-              {rings.map(r => (
-                <div key={r.label} style={{ textAlign: 'center' }}>
-                  <div style={{ position: 'relative', width: 60, height: 60, margin: '0 auto 8px' }}>
-                    <svg viewBox="0 0 36 36" style={{ width: 60, height: 60, transform: 'rotate(0deg)' }}>
-                      <path d={ARC} fill="none" stroke="var(--rd-border)" strokeWidth={3} />
-                      <path d={ARC} fill="none" stroke="var(--rd-accent-bright)" strokeWidth={3} strokeLinecap="round" strokeDasharray={r.dash} />
-                    </svg>
-                    <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--rd-ink)' }}>
-                      {Math.round(r.score)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--rd-muted)' }}>{r.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
 
       {/* Section 3 — Patterns we've noticed */}
       <div style={{ marginTop: 28 }}>

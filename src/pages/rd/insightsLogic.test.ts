@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { capacityBars, alignmentRings, buildPatterns } from './insightsLogic';
+import { capacityBars, buildPatterns } from './insightsLogic';
 
 describe('capacityBars', () => {
   it('returns null when capacity_index is missing', () => {
@@ -28,38 +28,6 @@ describe('capacityBars', () => {
     const bars = capacityBars({ suppression: -1, discharge: 12, capacity: 7 })!;
     expect(bars[0].pct).toBe(0);
     expect(bars[1].pct).toBe(100);
-  });
-});
-
-describe('alignmentRings', () => {
-  it('returns [] when congruence is empty or missing', () => {
-    expect(alignmentRings(undefined)).toEqual([]);
-    expect(alignmentRings({})).toEqual([]);
-  });
-
-  it('title-cases keys and builds the dash string', () => {
-    const rings = alignmentRings({ work: 6.8, home_life: 7.9 });
-    expect(rings[0]).toEqual({ label: 'Work', score: 6.8, dash: '68, 100' });
-    expect(rings[1]).toEqual({ label: 'Home Life', score: 7.9, dash: '79, 100' });
-  });
-
-  it('caps at 4 rings', () => {
-    const rings = alignmentRings({ a: 1, b: 2, c: 3, d: 4, e: 5 });
-    expect(rings).toHaveLength(4);
-  });
-
-  it('ignores non-numeric values', () => {
-    const rings = alignmentRings({ work: 5, bad: 'x' as any });
-    expect(rings.map(r => r.label)).toEqual(['Work']);
-  });
-
-  it('treats the all-default (every value 5) seed as empty', () => {
-    expect(alignmentRings({ career: 5, finance: 5, health: 5, relationships: 5, personal_growth: 5, fun: 5, spirituality: 5 })).toEqual([]);
-  });
-
-  it('still renders when at least one value differs from the default', () => {
-    const rings = alignmentRings({ career: 5, finance: 5, health: 6 });
-    expect(rings.map(r => r.label)).toEqual(['Career', 'Finance', 'Health']);
   });
 });
 

@@ -8,13 +8,6 @@ function qualifier(value: number): string {
   return 'strong';
 }
 
-function titleCase(key: string): string {
-  return key
-    .split('_')
-    .map(w => (w ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(' ');
-}
-
 export type CapacityBar = {
   key: 'suppression' | 'discharge' | 'capacity';
   label: string;
@@ -41,25 +34,6 @@ export function capacityBars(capacityIndex: any): CapacityBar[] | null {
     const value = vals[i];
     return { ...d, value, pct: clamp(value * 10, 0, 100), qualifier: qualifier(value) };
   });
-}
-
-export type AlignmentRing = { label: string; score: number; dash: string };
-
-export function alignmentRings(congruence: any): AlignmentRing[] {
-  if (!congruence || typeof congruence !== 'object') return [];
-  const nums = Object.values(congruence).map((v) => Number(v)).filter((v) => Number.isFinite(v));
-  // All-default seed (every domain 5) reads as "no real data yet". Require more
-  // than one value so a single legitimate domain scored 5 isn't mistaken for the seed.
-  if (nums.length > 1 && nums.every((v) => v === 5)) return [];
-  const rings: AlignmentRing[] = [];
-  for (const [key, raw] of Object.entries(congruence)) {
-    const score = Number(raw);
-    if (!Number.isFinite(score)) continue;
-    const pct = Math.round(clamp(score, 0, 10) * 10);
-    rings.push({ label: titleCase(key), score, dash: `${pct}, 100` });
-    if (rings.length === 4) break;
-  }
-  return rings;
 }
 
 export type Pattern = { title: string; desc: string; colorVar: string };
