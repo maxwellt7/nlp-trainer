@@ -29,11 +29,11 @@ function RouteSuspense({ children }: { children: React.ReactNode }) {
     <Suspense fallback={
       <div style={{
         display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100dvh', background: '#0B0F19',
+        height: '100dvh', background: 'var(--rd-bg)',
       }}>
         <div style={{
-          width: 32, height: 32, border: '3px solid rgba(212,168,83,0.2)',
-          borderTopColor: '#D4A853', borderRadius: '50%',
+          width: 32, height: 32, border: '3px solid var(--rd-border)',
+          borderTopColor: 'var(--rd-accent)', borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

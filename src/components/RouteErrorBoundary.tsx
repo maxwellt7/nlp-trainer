@@ -39,13 +39,13 @@ export default class RouteErrorBoundary extends Component<Props, State> {
         <div style={{
           minHeight: '100dvh', display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: 16,
-          background: '#0B0F19', color: '#e5e7eb', padding: 24, textAlign: 'center',
+          background: 'var(--rd-bg)', color: 'var(--rd-ink-soft)', padding: 24, textAlign: 'center',
         }}>
           <div style={{ fontSize: 15, opacity: 0.85 }}>This screen hit a snag loading.</div>
           <button
             onClick={() => { sessionStorage.removeItem(RELOAD_TS_KEY); window.location.reload(); }}
             style={{
-              background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 10,
+              background: 'var(--rd-accent)', color: '#06121c', border: 'none', borderRadius: 10,
               padding: '10px 18px', fontSize: 14, fontWeight: 600,
             }}
           >
