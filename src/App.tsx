@@ -17,7 +17,7 @@ import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 const Home = lazy(() => import('./pages/rd/Home'));
 const Hypnosis = lazy(() => import('./pages/Hypnosis'));
-const Audios = lazy(() => import('./pages/Audios'));
+const Audios = lazy(() => import('./pages/rd/Library'));
 const Sessions = lazy(() => import('./pages/Sessions'));
 const Insights = lazy(() => import('./pages/rd/Insights'));
 const Identity = lazy(() => import('./pages/rd/You'));

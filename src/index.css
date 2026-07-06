@@ -493,3 +493,9 @@ body {
 .compass-glow {
   filter: drop-shadow(0 0 8px rgba(212, 168, 83, 0.3));
 }
+
+/* ── Redesign (rd) breathing orb animation ── */
+@keyframes orbBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
