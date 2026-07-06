@@ -11,7 +11,9 @@ export default function Library() {
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<any | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
-  const [preparingId, setPreparingId] = useState<string | null>(null);
+  const [preparingIds, setPreparingIds] = useState<Record<string, boolean>>({});
+  const setPreparing = (id: string, v: boolean) =>
+    setPreparingIds(prev => { const n = { ...prev }; if (v) n[id] = true; else delete n[id]; return n; });
   const [rowError, setRowError] = useState<Record<string, string>>({});
 
   const load = async () => {
@@ -34,7 +36,8 @@ export default function Library() {
   };
 
   const prepare = async (id: string) => {
-    setPreparingId(id);
+    if (preparingIds[id]) return;
+    setPreparing(id, true);
     setRowError(prev => { const n = { ...prev }; delete n[id]; return n; });
     let jobId: string;
     try {
@@ -42,7 +45,7 @@ export default function Library() {
       jobId = r.jobId;
     } catch {
       setRowError(prev => ({ ...prev, [id]: 'Could not start. Try again.' }));
-      setPreparingId(null);
+      setPreparing(id, false);
       return;
     }
     let inFlight = false;
@@ -53,11 +56,11 @@ export default function Library() {
       try {
         const r = await api.audioGenerateStatus(jobId);
         if (terminal) return;
-        if (r.status === 'complete') { terminal = true; await load(); setPreparingId(null); return; }
+        if (r.status === 'complete') { terminal = true; await load(); setPreparing(id, false); return; }
         if (r.status === 'failed') {
           terminal = true;
           setRowError(prev => ({ ...prev, [id]: 'Preparing failed. Try again.' }));
-          setPreparingId(null);
+          setPreparing(id, false);
           return;
         }
         setTimeout(tick, 4000);
@@ -114,10 +117,10 @@ export default function Library() {
                     color: '#06121c', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>▶</button>
                 ) : (
-                  <button onClick={() => prepare(s.id)} disabled={preparingId === s.id} style={{
+                  <button onClick={() => prepare(s.id)} disabled={!!preparingIds[s.id]} style={{
                     fontSize: 12, color: 'var(--rd-muted)', background: 'var(--rd-surface)', border: '1px solid var(--rd-border)',
-                    borderRadius: 999, padding: '8px 12px', cursor: preparingId === s.id ? 'default' : 'pointer', flexShrink: 0,
-                  }}>{preparingId === s.id ? 'Preparing…' : 'Prepare recording'}</button>
+                    borderRadius: 999, padding: '8px 12px', cursor: preparingIds[s.id] ? 'default' : 'pointer', flexShrink: 0,
+                  }}>{preparingIds[s.id] ? 'Preparing…' : 'Prepare recording'}</button>
                 )}
 
                 <div style={{ flex: 1, minWidth: 0, cursor: s.audioFile ? 'pointer' : 'default' }} onClick={() => s.audioFile && setActive(s)}>
