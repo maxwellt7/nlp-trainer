@@ -8,9 +8,18 @@ import SectionLabel from '../../components/rd/SectionLabel';
 import StreakDots from '../../components/rd/StreakDots';
 import { greeting, weekDots } from './homeLogic';
 
+const HAS_CLERK = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// useUser() throws unless it is inside a <ClerkProvider>. main.tsx only wraps the
+// app in ClerkProvider when VITE_CLERK_PUBLISHABLE_KEY is set, so the hook must
+// only run under the same guard — otherwise the no-Clerk fallback build crashes.
+function GreetingName() {
+  const { user } = useUser();
+  return <>{(user?.firstName || '').trim() || 'there'}</>;
+}
+
 export default function Home() {
   const navigate = useNavigate();
-  const { user } = useUser();
   const [streak, setStreak] = useState<any>(null);
   const [reflections, setReflections] = useState<any[]>([]);
 
@@ -21,7 +30,6 @@ export default function Home() {
     api.getSessions(5).then((d: any) => setReflections(d.sessions || d || [])).catch(() => {});
   }, []);
 
-  const firstName = (user?.firstName || '').trim();
   const now = new Date();
   const g = greeting(now);
   const dots = weekDots(streak, now);
@@ -34,7 +42,7 @@ export default function Home() {
         {g.dateLabel}
       </div>
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 34, lineHeight: 1.15, margin: '4px 0 24px' }}>
-        Good {g.timeOfDay},<br /><em>{firstName || 'there'}</em>
+        Good {g.timeOfDay},<br /><em>{HAS_CLERK ? <GreetingName /> : 'there'}</em>
       </h1>
 
       <Card>
