@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#081018"/>
+    <circle cx="50" cy="50" r="20" fill="none" stroke="#7FB4D9" stroke-width="2"/>
+    <circle cx="50" cy="50" r="12" fill="none" stroke="#9DB4CC" stroke-width="1.5" opacity="0.7"/>
+    <circle cx="50" cy="50" r="4" fill="#B3D6EC"/>
+  </svg>
+</template>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&amp;family=Albert+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #081018; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    @keyframes orbBreathe { 0%, 100% { transform: scale(1); opacity: 0.92; } 45% { transform: scale(1.07); opacity: 1; } 60% { transform: scale(1.07); opacity: 1; } }
+    @keyframes orbBreathSlow { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.16); } 55% { transform: scale(1.16); } }
+    @keyframes haloPulse { 0%, 100% { opacity: 0.35; transform: scale(1); } 45% { opacity: 0.7; transform: scale(1.12); } 60% { opacity: 0.7; transform: scale(1.12); } }
+    @keyframes fadeUp { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+    @keyframes dotWave { 0%, 100% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+    @keyframes spinSlow { to { transform: rotate(360deg); } }
+    textarea:focus, input:focus, button:focus { outline: none; }
+    input[type="date"] { color-scheme: dark; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+  </style>
+</helmet>
+
+<div style="min-height: 100dvh; background: #081018; display: flex; justify-content: center; font-family: 'Albert Sans', sans-serif; color: #EAF0F4;">
+<div style="width: 100%; max-width: 430px; min-height: 100dvh; background: linear-gradient(180deg, #0C1622 0%, #0A141F 55%, #0E1A28 100%); position: relative; display: flex; flex-direction: column; overflow: hidden;">
+
+  <!-- ═══════════ TAB SHELL ═══════════ -->
+  <sc-if value="{{ showShell }}" hint-placeholder-val="{{ true }}">
+
+    <div style="flex: 1; overflow-y: auto; padding: 0 22px 118px 22px; -webkit-overflow-scrolling: touch;">
+
+      <!-- ─── HOME ─── -->
+      <sc-if value="{{ tabHome }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Home" style="animation: fadeIn 0.4s ease-out;">
+          <div style="padding-top: max(env(safe-area-inset-top), 28px);"></div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 500;">{{ dateLine }}</div>
+          <h1 style="font-family: 'Newsreader', serif; font-weight: 400; font-size: 34px; line-height: 1.15; margin: 8px 0 26px 0; letter-spacing: -0.01em;">{{ greeting }},<br><em style="font-style: italic; color: #7FB4D9;">{{ userName }}</em></h1>
+
+          <!-- Tonight's session card -->
+          <div onClick="{{ startSession }}" style="position: relative; border-radius: 28px; background: radial-gradient(120% 140% at 80% -10%, rgba(62, 106, 140, 0.35), rgba(14, 30, 44, 0.9) 55%), #10202E; border: 1px solid rgba(255,255,255,0.08); padding: 30px 26px 28px 26px; cursor: pointer; overflow: hidden;">
+            <div style="position: absolute; top: -60px; right: -50px; width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, rgba(179,214,236,0.5), rgba(90,147,189,0.35) 45%, rgba(62,106,140,0.15) 75%, transparent 100%); filter: blur(6px); animation: {{ orbAnim }};"></div>
+            <div style="position: relative;">
+              <div style="font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #9DB4CC; font-weight: 600; margin-bottom: 10px;">{{ sessionKicker }}</div>
+              <div style="font-family: 'Newsreader', serif; font-size: 24px; font-weight: 400; line-height: 1.25; margin-bottom: 8px;">{{ sessionInvite }}</div>
+              <div style="font-size: 14px; color: #93A6B8; line-height: 1.55; margin-bottom: 22px; max-width: 300px;">{{ sessionSub }}</div>
+              <div style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #7FB4D9, #5A93BD); color: #06121C; font-weight: 600; font-size: 15px; padding: 13px 24px; border-radius: 999px; box-shadow: 0 6px 24px rgba(90,147,189,0.3);">
+                Begin
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Week rhythm -->
+          <div style="margin-top: 26px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between;">
+              <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600;">Your week</div>
+              <div style="font-size: 13px; color: #A9C6B3; font-weight: 500;">{{ streakLine }}</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 6px;">
+              <sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1;">
+                  <div style="{{ d.dotStyle }}"></div>
+                  <div style="font-size: 11px; color: {{ d.labelColor }}; font-weight: 500;">{{ d.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Recent reflections -->
+          <div style="margin-top: 34px;">
+            <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 14px;">Recent reflections</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <sc-for list="{{ reflections }}" as="r" hint-placeholder-count="3">
+                <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 18px 20px; display: flex; gap: 16px; align-items: flex-start;">
+                  <div style="flex-shrink: 0; width: 42px; text-align: center; padding-top: 2px;">
+                    <div style="font-family: 'Newsreader', serif; font-size: 20px; color: #7FB4D9; line-height: 1;">{{ r.day }}</div>
+                    <div style="font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #5B7085; margin-top: 3px;">{{ r.month }}</div>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; line-height: 1.5; color: #D3DEE8;">{{ r.summary }}</div>
+                    <div style="display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap;">
+                      <sc-for list="{{ r.tags }}" as="t" hint-placeholder-count="2">
+                        <span style="font-size: 11px; color: #9DB4CC; background: rgba(157,180,204,0.1); padding: 3px 10px; border-radius: 999px;">{{ t.name }}</span>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Quiet progress -->
+          <div style="margin-top: 30px; text-align: center; padding: 6px 20px 10px 20px;">
+            <div style="font-family: 'Newsreader', serif; font-style: italic; font-size: 16px; color: #7E93A6; line-height: 1.6;">{{ progressLine }}</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ─── INSIGHTS ─── -->
+      <sc-if value="{{ tabInsights }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Insights" style="animation: fadeIn 0.4s ease-out;">
+          <div style="padding-top: max(env(safe-area-inset-top), 28px);"></div>
+          <h1 style="font-family: 'Newsreader', serif; font-weight: 400; font-size: 30px; margin: 0 0 6px 0;">How you're doing</h1>
+          <div style="font-size: 14px; color: #93A6B8; line-height: 1.55; margin-bottom: 26px;">A gentle read on what your recent conversations reveal.</div>
+
+          <!-- Emotional capacity -->
+          <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; padding: 24px; margin-bottom: 14px;">
+            <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 20px;">Emotional capacity</div>
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+              <sc-for list="{{ capacityBars }}" as="c" hint-placeholder-count="3">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                    <span style="font-size: 14px; color: #D3DEE8; font-weight: 500;">{{ c.label }}</span>
+                    <span style="font-size: 12px; color: {{ c.color }};">{{ c.note }}</span>
+                  </div>
+                  <div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden;">
+                    <div style="height: 100%; width: {{ c.width }}; background: {{ c.color }}; border-radius: 999px; opacity: 0.85;"></div>
+                  </div>
+                  <div style="font-size: 12px; color: #5B7085; margin-top: 6px; line-height: 1.5;">{{ c.desc }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Congruence rings -->
+          <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; padding: 24px; margin-bottom: 14px;">
+            <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 6px;">Where you feel aligned</div>
+            <div style="font-size: 13px; color: #7E93A6; margin-bottom: 20px; line-height: 1.5;">How closely your actions match your values, in each part of life.</div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+              <sc-for list="{{ congruence }}" as="g" hint-placeholder-count="4">
+                <div style="text-align: center;">
+                  <div style="position: relative; width: 58px; height: 58px; margin: 0 auto 8px auto;">
+                    <svg viewBox="0 0 36 36" style="width: 58px; height: 58px; transform: rotate(-90deg);">
+                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2.6"></circle>
+                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="{{ g.color }}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="{{ g.dash }}"></circle>
+                    </svg>
+                    <span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Newsreader', serif; font-size: 17px; color: #EAF0F4;">{{ g.score }}</span>
+                  </div>
+                  <div style="font-size: 11px; color: #7E93A6; font-weight: 500;">{{ g.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- Patterns noticed -->
+          <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 24px; padding: 24px;">
+            <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 16px;">Patterns we've noticed</div>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <sc-for list="{{ patterns }}" as="p" hint-placeholder-count="3">
+                <div style="display: flex; gap: 14px; align-items: flex-start;">
+                  <div style="flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: {{ p.color }}; margin-top: 6px;"></div>
+                  <div>
+                    <div style="font-size: 14px; color: #D3DEE8; font-weight: 500; margin-bottom: 3px;">{{ p.title }}</div>
+                    <div style="font-size: 13px; color: #7E93A6; line-height: 1.55;">{{ p.desc }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="text-align: center; margin-top: 26px; font-family: 'Newsreader', serif; font-style: italic; font-size: 15px; color: #5B7085;">These deepen with every session.</div>
+        </div>
+      </sc-if>
+
+      <!-- ─── GOALS ─── -->
+      <sc-if value="{{ tabGoals }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Goals" style="animation: fadeIn 0.4s ease-out;">
+          <div style="padding-top: max(env(safe-area-inset-top), 28px);"></div>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;">
+            <div>
+              <h1 style="font-family: 'Newsreader', serif; font-weight: 400; font-size: 30px; margin: 0 0 6px 0;">Your 90 years</h1>
+              <div style="font-size: 14px; color: #93A6B8; line-height: 1.55;">Every goal, pinned to the life it belongs to.</div>
+            </div>
+            <div onClick="{{ openNewGoal }}" style="flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #7FB4D9, #5A93BD); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 5px 20px rgba(90,147,189,0.3); margin-top: 4px;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#06121C" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            </div>
+          </div>
+          <div style="margin: 22px 0 30px 0;">
+            <div style="height: 5px; border-radius: 999px; background: rgba(255,255,255,0.07); position: relative;">
+              <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{ lifePct }}; background: linear-gradient(90deg, #9DB4CC, #7FB4D9); border-radius: 999px;"></div>
+              <div style="position: absolute; left: {{ lifePct }}; top: 50%; transform: translate(-50%, -50%); width: 11px; height: 11px; border-radius: 50%; background: #B3D6EC; box-shadow: 0 0 12px rgba(179,214,236,0.7);"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #5B7085; margin-top: 8px;">
+              <span>{{ lifeNowLabel }}</span><span>90</span>
+            </div>
+          </div>
+          <sc-if value="{{ goalsEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="text-align: center; font-family: 'Newsreader', serif; font-style: italic; font-size: 15px; color: #7E93A6; line-height: 1.6; margin: -6px 0 26px 0;">Ninety years is longer than you think.<br>What belongs in yours?</div>
+          </sc-if>
+          <div style="display: flex; flex-direction: column;">
+            <sc-for list="{{ decades }}" as="dec" hint-placeholder-count="3">
+              <div style="display: flex; gap: 16px;">
+                <div style="display: flex; flex-direction: column; align-items: center; width: 12px; padding-top: 8px;">
+                  <div style="{{ dec.dotStyle }}"></div>
+                  <div style="width: 1.5px; flex: 1; background: linear-gradient(180deg, rgba(157,180,204,0.25), rgba(157,180,204,0.04)); margin-top: 7px;"></div>
+                </div>
+                <div style="flex: 1; min-width: 0; padding-bottom: 30px;">
+                  <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+                    <span style="font-family: 'Newsreader', serif; font-size: 22px; color: #EAF0F4;">{{ dec.label }}</span>
+                    <span style="font-size: 11.5px; color: #5B7085;">{{ dec.years }}</span>
+                    <sc-if value="{{ dec.isNow }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size: 10.5px; color: #7FB4D9; background: rgba(127,180,217,0.1); padding: 3px 10px; border-radius: 999px;">you are here</span>
+                    </sc-if>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+                    <sc-for list="{{ dec.goals }}" as="g" hint-placeholder-count="1">
+                      <div onClick="{{ g.open }}" style="position: relative; border-radius: 24px; overflow: hidden; border: 1px solid {{ g.borderColor }}; background: rgba(255,255,255,0.035); cursor: pointer;">
+                        <sc-if value="{{ g.hasImage }}" hint-placeholder-val="{{ false }}">
+                          <div style="{{ g.imgStyle }}"></div>
+                          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,16,24,0.05) 0%, rgba(8,16,24,0.5) 50%, rgba(8,16,24,0.94) 100%);"></div>
+                          <div style="height: 104px;"></div>
+                        </sc-if>
+                        <div style="position: relative; padding: 16px 18px;">
+                          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ g.catColor }}; flex-shrink: 0;"></span>
+                            <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #93A6B8; font-weight: 600;">{{ g.metaLine }}</span>
+                          </div>
+                          <div style="font-family: 'Newsreader', serif; font-size: 20px; line-height: 1.25; color: #EAF0F4;">{{ g.title }}</div>
+                          <sc-if value="{{ g.hasRewards }}" hint-placeholder-val="{{ false }}">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                              <div style="display: flex;">
+                                <sc-for list="{{ g.thumbs }}" as="th" hint-placeholder-count="1">
+                                  <div style="{{ th.style }}"></div>
+                                </sc-for>
+                              </div>
+                              <span style="font-size: 12px; color: #7E93A6;">{{ g.rewardLine }}</span>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{ g.showProgress }}" hint-placeholder-val="{{ false }}">
+                            <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px;">
+                              <div style="flex: 1; height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden;">
+                                <div style="height: 100%; width: {{ g.progressPct }}; background: #A9C6B3; border-radius: 999px;"></div>
+                              </div>
+                              <span style="font-size: 11px; color: #A9C6B3;">{{ g.progressLabel }}</span>
+                            </div>
+                          </sc-if>
+                        </div>
+                      </div>
+                    </sc-for>
+                    <div onClick="{{ dec.onAdd }}" style="border: 1.5px dashed rgba(157,180,204,0.22); border-radius: 18px; padding: 13px 18px; font-size: 13px; color: #6B8095; cursor: pointer; text-align: center;">{{ dec.addLabel }}</div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ─── LIBRARY ─── -->
+      <sc-if value="{{ tabLibrary }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Library" style="animation: fadeIn 0.4s ease-out;">
+          <div style="padding-top: max(env(safe-area-inset-top), 28px);"></div>
+          <h1 style="font-family: 'Newsreader', serif; font-weight: 400; font-size: 30px; margin: 0 0 6px 0;">Your recordings</h1>
+          <div style="font-size: 14px; color: #93A6B8; line-height: 1.55; margin-bottom: 26px;">Every session is yours to return to, any time.</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <sc-for list="{{ recordings }}" as="rec" hint-placeholder-count="4">
+              <div onClick="{{ rec.onPlay }}" style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 22px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer;">
+                <div style="flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: {{ rec.orbBg }}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 18px rgba(0,0,0,0.3);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#06121C"><path d="M8 5.5v13l11-6.5z"></path></svg>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-family: 'Newsreader', serif; font-size: 17px; color: #EAF0F4; margin-bottom: 3px;">{{ rec.title }}</div>
+                  <div style="font-size: 12.5px; color: #5B7085;">{{ rec.meta }}</div>
+                </div>
+                <sc-if value="{{ rec.loved }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size: 11px; color: #7FB4D9; background: rgba(127,180,217,0.1); padding: 4px 10px; border-radius: 999px; flex-shrink: 0;">returned to</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ─── YOU ─── -->
+      <sc-if value="{{ tabYou }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="You" style="animation: fadeIn 0.4s ease-out;">
+          <div style="padding-top: max(env(safe-area-inset-top), 28px);"></div>
+          <h1 style="font-family: 'Newsreader', serif; font-weight: 400; font-size: 30px; margin: 0 0 6px 0;">What you value</h1>
+          <div style="font-size: 14px; color: #93A6B8; line-height: 1.55; margin-bottom: 26px;">Built slowly, from what you've shared — not from a quiz.</div>
+
+          <!-- Overall congruence -->
+          <div style="background: radial-gradient(110% 130% at 50% -20%, rgba(169,198,179,0.14), rgba(14,30,44,0.6) 60%), rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 24px; padding: 28px 24px; text-align: center; margin-bottom: 14px;">
+            <div style="position: relative; width: 108px; height: 108px; margin: 0 auto 14px auto;">
+              <svg viewBox="0 0 36 36" style="width: 108px; height: 108px; transform: rotate(-90deg);">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="2.2"></circle>
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#A9C6B3" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="72, 100"></circle>
+              </svg>
+              <span style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <span style="font-family: 'Newsreader', serif; font-size: 30px; color: #EAF0F4; line-height: 1;">7.2</span>
+                <span style="font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6B8095; margin-top: 4px;">congruence</span>
+              </span>
+            </div>
+            <div style="font-size: 13.5px; color: #93A6B8; line-height: 1.6; max-width: 270px; margin: 0 auto;">You're living closer to your values than a month ago — especially around honesty.</div>
+          </div>
+
+          <!-- Values -->
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
+            <sc-for list="{{ values }}" as="v" hint-placeholder-count="4">
+              <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 18px 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <span style="font-family: 'Newsreader', serif; font-size: 18px; color: #EAF0F4;">{{ v.name }}</span>
+                  <span style="font-size: 11px; color: {{ v.badgeColor }}; background: {{ v.badgeBg }}; padding: 3px 10px; border-radius: 999px; font-weight: 500;">{{ v.badge }}</span>
+                </div>
+                <div style="height: 5px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; margin-bottom: 8px;">
+                  <div style="height: 100%; width: {{ v.width }}; background: linear-gradient(90deg, #9DB4CC, #7FB4D9); border-radius: 999px;"></div>
+                </div>
+                <div style="font-size: 13px; color: #7E93A6; line-height: 1.55;">{{ v.desc }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- Tension -->
+          <div style="background: rgba(157,180,204,0.06); border: 1px solid rgba(157,180,204,0.15); border-radius: 20px; padding: 20px;">
+            <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9DB4CC; font-weight: 600; margin-bottom: 10px;">A tension worth noticing</div>
+            <div style="font-family: 'Newsreader', serif; font-size: 18px; margin-bottom: 8px;">Freedom <span style="color: #9DB4CC;">&harr;</span> Belonging</div>
+            <div style="font-size: 13.5px; color: #93A6B8; line-height: 1.6;">You crave independence, yet several reflections circle back to wanting to feel part of something. Neither is wrong — tonight's sessions can hold both.</div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <!-- ─── BOTTOM NAV ─── -->
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 18px calc(max(env(safe-area-inset-bottom), 12px)) 18px; background: linear-gradient(180deg, rgba(19,16,32,0) 0%, rgba(15,12,24,0.92) 30%, #100D1B 100%);">
+      <div style="display: flex; align-items: center; justify-content: space-around; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 8px 10px; backdrop-filter: blur(20px);">
+        <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="5">
+          <div onClick="{{ n.onTap }}" style="{{ n.style }}">
+            <sc-if value="{{ n.isOrb }}" hint-placeholder-val="{{ false }}">
+              <div style="width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #B3D6EC, #5A93BD 55%, #3E6A8C 100%); box-shadow: 0 4px 20px rgba(90,147,189,0.4); display: flex; align-items: center; justify-content: center; animation: {{ navOrbAnim }};"></div>
+            </sc-if>
+            <sc-if value="{{ n.notOrb }}" hint-placeholder-val="{{ true }}">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ n.iconColor }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ n.icon }}"></path></svg>
+              <div style="font-size: 10px; color: {{ n.iconColor }}; font-weight: 500;">{{ n.label }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </sc-if>
+
+  <!-- ═══════════ SESSION FLOW (full-screen) ═══════════ -->
+  <sc-if value="{{ inSession }}" hint-placeholder-val="{{ false }}">
+
+    <!-- ─── CHAT ─── -->
+    <sc-if value="{{ phaseChat }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Session Chat" style="display: flex; flex-direction: column; height: 100dvh; animation: fadeIn 0.4s ease-out;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: calc(max(env(safe-area-inset-top), 20px)) 22px 14px 22px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #B3D6EC, #5A93BD 55%, #3E6A8C 100%); animation: {{ orbAnimSmall }};"></div>
+            <div>
+              <div style="font-size: 15px; font-weight: 600;">Tonight's check-in</div>
+              <div style="font-size: 12px; color: #6B8095;">A few minutes of honest talk</div>
+            </div>
+          </div>
+          <div onClick="{{ exitSession }}" style="width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93A6B8" stroke-width="2" stroke-linecap="round"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+          </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 10px 22px; display: flex; flex-direction: column; gap: 14px;" ref="{{ chatScrollRef }}">
+          <sc-for list="{{ messages }}" as="m" hint-placeholder-count="2">
+            <div style="{{ m.rowStyle }}">
+              <div style="{{ m.bubbleStyle }}">{{ m.text }}</div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ coachTyping }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; justify-content: flex-start;">
+              <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px 20px 20px 6px; padding: 14px 18px; display: flex; gap: 5px; align-items: center;">
+                <div style="width: 6px; height: 6px; border-radius: 50%; background: #9DB4CC; animation: dotWave 1.2s ease-in-out infinite;"></div>
+                <div style="width: 6px; height: 6px; border-radius: 50%; background: #9DB4CC; animation: dotWave 1.2s ease-in-out 0.15s infinite;"></div>
+                <div style="width: 6px; height: 6px; border-radius: 50%; background: #9DB4CC; animation: dotWave 1.2s ease-in-out 0.3s infinite;"></div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ readyToCreate }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top: 6px; background: rgba(127,180,217,0.07); border: 1px solid rgba(127,180,217,0.2); border-radius: 22px; padding: 20px; text-align: center; animation: fadeUp 0.5s ease-out;">
+              <div style="font-family: 'Newsreader', serif; font-size: 18px; margin-bottom: 6px;">I have what I need</div>
+              <div style="font-size: 13px; color: #93A6B8; line-height: 1.55; margin-bottom: 16px;">I'll shape tonight's session around what you shared. Find somewhere comfortable.</div>
+              <div onClick="{{ createSession }}" style="display: inline-block; background: linear-gradient(135deg, #7FB4D9, #5A93BD); color: #06121C; font-weight: 600; font-size: 15px; padding: 13px 28px; border-radius: 999px; cursor: pointer; box-shadow: 0 6px 24px rgba(90,147,189,0.3);">Create my session</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="padding: 12px 22px calc(max(env(safe-area-inset-bottom), 14px)) 22px;">
+          <sc-if value="{{ showChips }}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+              <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="3">
+                <div onClick="{{ ch.onTap }}" style="font-size: 13px; color: #D3DEE8; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 9px 16px; border-radius: 999px; cursor: pointer;">{{ ch.text }}</div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display: flex; gap: 10px; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 999px; padding: 6px 6px 6px 20px;">
+            <input value="{{ inputValue }}" onChange="{{ onInputChange }}" onKeyDown="{{ onInputKey }}" placeholder="Say what's true..." style="flex: 1; background: transparent; border: none; color: #EAF0F4; font-size: 15px; font-family: 'Albert Sans', sans-serif; min-width: 0;">
+            <div onClick="{{ sendMessage }}" style="width: 40px; height: 40px; border-radius: 50%; background: {{ sendBg }}; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06121C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ─── GENERATING ─── -->
+    <sc-if value="{{ phaseGenerating }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Generating" style="height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; animation: fadeIn 0.6s ease-out;">
+        <div style="position: relative; width: 180px; height: 180px; margin-bottom: 44px;">
+          <div style="position: absolute; inset: -30px; border-radius: 50%; background: radial-gradient(circle, rgba(90,147,189,0.25), transparent 70%); animation: haloPulse 5s ease-in-out infinite;"></div>
+          <div style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #B3D6EC, #5A93BD 50%, #2E4A66 90%); animation: orbBreathSlow 5s ease-in-out infinite; box-shadow: 0 10px 60px rgba(90,147,189,0.35);"></div>
+          <svg viewBox="0 0 100 100" style="position: absolute; inset: -14px; width: 208px; height: 208px; animation: spinSlow 24s linear infinite; opacity: 0.4;">
+            <circle cx="50" cy="50" r="48" fill="none" stroke="#9DB4CC" stroke-width="0.5" stroke-dasharray="2 6"></circle>
+          </svg>
+        </div>
+        <div style="font-family: 'Newsreader', serif; font-size: 24px; margin-bottom: 12px;">{{ generatingLine }}</div>
+        <div style="font-size: 14px; color: #7E93A6; line-height: 1.6; max-width: 260px;">Settle in. Lower the lights if you can.</div>
+      </div>
+    </sc-if>
+
+    <!-- ─── PLAYER ─── -->
+    <sc-if value="{{ phasePlayer }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Player" style="height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: calc(max(env(safe-area-inset-top), 24px)) 30px calc(max(env(safe-area-inset-bottom), 28px)) 30px; animation: fadeIn 0.8s ease-out; background: radial-gradient(140% 100% at 50% 110%, rgba(62,106,140,0.25), transparent 60%);">
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+          <div onClick="{{ minimizePlayer }}" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#93A6B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+          </div>
+          <div style="font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #6B8095; font-weight: 600;">Tonight's session</div>
+          <div style="width: 36px;"></div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="position: relative; width: 210px; height: 210px; margin-bottom: 40px;">
+            <div style="position: absolute; inset: -36px; border-radius: 50%; background: radial-gradient(circle, rgba(90,147,189,0.2), transparent 70%); animation: {{ haloAnim }};"></div>
+            <div style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #B3D6EC, #5A93BD 50%, #2E4A66 90%); box-shadow: 0 14px 70px rgba(90,147,189,0.3); animation: {{ playerOrbAnim }};"></div>
+          </div>
+          <div style="font-family: 'Newsreader', serif; font-size: 25px; text-align: center; line-height: 1.3; margin-bottom: 8px; max-width: 300px;">{{ playerTitle }}</div>
+          <div style="font-size: 13px; color: #7E93A6;">{{ playerHint }}</div>
+        </div>
+
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 22px; align-items: center;">
+          <div style="width: 100%; display: flex; flex-direction: column; gap: 8px;">
+            <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden;">
+              <div style="height: 100%; width: {{ playProgress }}; background: linear-gradient(90deg, #9DB4CC, #7FB4D9); border-radius: 999px; transition: width 1s linear;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #5B7085; font-variant-numeric: tabular-nums;">
+              <span>{{ timeElapsed }}</span><span>{{ timeTotal }}</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 34px;">
+            <div onClick="{{ rewind15 }}" style="color: #7E93A6; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>
+              <span style="font-size: 9px;">15</span>
+            </div>
+            <div onClick="{{ togglePlay }}" style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #7FB4D9, #5A93BD); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 32px rgba(90,147,189,0.35);">
+              <sc-if value="{{ isPlaying }}" hint-placeholder-val="{{ false }}">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#06121C"><rect x="6" y="4" width="4" height="16" rx="1.5"></rect><rect x="14" y="4" width="4" height="16" rx="1.5"></rect></svg>
+              </sc-if>
+              <sc-if value="{{ isPaused }}" hint-placeholder-val="{{ true }}">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="#06121C" style="margin-left: 3px;"><path d="M7 4.5v15l13-7.5z"></path></svg>
+              </sc-if>
+            </div>
+            <div onClick="{{ finishSession }}" style="color: #7E93A6; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+              <span style="font-size: 9px;">end</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ─── COMPLETE ─── -->
+    <sc-if value="{{ phaseDone }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Complete" style="height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 34px; text-align: center; animation: fadeIn 0.8s ease-out;">
+        <div style="width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(169,198,179,0.9), rgba(122,158,136,0.8) 60%, rgba(62,106,140,0.4) 100%); box-shadow: 0 10px 50px rgba(169,198,179,0.25); margin-bottom: 30px; animation: {{ orbAnimSmall }};"></div>
+        <div style="font-family: 'Newsreader', serif; font-size: 28px; margin-bottom: 10px;">Well done, {{ userName }}</div>
+        <div style="font-size: 14.5px; color: #93A6B8; line-height: 1.6; max-width: 280px; margin-bottom: 34px;">{{ doneStreakLine }} The work you did tonight keeps working while you sleep.</div>
+
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 16px;">How do you feel now?</div>
+        <div style="display: flex; gap: 12px; margin-bottom: 40px;">
+          <sc-for list="{{ moods }}" as="mo" hint-placeholder-count="5">
+            <div onClick="{{ mo.onTap }}" style="{{ mo.style }}"></div>
+          </sc-for>
+        </div>
+
+        <div onClick="{{ returnHome }}" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #EAF0F4; font-weight: 500; font-size: 15px; padding: 14px 36px; border-radius: 999px; cursor: pointer;">Return home</div>
+      </div>
+    </sc-if>
+
+  </sc-if>
+
+  <!-- ═══════════ GOAL EDITOR (full-screen) ═══════════ -->
+  <sc-if value="{{ inGoalEditor }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Goal Editor" style="height: 100dvh; display: flex; flex-direction: column; animation: fadeIn 0.3s ease-out;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: calc(max(env(safe-area-inset-top), 20px)) 22px 16px 22px;">
+        <div onClick="{{ closeEditor }}" style="width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93A6B8" stroke-width="2" stroke-linecap="round"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+        </div>
+        <div style="font-size: 15px; font-weight: 600;">{{ editorTitle }}</div>
+        <div onClick="{{ saveGoal }}" style="{{ saveStyle }}">Save</div>
+      </div>
+      <div style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px 22px calc(max(env(safe-area-inset-bottom), 20px) + 24px) 22px; display: flex; flex-direction: column; gap: 26px;">
+        <div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 10px;">The goal</div>
+          <input value="{{ dTitle }}" onChange="{{ onDTitle }}" placeholder="What do you want to be true?" style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; padding: 15px 17px; color: #EAF0F4; font-size: 16px; font-family: 'Albert Sans', sans-serif;">
+        </div>
+        <div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 10px;">Why it matters</div>
+          <textarea value="{{ dDesc }}" onChange="{{ onDDesc }}" rows="3" placeholder="What will be different about your life when this is done?" style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; padding: 15px 17px; color: #EAF0F4; font-size: 14.5px; line-height: 1.55; font-family: 'Albert Sans', sans-serif; resize: none;"></textarea>
+        </div>
+        <div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 10px;">When</div>
+          <input type="date" value="{{ dDate }}" onChange="{{ onDDate }}" style="width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 16px; padding: 14px 17px; color: #EAF0F4; font-size: 15px; font-family: 'Albert Sans', sans-serif;">
+          <div style="font-size: 12.5px; color: #7FB4D9; margin-top: 9px;">{{ dAgeLine }}</div>
+        </div>
+        <div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 10px;">Life area</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <sc-for list="{{ dCats }}" as="c" hint-placeholder-count="6">
+              <div onClick="{{ c.onTap }}" style="{{ c.style }}">{{ c.name }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 10px;">Milestones</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{ dMilestones }}" as="dm" hint-placeholder-count="1">
+              <div style="display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 12px 16px;">
+                <span style="flex: 1; font-size: 14px; color: #D3DEE8;">{{ dm.text }}</span>
+                <span onClick="{{ dm.onRemove }}" style="color: #5B7085; cursor: pointer; font-size: 17px; line-height: 1; padding: 2px 6px;">&times;</span>
+              </div>
+            </sc-for>
+            <div style="display: flex; gap: 8px;">
+              <input value="{{ msInput }}" onChange="{{ onMsInput }}" onKeyDown="{{ onMsKey }}" placeholder="A step along the way" style="flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 14px; padding: 12px 16px; color: #EAF0F4; font-size: 14px; font-family: 'Albert Sans', sans-serif; min-width: 0;">
+              <div onClick="{{ addMilestone }}" style="width: 44px; height: 44px; border-radius: 14px; background: rgba(127,180,217,0.12); border: 1px solid rgba(127,180,217,0.25); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #7FB4D9; font-size: 20px; flex-shrink: 0;">+</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 6px;">Rewards</div>
+          <div style="font-size: 12.5px; color: #7E93A6; margin-bottom: 12px; line-height: 1.5;">What you'll give yourself when this is real. Add a photo — make it vivid.</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ dRewards }}" as="rw" hint-placeholder-count="1">
+              <div style="display: flex; align-items: center; gap: 13px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 12px;">
+                <div onClick="{{ rw.onPickImage }}" style="{{ rw.photoStyle }}">
+                  <sc-if value="{{ rw.noImage }}" hint-placeholder-val="{{ true }}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7E93A6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.2"></circle></svg>
+                  </sc-if>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <input value="{{ rw.name }}" onChange="{{ rw.onName }}" placeholder="{{ rw.placeholder }}" style="width: 100%; background: transparent; border: none; color: #EAF0F4; font-size: 14.5px; font-family: 'Albert Sans', sans-serif; padding: 0 0 4px 0;">
+                  <div style="font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: {{ rw.typeColor }}; font-weight: 600;">{{ rw.typeLabel }}</div>
+                </div>
+                <span onClick="{{ rw.onRemove }}" style="color: #5B7085; cursor: pointer; font-size: 17px; padding: 2px 6px; flex-shrink: 0;">&times;</span>
+              </div>
+            </sc-for>
+            <div style="display: flex; gap: 10px;">
+              <div onClick="{{ addMaterial }}" style="flex: 1; border: 1.5px dashed rgba(127,180,217,0.3); border-radius: 16px; padding: 13px; text-align: center; font-size: 13px; color: #7FB4D9; cursor: pointer;">+ Material reward</div>
+              <div onClick="{{ addExperience }}" style="flex: 1; border: 1.5px dashed rgba(169,198,179,0.3); border-radius: 16px; padding: 13px; text-align: center; font-size: 13px; color: #A9C6B3; cursor: pointer;">+ Experience</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══════════ GOAL DETAIL (full-screen) ═══════════ -->
+  <sc-if value="{{ inGoalDetail }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Goal Detail" style="height: 100dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; animation: fadeIn 0.3s ease-out;">
+      <div style="position: relative;">
+        <sc-if value="{{ detHasHero }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ detHeroStyle }}">
+            <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,16,24,0.3) 0%, rgba(8,16,24,0) 35%, rgba(8,16,24,0.45) 70%, #0A141F 100%);"></div>
+          </div>
+        </sc-if>
+        <div style="position: absolute; top: max(env(safe-area-inset-top), 18px); left: 18px; right: 18px; display: flex; justify-content: space-between; z-index: 2;">
+          <div onClick="{{ onCloseDetail }}" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(8,16,24,0.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EAF0F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+          </div>
+          <div onClick="{{ onEditGoal }}" style="width: 36px; height: 36px; border-radius: 50%; background: rgba(8,16,24,0.55); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EAF0F4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"></path></svg>
+          </div>
+        </div>
+        <div style="{{ detContentStyle }}">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: {{ detCatColor }};"></span>
+            <span style="font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #93A6B8; font-weight: 600;">{{ detMeta }}</span>
+            <sc-if value="{{ detCompleted }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 11px; color: #A9C6B3; background: rgba(169,198,179,0.12); padding: 3px 10px; border-radius: 999px;">achieved</span>
+            </sc-if>
+          </div>
+          <h1 style="font-family: 'Newsreader', serif; font-weight: 400; font-size: 30px; line-height: 1.15; margin: 0 0 12px 0;">{{ detTitle }}</h1>
+          <sc-if value="{{ detHasDesc }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 14.5px; color: #93A6B8; line-height: 1.6; margin-bottom: 24px;">{{ detDesc }}</div>
+          </sc-if>
+          <sc-if value="{{ detHasMilestones }}" hint-placeholder-val="{{ false }}">
+            <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.06); border-radius: 22px; padding: 20px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+                <span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600;">Progress</span>
+                <span style="font-size: 12.5px; color: #A9C6B3;">{{ detProgressLabel }}</span>
+              </div>
+              <div style="height: 6px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; margin-bottom: 16px;">
+                <div style="height: 100%; width: {{ detProgressPct }}; background: linear-gradient(90deg, #A9C6B3, #7FB4D9); border-radius: 999px; transition: width 0.4s ease;"></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <sc-for list="{{ detMilestones }}" as="dm" hint-placeholder-count="2">
+                  <div onClick="{{ dm.onToggle }}" style="display: flex; align-items: center; gap: 13px; padding: 10px 4px; cursor: pointer;">
+                    <div style="{{ dm.circleStyle }}">
+                      <sc-if value="{{ dm.done }}" hint-placeholder-val="{{ false }}">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06121C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+                      </sc-if>
+                    </div>
+                    <span style="{{ dm.textStyle }}">{{ dm.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ detHasRewards }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-bottom: 22px;">
+              <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #6B8095; font-weight: 600; margin-bottom: 12px;">Waiting for you</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <sc-for list="{{ detRewards }}" as="rw" hint-placeholder-count="2">
+                  <div style="border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);">
+                    <div style="{{ rw.imgStyle }}">
+                      <sc-if value="{{ rw.isMaterial }}" hint-placeholder-val="{{ false }}">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7FB4D9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v9"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{ rw.isExperience }}" hint-placeholder-val="{{ false }}">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A9C6B3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15.5 8.5l-2 4.5-4.5 2 2-4.5z"></path></svg>
+                      </sc-if>
+                    </div>
+                    <div style="padding: 12px 14px 13px 14px;">
+                      <div style="font-size: 14px; color: #EAF0F4; line-height: 1.35; margin-bottom: 4px;">{{ rw.name }}</div>
+                      <div style="font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: {{ rw.typeColor }}; font-weight: 600;">{{ rw.typeLabel }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <div onClick="{{ toggleAchieved }}" style="{{ achieveStyle }}">{{ achieveLabel }}</div>
+          <div onClick="{{ onDelete }}" style="text-align: center; margin-top: 22px; font-size: 13px; color: {{ deleteColor }}; cursor: pointer;">{{ deleteLabel }}</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 430, &quot;height&quot;: 900}, &quot;userName&quot;: {&quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;Max&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Personalization&quot;}, &quot;birthYear&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 1992, &quot;min&quot;: 1920, &quot;max&quot;: 2015, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Personalization&quot;}, &quot;reduceMotion&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Experience&quot;}}">
+class Component extends DCLogic {
+  state = {
+    tab: 'home',
+    inSession: false,
+    phase: 'chat', // chat | generating | player | done
+    messages: [],
+    coachTyping: false,
+    inputValue: '',
+    userTurns: 0,
+    readyToCreate: false,
+    generatingStep: 0,
+    playing: false,
+    elapsed: 0,
+    duration: 18 * 60,
+    playerTitle: "Letting Go of the Day's Weight",
+    moodPicked: -1,
+    sessionDoneToday: false,
+    goals: [],
+    goalOverlay: null,
+    detailId: null,
+    draft: null,
+    msInput: '',
+    deleteArmed: false,
+  };
+
+  chatRef = React.createRef();
+  timers = [];
+
+  componentDidMount() {
+    try { const raw = localStorage.getItem('alignment_goals_v1'); if (raw) this.setState({ goals: JSON.parse(raw) }); } catch (e) {}
+    // opening coach message
+    this.later(() => this.pushCoach("Good evening. Before we go anywhere deeper — what's been sitting with you today?"), 600);
+  }
+
+  componentWillUnmount() { this.timers.forEach(clearTimeout); clearInterval(this.playTimer); }
+
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+
+  pushCoach(text) {
+    this.setState(s => ({ messages: [...s.messages, { role: 'coach', text }], coachTyping: false }), this.scrollChat);
+  }
+
+  scrollChat = () => {
+    const el = this.chatRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  };
+
+  coachReplies = [
+    "That sounds like it's been asking for your attention for a while. When you notice it, where does it show up — your chest, your shoulders, your thoughts?",
+    "Thank you for being honest about that. Most people push past it. You're naming it — that's the real work.",
+  ];
+
+  send(text) {
+    const t = (text || '').trim();
+    if (!t) return;
+    const turn = this.state.userTurns + 1;
+    this.setState(s => ({
+      messages: [...s.messages, { role: 'user', text: t }],
+      inputValue: '',
+      userTurns: turn,
+      coachTyping: true,
+    }), this.scrollChat);
+    this.later(() => {
+      if (turn >= 2) {
+        this.setState({ coachTyping: false, readyToCreate: true }, this.scrollChat);
+      } else {
+        this.pushCoach(this.coachReplies[Math.min(turn - 1, this.coachReplies.length - 1)]);
+      }
+    }, 1400 + Math.random() * 500);
+  }
+
+  startGenerating = () => {
+    this.setState({ phase: 'generating', generatingStep: 0 });
+    this.later(() => this.setState({ generatingStep: 1 }), 1800);
+    this.later(() => this.setState({ generatingStep: 2 }), 3400);
+    this.later(() => this.setState({ phase: 'player', playing: false, elapsed: 0 }), 5000);
+  };
+
+  togglePlay = () => {
+    const playing = !this.state.playing;
+    this.setState({ playing });
+    clearInterval(this.playTimer);
+    if (playing) {
+      // demo speed: 20s of session per real second so progress is visible
+      this.playTimer = setInterval(() => {
+        this.setState(s => {
+          const e = Math.min(s.elapsed + 20, s.duration);
+          if (e >= s.duration) { clearInterval(this.playTimer); return { elapsed: e, playing: false, phase: 'done' }; }
+          return { elapsed: e };
+        });
+      }, 1000);
+    }
+  };
+
+  fmt(sec) {
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  // ── goals ──
+  GOAL_CATS = [
+    { name: 'Health', color: '#A9C6B3' },
+    { name: 'Wealth', color: '#7FB4D9' },
+    { name: 'Family', color: '#C7A9B4' },
+    { name: 'Craft', color: '#9DB4CC' },
+    { name: 'Adventure', color: '#B3D6EC' },
+    { name: 'Spirit', color: '#A5A3C9' },
+  ];
+
+  persistGoals(goals) {
+    this.setState({ goals });
+    try { localStorage.setItem('alignment_goals_v1', JSON.stringify(goals)); } catch (e) {}
+  }
+
+  openEditor(goal, prefillYear) {
+    const draft = goal
+      ? JSON.parse(JSON.stringify(goal))
+      : { id: null, title: '', description: '', category: 'Health', targetDate: prefillYear ? prefillYear + '-06-01' : '', milestones: [], rewards: [], completed: false };
+    this.setState({ goalOverlay: 'editor', draft, msInput: '', deleteArmed: false });
+  }
+
+  updateDraft(patch) { this.setState(s => ({ draft: { ...s.draft, ...patch } })); }
+
+  updateDraftReward(i, patch) {
+    this.setState(s => {
+      const rewards = s.draft.rewards.slice();
+      rewards[i] = { ...rewards[i], ...patch };
+      return { draft: { ...s.draft, rewards } };
+    });
+  }
+
+  pickRewardImage(i) {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          this.updateDraftReward(i, { image: c.toDataURL('image/jpeg', 0.78) });
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(f);
+    };
+    inp.click();
+  }
+
+  saveGoal = () => {
+    const d = this.state.draft;
+    if (!d || !d.title.trim() || !d.targetDate) return;
+    const clean = { ...d, title: d.title.trim(), rewards: d.rewards.filter(r => (r.name && r.name.trim()) || r.image) };
+    let goals, id = d.id;
+    if (id) goals = this.state.goals.map(g => g.id === id ? clean : g);
+    else { id = 'g' + Date.now(); goals = [...this.state.goals, { ...clean, id }]; }
+    this.persistGoals(goals);
+    this.setState({ goalOverlay: 'detail', detailId: id, draft: null });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const p = this.props;
+    const userName = p.userName ?? 'Max';
+    const reduceMotion = p.reduceMotion ?? false;
+    const anim = (a) => reduceMotion ? 'none' : a;
+
+    const now = new Date();
+    const hour = now.getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const dateLine = now.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    // week dots — demo data: 4-day streak ending today
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const todayIdx = (now.getDay() + 6) % 7;
+    const weekDays = labels.map((label, i) => {
+      const done = i < todayIdx && i >= todayIdx - 3 || (s.sessionDoneToday && i === todayIdx);
+      const isToday = i === todayIdx;
+      let dot = 'width: 12px; height: 12px; border-radius: 50%;';
+      if (done) dot += 'background: #A9C6B3; box-shadow: 0 0 10px rgba(169,198,179,0.4);';
+      else if (isToday) dot += 'background: transparent; border: 1.5px solid #7FB4D9;';
+      else dot += 'background: rgba(255,255,255,0.09);';
+      return { label, dotStyle: dot, labelColor: isToday ? '#7FB4D9' : '#5B7085' };
+    });
+
+    const reflections = [
+      { day: '1', month: 'Jul', summary: 'You named the pressure you feel to hold everything together at work, and where it started.', tags: [{ name: 'work' }, { name: 'control' }] },
+      { day: '30', month: 'Jun', summary: 'A conversation with your brother kept replaying. We worked on what you actually wanted to say.', tags: [{ name: 'family' }, { name: 'voice' }] },
+      { day: '29', month: 'Jun', summary: 'Low energy day. The session focused on rest without guilt.', tags: [{ name: 'rest' }] },
+    ];
+
+    const capacityBars = [
+      { label: 'Holding in', width: '38%', color: '#9DB4CC', note: 'easing', desc: 'How much you suppress instead of feel. This has softened over two weeks.' },
+      { label: 'Releasing', width: '52%', color: '#7FB4D9', note: 'steady', desc: 'How freely emotion moves through you when it arrives.' },
+      { label: 'Staying with it', width: '64%', color: '#A9C6B3', note: 'growing', desc: 'Your ability to sit with discomfort without escaping it. Your strongest gain.' },
+    ];
+
+    const congruence = [
+      { label: 'Work', score: '6.8', dash: '68, 100', color: '#7FB4D9' },
+      { label: 'Home', score: '7.9', dash: '79, 100', color: '#A9C6B3' },
+      { label: 'Social', score: '6.1', dash: '61, 100', color: '#9DB4CC' },
+      { label: 'Self', score: '7.5', dash: '75, 100', color: '#A9C6B3' },
+    ];
+
+    const patterns = [
+      { color: '#7FB4D9', title: 'You move toward, not away', desc: 'You frame goals as things you want, rather than things you fear. That gives your sessions forward pull.' },
+      { color: '#9DB4CC', title: 'Other people\u2019s eyes matter a lot', desc: 'Much of your stress traces back to how you imagine being seen. We\u2019re gently loosening this.' },
+      { color: '#A9C6B3', title: 'Evenings are your honest hours', desc: 'Your most open reflections happen after 8pm. Keep the ritual there.' },
+    ];
+
+    const openRec = (title) => () => this.setState({ inSession: true, phase: 'player', playing: false, elapsed: 0, playerTitle: title });
+    const recordings = [
+      { title: "Letting Go of the Day's Weight", meta: 'Last night \u00b7 18 min', loved: false, orbBg: 'radial-gradient(circle at 35% 30%, #B3D6EC, #5A93BD 60%, #3E6A8C 100%)', onPlay: openRec("Letting Go of the Day's Weight") },
+      { title: 'The Voice That Was Always Yours', meta: 'Jun 30 \u00b7 21 min', loved: true, orbBg: 'radial-gradient(circle at 35% 30%, #C4DCEF, #9DB4CC 60%, #2E4A66 100%)', onPlay: openRec('The Voice That Was Always Yours') },
+      { title: 'Rest Is Not a Reward', meta: 'Jun 29 \u00b7 16 min', loved: false, orbBg: 'radial-gradient(circle at 35% 30%, #C9E0D1, #A9C6B3 60%, #5F8A6E 100%)', onPlay: openRec('Rest Is Not a Reward') },
+      { title: 'Standing in the Doorway', meta: 'Jun 27 \u00b7 19 min', loved: true, orbBg: 'radial-gradient(circle at 35% 30%, #B3D6EC, #5A93BD 60%, #3E6A8C 100%)', onPlay: openRec('Standing in the Doorway') },
+    ];
+
+    const values = [
+      { name: 'Honesty', badge: 'living it', badgeColor: '#A9C6B3', badgeBg: 'rgba(169,198,179,0.12)', width: '84%', desc: 'Shows up cleanly in most of what you share. Your anchor value.' },
+      { name: 'Freedom', badge: 'mixed', badgeColor: '#7FB4D9', badgeBg: 'rgba(127,180,217,0.12)', width: '62%', desc: 'Sometimes expressed as independence, sometimes as avoidance. Worth watching.' },
+      { name: 'Growth', badge: 'living it', badgeColor: '#A9C6B3', badgeBg: 'rgba(169,198,179,0.12)', width: '76%', desc: 'You consistently choose the harder, truer conversation.' },
+      { name: 'Belonging', badge: 'emerging', badgeColor: '#9DB4CC', badgeBg: 'rgba(157,180,204,0.12)', width: '44%', desc: 'Newly surfaced. You\u2019ve mentioned wanting to feel part of something three times this month.' },
+    ];
+
+    // nav
+    const navDefs = [
+      { key: 'home', label: 'Home', icon: 'M3 11.5L12 4l9 7.5M5.5 9.8V20h13V9.8' },
+      { key: 'goals', label: 'Goals', icon: 'M6 21V4m0 0h11l-2.2 3.5 2.2 3.5H6' },
+      { key: 'orb' },
+      { key: 'insights', label: 'Insights', icon: 'M3 16l5-6 4 4 6-8 3 4' },
+      { key: 'library', label: 'Library', icon: 'M4 8v8m5-12v16m5-13v10m5-7v4' },
+      { key: 'you', label: 'You', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8c1.5-3.5 4-5 7-5s5.5 1.5 7 5' },
+    ];
+    const navItems = navDefs.map(n => {
+      if (n.key === 'orb') return {
+        isOrb: true, notOrb: false, onTap: () => this.startSessionFlow(),
+        style: 'display: flex; align-items: center; justify-content: center; cursor: pointer; margin-top: -18px; padding: 4px;',
+      };
+      const active = s.tab === n.key;
+      return {
+        isOrb: false, notOrb: true, label: n.label, icon: n.icon,
+        iconColor: active ? '#7FB4D9' : '#5B7085',
+        onTap: () => this.setState({ tab: n.key }),
+        style: 'display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 7px 7px;',
+      };
+    });
+
+    // chat
+    const messages = s.messages.map(m => {
+      const user = m.role === 'user';
+      return {
+        text: m.text,
+        rowStyle: 'display: flex; justify-content: ' + (user ? 'flex-end' : 'flex-start') + '; animation: fadeUp 0.4s ease-out;',
+        bubbleStyle: user
+          ? 'max-width: 78%; background: linear-gradient(135deg, rgba(127,180,217,0.18), rgba(90,147,189,0.14)); border: 1px solid rgba(127,180,217,0.25); border-radius: 20px 20px 6px 20px; padding: 13px 17px; font-size: 14.5px; line-height: 1.55; color: #EAF0F4;'
+          : 'max-width: 82%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px 20px 20px 6px; padding: 13px 17px; font-size: 14.5px; line-height: 1.55; color: #DDE6EE;',
+      };
+    });
+
+    const chipTexts = s.userTurns === 0
+      ? ['Work has been heavy', 'I keep replaying a conversation', "Honestly, I'm okay — just tired"]
+      : ['Mostly in my chest', 'It follows me into the evening', "I hadn't noticed until now"];
+    const chips = chipTexts.map(text => ({ text, onTap: () => this.send(text) }));
+
+    const genLines = ['Listening back to what you shared\u2026', 'Shaping tonight\u2019s session\u2026', 'Almost ready\u2026'];
+
+    const moods = ['#B96A6A', '#C99A6E', '#C9C06E', '#9EBB8B', '#A9C6B3'].map((c, i) => ({
+      onTap: () => this.setState({ moodPicked: i }),
+      style: 'width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: ' + c + '; opacity: ' + (s.moodPicked === -1 || s.moodPicked === i ? '1' : '0.3') + '; transform: scale(' + (s.moodPicked === i ? '1.18' : '1') + '); transition: all 0.25s ease; box-shadow: ' + (s.moodPicked === i ? '0 0 20px ' + c + '66' : 'none') + ';',
+    }));
+
+    // ── goals vals ──
+    const thisYear = now.getFullYear();
+    const birthYear = p.birthYear ?? 1992;
+    const curAge = Math.max(0, thisYear - birthYear);
+    const catColor = (n) => (this.GOAL_CATS.find(c => c.name === n) || this.GOAL_CATS[0]).color;
+
+    const goalToCard = (g) => {
+      const img = (g.rewards.find(r => r.image) || {}).image;
+      const year = parseInt((g.targetDate || '').slice(0, 4)) || thisYear;
+      const age = year - birthYear;
+      const total = g.milestones.length, doneCount = g.milestones.filter(m => m.done).length;
+      const prog = g.completed ? 100 : (total ? Math.round(doneCount / total * 100) : 0);
+      const thumbs = g.rewards.filter(r => r.image).slice(0, 3).map((r, i) => ({
+        style: 'width: 26px; height: 26px; border-radius: 50%; border: 2px solid #0C1622; background-image: url(' + r.image + '); background-size: cover; background-position: center;' + (i > 0 ? ' margin-left: -9px;' : ''),
+      }));
+      const named = g.rewards.filter(r => r.name && r.name.trim());
+      const rewardLine = !g.rewards.length ? '' : (g.rewards.length === 1 ? (named[0] ? named[0].name : 'A reward waiting') : g.rewards.length + ' rewards waiting');
+      return {
+        open: () => this.setState({ goalOverlay: 'detail', detailId: g.id, deleteArmed: false }),
+        hasImage: !!img,
+        imgStyle: img ? 'position: absolute; inset: 0; background-image: url(' + img + '); background-size: cover; background-position: center;' : '',
+        catColor: catColor(g.category),
+        metaLine: year + ' \u00b7 age ' + age + ' \u00b7 ' + g.category,
+        title: g.title,
+        hasRewards: g.rewards.length > 0,
+        thumbs, rewardLine,
+        showProgress: prog > 0,
+        progressPct: prog + '%',
+        progressLabel: g.completed ? 'achieved' : prog + '%',
+        borderColor: g.completed ? 'rgba(169,198,179,0.35)' : 'rgba(255,255,255,0.08)',
+      };
+    };
+
+    const startDec = Math.min(80, Math.max(0, Math.floor(curAge / 10) * 10));
+    const decades = [];
+    for (let d0 = startDec; d0 <= 80; d0 += 10) {
+      const gs = this.state.goals.filter(g => {
+        const y = parseInt((g.targetDate || '').slice(0, 4)) || thisYear;
+        const a = Math.min(89, Math.max(curAge, y - birthYear));
+        return Math.max(startDec, Math.floor(a / 10) * 10) === d0;
+      }).sort((a, b) => (a.targetDate || '').localeCompare(b.targetDate || ''));
+      const isNow = curAge >= d0 && curAge < d0 + 10;
+      decades.push({
+        label: d0 + 's',
+        years: (birthYear + d0) + ' \u2013 ' + (birthYear + d0 + 9),
+        isNow,
+        dotStyle: 'width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; ' + (isNow ? 'background: #7FB4D9; box-shadow: 0 0 12px rgba(127,180,217,0.6);' : (gs.length ? 'background: rgba(157,180,204,0.55);' : 'background: rgba(255,255,255,0.12);')),
+        goals: gs.map(goalToCard),
+        addLabel: gs.length ? '+ add another' : 'Add a goal for your ' + d0 + 's',
+        onAdd: () => this.openEditor(null, isNow ? thisYear + 1 : birthYear + d0 + 2),
+      });
+    }
+
+    const dr = s.draft || { id: null, title: '', description: '', category: 'Health', targetDate: '', milestones: [], rewards: [] };
+    const drValid = dr.title.trim().length > 0 && !!dr.targetDate;
+    const dCats = this.GOAL_CATS.map(c => {
+      const sel = dr.category === c.name;
+      return {
+        name: c.name,
+        onTap: () => this.updateDraft({ category: c.name }),
+        style: 'font-size: 13px; padding: 9px 16px; border-radius: 999px; cursor: pointer; ' + (sel
+          ? 'background: ' + c.color + '22; border: 1px solid ' + c.color + '77; color: ' + c.color + '; font-weight: 600;'
+          : 'background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); color: #93A6B8;'),
+      };
+    });
+    const dMilestones = dr.milestones.map((m, i) => ({
+      text: m.text,
+      onRemove: () => this.setState(st => ({ draft: { ...st.draft, milestones: st.draft.milestones.filter((_, j) => j !== i) } })),
+    }));
+    const addMilestone = () => {
+      const t = s.msInput.trim(); if (!t || !s.draft) return;
+      this.setState(st => ({ draft: { ...st.draft, milestones: [...st.draft.milestones, { text: t, done: false }] }, msInput: '' }));
+    };
+    const dRewards = dr.rewards.map((r, i) => ({
+      name: r.name || '',
+      onName: (e) => this.updateDraftReward(i, { name: e.target.value }),
+      placeholder: r.type === 'material' ? "e.g. the watch you've been eyeing" : 'e.g. two weeks in Japan',
+      typeLabel: r.type === 'material' ? 'Material' : 'Experience',
+      typeColor: r.type === 'material' ? '#7FB4D9' : '#A9C6B3',
+      noImage: !r.image,
+      onPickImage: () => this.pickRewardImage(i),
+      photoStyle: 'width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; ' + (r.image
+        ? 'background-image: url(' + r.image + '); background-size: cover; background-position: center;'
+        : 'border: 1.5px dashed rgba(255,255,255,0.2); background: rgba(255,255,255,0.03);'),
+      onRemove: () => this.setState(st => ({ draft: { ...st.draft, rewards: st.draft.rewards.filter((_, j) => j !== i) } })),
+    }));
+
+    const dg = this.state.goals.find(g => g.id === s.detailId);
+    const dgImg = dg ? (dg.rewards.find(r => r.image) || {}).image : null;
+    const dgYear = dg ? (parseInt((dg.targetDate || '').slice(0, 4)) || thisYear) : thisYear;
+    const dgAge = dgYear - birthYear;
+    const dgTotal = dg ? dg.milestones.length : 0;
+    const dgDone = dg ? dg.milestones.filter(m => m.done).length : 0;
+    const dgProg = dg ? (dg.completed ? 100 : (dgTotal ? Math.round(dgDone / dgTotal * 100) : 0)) : 0;
+    const achieved = !!(dg && dg.completed);
+    const detMilestones = dg ? dg.milestones.map((m, i) => ({
+      text: m.text,
+      done: m.done,
+      onToggle: () => this.persistGoals(this.state.goals.map(g => g.id !== dg.id ? g : { ...g, milestones: g.milestones.map((mm, j) => j === i ? { ...mm, done: !mm.done } : mm) })),
+      circleStyle: m.done
+        ? 'width: 22px; height: 22px; border-radius: 50%; background: #A9C6B3; display: flex; align-items: center; justify-content: center; flex-shrink: 0;'
+        : 'width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(157,180,204,0.4); flex-shrink: 0;',
+      textStyle: 'font-size: 14px; line-height: 1.4; ' + (m.done ? 'color: #5B7085;' : 'color: #D3DEE8;'),
+    })) : [];
+    const detRewards = dg ? dg.rewards.map(r => ({
+      name: (r.name && r.name.trim()) || (r.type === 'material' ? 'Something material' : 'An experience'),
+      typeLabel: r.type === 'material' ? 'Material' : 'Experience',
+      typeColor: r.type === 'material' ? '#7FB4D9' : '#A9C6B3',
+      isMaterial: r.type === 'material' && !r.image,
+      isExperience: r.type !== 'material' && !r.image,
+      imgStyle: r.image
+        ? 'height: 128px; background-image: url(' + r.image + '); background-size: cover; background-position: center;'
+        : 'height: 128px; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, rgba(127,180,217,0.1), rgba(62,106,140,0.06));',
+    })) : [];
+
+    const hasInput = s.inputValue.trim().length > 0;
+
+    return {
+      userName, greeting, dateLine,
+      showShell: !s.inSession && !s.goalOverlay,
+      inSession: s.inSession,
+      tabHome: s.tab === 'home',
+      tabInsights: s.tab === 'insights',
+      tabLibrary: s.tab === 'library',
+      tabYou: s.tab === 'you',
+      tabGoals: s.tab === 'goals',
+      openNewGoal: () => this.openEditor(null),
+      lifePct: Math.min(100, Math.round(curAge / 90 * 100)) + '%',
+      lifeNowLabel: 'age ' + curAge,
+      goalsEmpty: this.state.goals.length === 0,
+      decades,
+
+      inGoalEditor: s.goalOverlay === 'editor',
+      editorTitle: dr.id ? 'Edit goal' : 'New goal',
+      closeEditor: () => this.setState({ goalOverlay: dr.id ? 'detail' : null, draft: null }),
+      saveGoal: this.saveGoal,
+      saveStyle: 'font-size: 14px; font-weight: 600; padding: 9px 20px; border-radius: 999px; cursor: pointer; ' + (drValid ? 'background: linear-gradient(135deg, #7FB4D9, #5A93BD); color: #06121C;' : 'background: rgba(255,255,255,0.06); color: #5B7085;'),
+      dTitle: dr.title,
+      onDTitle: (e) => this.updateDraft({ title: e.target.value }),
+      dDesc: dr.description,
+      onDDesc: (e) => this.updateDraft({ description: e.target.value }),
+      dDate: dr.targetDate,
+      onDDate: (e) => this.updateDraft({ targetDate: e.target.value }),
+      dAgeLine: dr.targetDate ? ("You'll be " + (parseInt(dr.targetDate.slice(0, 4)) - birthYear) + ' when this comes true.') : 'Pick the date this becomes true.',
+      dCats, dMilestones, addMilestone,
+      msInput: s.msInput,
+      onMsInput: (e) => this.setState({ msInput: e.target.value }),
+      onMsKey: (e) => { if (e.key === 'Enter') addMilestone(); },
+      dRewards,
+      addMaterial: () => { if (s.draft) this.updateDraft({ rewards: [...dr.rewards, { type: 'material', name: '', image: null }] }); },
+      addExperience: () => { if (s.draft) this.updateDraft({ rewards: [...dr.rewards, { type: 'experience', name: '', image: null }] }); },
+
+      inGoalDetail: s.goalOverlay === 'detail' && !!dg,
+      detHasHero: !!dgImg,
+      detHeroStyle: dgImg ? 'position: relative; height: 300px; background-image: url(' + dgImg + '); background-size: cover; background-position: center;' : '',
+      detContentStyle: dgImg ? 'position: relative; margin-top: -76px; padding: 0 24px 70px 24px;' : 'position: relative; padding: calc(max(env(safe-area-inset-top), 18px) + 58px) 24px 70px 24px;',
+      detCatColor: dg ? catColor(dg.category) : '#7FB4D9',
+      detMeta: dg ? (dgYear + ' \u00b7 age ' + dgAge + ' \u00b7 ' + dg.category) : '',
+      detCompleted: achieved,
+      detTitle: dg ? dg.title : '',
+      detHasDesc: !!(dg && dg.description),
+      detDesc: dg ? dg.description : '',
+      detHasMilestones: dgTotal > 0,
+      detProgressPct: dgProg + '%',
+      detProgressLabel: achieved ? 'achieved' : (dgDone + ' of ' + dgTotal),
+      detMilestones,
+      detHasRewards: detRewards.length > 0,
+      detRewards,
+      toggleAchieved: () => { if (dg) this.persistGoals(this.state.goals.map(g => g.id === dg.id ? { ...g, completed: !g.completed } : g)); },
+      achieveLabel: achieved ? 'Achieved \u2014 tap to undo' : 'Mark as achieved',
+      achieveStyle: 'text-align: center; padding: 15px; border-radius: 999px; cursor: pointer; font-size: 15px; margin-top: 6px; ' + (achieved
+        ? 'background: rgba(169,198,179,0.1); border: 1px solid rgba(169,198,179,0.3); color: #A9C6B3; font-weight: 500;'
+        : 'background: linear-gradient(135deg, #A9C6B3, #7FA98B); color: #06121C; font-weight: 600;'),
+      onEditGoal: () => this.openEditor(dg),
+      onCloseDetail: () => this.setState({ goalOverlay: null, deleteArmed: false }),
+      deleteLabel: s.deleteArmed ? 'Tap again to delete forever' : 'Delete this goal',
+      deleteColor: s.deleteArmed ? '#C98A8A' : '#5B7085',
+      onDelete: () => {
+        if (!s.deleteArmed) { this.setState({ deleteArmed: true }); return; }
+        this.persistGoals(this.state.goals.filter(g => g.id !== s.detailId));
+        this.setState({ goalOverlay: null, deleteArmed: false });
+      },
+      navItems,
+      navOrbAnim: anim('orbBreathe 7s ease-in-out infinite'),
+      orbAnim: anim('orbBreathe 7s ease-in-out infinite'),
+      orbAnimSmall: anim('orbBreathe 7s ease-in-out infinite'),
+
+      sessionKicker: s.sessionDoneToday ? 'Complete for today' : 'Tonight\u2019s session',
+      sessionInvite: s.sessionDoneToday ? 'You showed up today.' : 'Ready when you are.',
+      sessionSub: s.sessionDoneToday
+        ? 'Come back tomorrow evening \u2014 or revisit a recording in your library.'
+        : 'A few minutes of honest conversation, then a guided session shaped around it.',
+      startSession: () => this.startSessionFlow(),
+      streakLine: (s.sessionDoneToday ? '5' : '4') + ' days in a row',
+      weekDays, reflections,
+      progressLine: '23 sessions \u00b7 6 hours of inner work \u00b7 one conversation at a time',
+
+      capacityBars, congruence, patterns, recordings, values,
+
+      // session flow
+      phaseChat: s.phase === 'chat',
+      phaseGenerating: s.phase === 'generating',
+      phasePlayer: s.phase === 'player',
+      phaseDone: s.phase === 'done',
+      exitSession: () => this.setState({ inSession: false }),
+      messages, coachTyping: s.coachTyping,
+      readyToCreate: s.readyToCreate && !s.coachTyping,
+      showChips: !s.readyToCreate && !s.coachTyping && s.messages.length > 0,
+      chips,
+      inputValue: s.inputValue,
+      onInputChange: (e) => this.setState({ inputValue: e.target.value }),
+      onInputKey: (e) => { if (e.key === 'Enter') this.send(s.inputValue); },
+      sendMessage: () => this.send(s.inputValue),
+      sendBg: hasInput ? 'linear-gradient(135deg, #7FB4D9, #5A93BD)' : 'rgba(255,255,255,0.08)',
+      chatScrollRef: this.chatRef,
+      createSession: this.startGenerating,
+      generatingLine: genLines[Math.min(s.generatingStep, genLines.length - 1)],
+
+      playerTitle: s.playerTitle,
+      playerHint: s.playing ? 'Breathe with the circle' : 'Press play when you\u2019re settled',
+      playerOrbAnim: s.playing && !reduceMotion ? 'orbBreathSlow 7s ease-in-out infinite' : 'none',
+      haloAnim: s.playing && !reduceMotion ? 'haloPulse 7s ease-in-out infinite' : 'none',
+      isPlaying: s.playing,
+      isPaused: !s.playing,
+      playProgress: Math.round((s.elapsed / s.duration) * 100) + '%',
+      timeElapsed: this.fmt(s.elapsed),
+      timeTotal: this.fmt(s.duration),
+      togglePlay: this.togglePlay,
+      rewind15: () => this.setState(st => ({ elapsed: Math.max(0, st.elapsed - 15) })),
+      minimizePlayer: () => { clearInterval(this.playTimer); this.setState({ inSession: false, playing: false }); },
+      finishSession: () => { clearInterval(this.playTimer); this.setState({ phase: 'done', playing: false }); },
+
+      doneStreakLine: 'That\u2019s 5 days in a row.',
+      moods,
+      returnHome: () => this.setState({ inSession: false, tab: 'home', sessionDoneToday: true, phase: 'chat', messages: this.state.messages, playing: false }),
+    };
+  }
+
+  startSessionFlow() {
+    if (this.state.sessionDoneToday) {
+      this.setState({ inSession: true, phase: 'player', elapsed: 0, playing: false, playerTitle: "Letting Go of the Day's Weight" });
+      return;
+    }
+    const first = this.state.messages.length === 0;
+    this.setState({ inSession: true, phase: this.state.readyToCreate ? 'chat' : 'chat' });
+    if (first) this.later(() => this.pushCoach("Good evening. Before we go anywhere deeper \u2014 what's been sitting with you today?"), 700);
+  }
+}
+</script>
+</body>
+</html>

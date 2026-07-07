@@ -240,6 +240,21 @@ const SCHEMA_SQL = `
       updated_at      TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_hypnosis_jobs_user_session ON hypnosis_jobs(user_id, session_id);
+
+    CREATE TABLE IF NOT EXISTS goals (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL,
+      title       TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category    TEXT DEFAULT 'Health',
+      target_date TEXT,
+      milestones  TEXT DEFAULT '[]',
+      rewards     TEXT DEFAULT '[]',
+      completed   INTEGER DEFAULT 0,
+      created_at  TEXT DEFAULT (datetime('now')),
+      updated_at  TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
 `;
 
 // Open the on-disk SQLite database with node:sqlite (built into Node — no native
