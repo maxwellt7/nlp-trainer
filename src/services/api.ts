@@ -50,6 +50,36 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// ── Goals ("Your 90 years") ──
+export interface GoalReward {
+  type: 'material' | 'experience';
+  name: string;
+  image: string; // data-URL or ''
+}
+export interface GoalMilestone {
+  text: string;
+  done: boolean;
+}
+export interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  targetDate: string; // ISO 'YYYY-MM-DD' or ''
+  milestones: GoalMilestone[];
+  rewards: GoalReward[];
+  completed: boolean;
+}
+export type GoalDraft = {
+  title: string;
+  description?: string;
+  category?: string;
+  targetDate: string;
+  milestones?: GoalMilestone[];
+  rewards?: GoalReward[];
+  completed?: boolean;
+};
+
 export const api = {
   // ── Profile & Session ──
   getProfile: () => request<any>('/profile'),
@@ -141,4 +171,13 @@ export const api = {
     request<any>(`/gamification/mystery-boxes/${boxId}/open`, { method: 'POST' }),
   getAchievements: () => request<any>('/gamification/achievements'),
   getGamificationSummary: () => request<any>('/gamification/summary'),
+
+  // ── Goals ("Your 90 years") ──
+  listGoals: () => request<{ goals: Goal[] }>('/goals').then(r => r.goals),
+  createGoal: (draft: GoalDraft) =>
+    request<{ goal: Goal }>('/goals', { method: 'POST', body: JSON.stringify(draft) }).then(r => r.goal),
+  updateGoal: (id: string, patch: Partial<GoalDraft> & { completed?: boolean }) =>
+    request<{ goal: Goal }>(`/goals/${id}`, { method: 'PUT', body: JSON.stringify(patch) }).then(r => r.goal),
+  deleteGoal: (id: string) =>
+    request<{ success: boolean }>(`/goals/${id}`, { method: 'DELETE' }),
 };
