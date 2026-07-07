@@ -197,7 +197,7 @@ export default function Goals() {
           goal={overlay.id ? goalsById[overlay.id] : null}
           prefillYear={overlay.prefillYear}
           onClose={() => setOverlay(null)}
-          onSaved={(saved) => { reloadGoals(); setOverlay({ kind: 'detail', id: saved.id }); }}
+          onSaved={async (saved) => { await reloadGoals(); setOverlay({ kind: 'detail', id: saved.id }); }}
         />
       )}
       {overlay?.kind === 'detail' && goalsById[overlay.id] && (

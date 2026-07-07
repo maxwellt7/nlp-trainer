@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import type { Goal } from '../../services/api';
 import { catColor } from './goalsLogic';
@@ -21,6 +21,10 @@ export default function GoalDetail({
   const [goal, setGoal] = useState<Goal>(initialGoal);
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Re-sync from the parent when it hands us a refreshed goal (e.g. after an
+  // edit round-trip), so the detail never shows stale pre-edit content.
+  useEffect(() => { setGoal(initialGoal); }, [initialGoal]);
 
   const heroImg = (goal.rewards.find(r => r.image) || { image: '' }).image;
   const hasHero = !!heroImg;
@@ -70,33 +74,39 @@ export default function GoalDetail({
       maxWidth: 440, margin: '0 auto',
     }}>
       <div style={{ position: 'relative' }}>
-        {hasHero && (
+        {hasHero ? (
+          <>
+            <div style={{
+              height: 300, backgroundImage: `url(${heroImg})`, backgroundSize: 'cover', backgroundPosition: 'center',
+              position: 'relative',
+            }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,16,24,0.3) 0%, rgba(8,16,24,0) 35%, rgba(8,16,24,0.45) 70%, #06121c 100%)' }} />
+            </div>
+            {/* Controls overlaid on the hero */}
+            <div style={{
+              position: 'absolute', top: 'max(env(safe-area-inset-top), 18px)', left: 18, right: 18,
+              display: 'flex', justifyContent: 'space-between', zIndex: 2,
+            }}>
+              <button onClick={onClose} aria-label="Back" style={ctrlBtn}><BackIcon /></button>
+              <button onClick={onEdit} aria-label="Edit goal" style={ctrlBtn}><EditIcon /></button>
+            </div>
+          </>
+        ) : (
+          /* No hero: controls in normal flow so they never overlap the title */
           <div style={{
-            height: 300, backgroundImage: `url(${heroImg})`, backgroundSize: 'cover', backgroundPosition: 'center',
-            position: 'relative',
+            display: 'flex', justifyContent: 'space-between',
+            padding: 'calc(max(env(safe-area-inset-top), 18px) + 6px) 18px 8px 18px',
           }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,16,24,0.3) 0%, rgba(8,16,24,0) 35%, rgba(8,16,24,0.45) 70%, #06121c 100%)' }} />
+            <button onClick={onClose} aria-label="Back" style={ctrlBtn}><BackIcon /></button>
+            <button onClick={onEdit} aria-label="Edit goal" style={ctrlBtn}><EditIcon /></button>
           </div>
         )}
-
-        {/* Overlaid controls */}
-        <div style={{
-          position: 'absolute', top: 'max(env(safe-area-inset-top), 18px)', left: 18, right: 18,
-          display: 'flex', justifyContent: 'space-between', zIndex: 2,
-        }}>
-          <button onClick={onClose} aria-label="Back" style={ctrlBtn}>
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#EAF0F4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-          </button>
-          <button onClick={onEdit} aria-label="Edit goal" style={ctrlBtn}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#EAF0F4" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg>
-          </button>
-        </div>
 
         {/* Content */}
         <div style={{
           position: 'relative',
           padding: '0 24px calc(env(safe-area-inset-bottom) + 40px) 24px',
-          marginTop: hasHero ? -76 : 'calc(env(safe-area-inset-top) + 72px)',
+          marginTop: hasHero ? -76 : 8,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor(goal.category) }} />
@@ -187,6 +197,13 @@ export default function GoalDetail({
       </div>
     </div>
   );
+}
+
+function BackIcon() {
+  return <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#EAF0F4" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>;
+}
+function EditIcon() {
+  return <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#EAF0F4" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg>;
 }
 
 const ctrlBtn: React.CSSProperties = {

@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { listGoals, createGoal, updateGoal, deleteGoal } from '../services/goals.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+
+// All goal routes require an authenticated user (spec). In dev with no Clerk
+// key, extractUserId sets req.userId = 'default-user', so this passes locally.
+router.use(requireAuth);
 
 // GET /api/goals — list the user's goals
 router.get('/', (req, res) => {
