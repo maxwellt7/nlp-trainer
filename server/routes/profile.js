@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak, resolveUserTimezone } from '../services/profile.js';
+import { getProfile, getProfileForPrompt, updateProfile, getStreak, updateStreak, resolveUserTimezone, getUserBirthYear, setUserBirthYear } from '../services/profile.js';
 import { getUserXp, getUnopenedBoxes } from '../services/gamification.js';
 import { getAllSessions, getRecentSessions, getSessionForUser, getTodaySession, isSessionLocked, updateSessionMetadata } from '../services/memory.js';
 import { sanitizeMessageHistory } from '../services/message-sanitizer.js';
@@ -43,6 +43,7 @@ router.get('/', (req, res) => {
       xp,
       unopenedBoxes,
       timezone: effectiveTimezone,
+      birthYear: getUserBirthYear(userId),
     });
   } catch (error) {
     console.error('Error getting profile:', error.message);
@@ -55,7 +56,10 @@ router.put('/', (req, res) => {
   try {
     const userId = req.userId;
     const updated = updateProfile(userId, req.body);
-    res.json({ profile: getProfileForPrompt(userId) });
+    if (req.body && req.body.birthYear !== undefined) {
+      setUserBirthYear(userId, req.body.birthYear);
+    }
+    res.json({ profile: getProfileForPrompt(userId), birthYear: getUserBirthYear(userId) });
   } catch (error) {
     console.error('Error updating profile:', error.message);
     res.status(500).json({ error: 'Failed to update profile' });
