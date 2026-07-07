@@ -57,6 +57,26 @@ export function setUserTimezone(userId, timeZone) {
   return normalized;
 }
 
+// Birth year drives the Goals "90 years" timeline. Stored in the same
+// onboarding JSON blob as timezone (mirrors setUserTimezone).
+export function getUserBirthYear(userId) {
+  const user = getUserRecord(userId);
+  const onboarding = parseOnboarding(user?.onboarding);
+  const y = Number(onboarding.birthYear);
+  return Number.isInteger(y) ? y : null;
+}
+
+export function setUserBirthYear(userId, year) {
+  const y = Number(year);
+  if (!Number.isInteger(y) || y < 1920 || y > 2015) return getUserBirthYear(userId);
+  ensureUser(userId);
+  const user = getUserRecord(userId);
+  const onboarding = parseOnboarding(user?.onboarding);
+  onboarding.birthYear = y;
+  db.prepare('UPDATE users SET onboarding = ? WHERE id = ?').run(JSON.stringify(onboarding), userId);
+  return y;
+}
+
 export function resolveUserTimezone(userId, detectedTimezone) {
   const normalized = normalizeTimezone(detectedTimezone);
   if (normalized) {
