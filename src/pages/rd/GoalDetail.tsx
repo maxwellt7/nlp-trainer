@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import type { Goal } from '../../services/api';
 import { catColor } from './goalsLogic';
@@ -67,9 +68,11 @@ export default function GoalDetail({
     }
   };
 
-  return (
+  // Portal to <body> — true full-screen takeover (see GoalEditor for the iOS
+  // scroll-container / position:fixed rationale).
+  return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 60, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
+      position: 'fixed', inset: 0, zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
       fontFamily: 'var(--font-sans)', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
       maxWidth: 440, margin: '0 auto',
     }}>
@@ -195,7 +198,8 @@ export default function GoalDetail({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

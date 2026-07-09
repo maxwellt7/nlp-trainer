@@ -11,7 +11,7 @@ export default function AppShell() {
   return (
     <div style={{ background: 'var(--rd-bg)', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <AccountButton />
-      <div style={{ flex: 1, minHeight: 0, overflowY: fullscreen ? 'hidden' : 'auto' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: fullscreen ? 'hidden' : 'auto', overscrollBehavior: 'contain' }}>
         <Outlet />
       </div>
       <BottomNav />

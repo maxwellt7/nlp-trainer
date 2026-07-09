@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import type { Goal, GoalDraft, GoalReward, GoalMilestone } from '../../services/api';
 import { GOAL_CATS, draftValid, ageAtLine } from './goalsLogic';
@@ -115,9 +116,13 @@ export default function GoalEditor({
     }
   };
 
-  return (
+  // Portal to <body> so this is a true full-screen takeover: escapes AppShell's
+  // overflow-y:auto scroll container (on iOS, position:fixed inside a scrolling
+  // ancestor is positioned relative to that container, not the viewport — which
+  // left the tab bar + account avatar showing and trapped the Rewards scroll).
+  return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 60, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
+      position: 'fixed', inset: 0, zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
       fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column',
       maxWidth: 440, margin: '0 auto',
     }}>
@@ -265,6 +270,7 @@ export default function GoalEditor({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
