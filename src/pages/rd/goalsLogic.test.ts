@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { currentAge, goalCard, buildDecades, draftValid, ageAtLine, catColor } from './goalsLogic';
+import { currentAge, goalCard, buildDecades, draftValid, ageAtLine, catColor, spectrumData } from './goalsLogic';
 import type { Goal } from '../../services/api';
 
 const base = (over: Partial<Goal> = {}): Goal => ({
@@ -94,5 +94,44 @@ describe('draftValid / ageAtLine / catColor', () => {
   it('category color + fallback', () => {
     expect(catColor('Wealth')).toBe('#7FB4D9');
     expect(catColor('Nope')).toBe('#A9C6B3'); // falls back to first (Health)
+  });
+});
+
+describe('spectrumData', () => {
+  it('needle at current age / 90', () => {
+    expect(spectrumData([], 1992, 2025).nowPct).toBeCloseTo((33 / 90) * 100);
+    expect(spectrumData([], 1920, 2025).nowPct).toBe(100); // age >90 clamps
+  });
+  it('one cluster per year, positioned by age, ascending', () => {
+    const s = spectrumData([
+      base({ id: 'a', targetDate: '2045-01-01' }),               // age 53
+      base({ id: 'b', targetDate: '2030-06-01', category: 'Family' }), // age 38
+    ], 1992, 2025);
+    expect(s.clusters.length).toBe(2);
+    expect(s.clusters[0].year).toBe(2030);
+    expect(s.clusters[0].pct).toBeCloseTo((38 / 90) * 100);
+    expect(s.clusters[0].d0).toBe(30);
+    expect(s.clusters[0].dots[0]).toEqual({ goalId: 'b', color: '#C7A9B4', achieved: false, category: 'Family' });
+  });
+  it('caps dots at 3 with an extra count', () => {
+    const gs = ['a', 'b', 'c', 'd', 'e'].map(id => base({ id, targetDate: '2045-01-01' }));
+    const c = spectrumData(gs, 1992, 2025).clusters[0];
+    expect(c.dots.length).toBe(3);
+    expect(c.extra).toBe(2);
+  });
+  it('achieved dots are flagged; out-of-range years clamp onto the span', () => {
+    const s = spectrumData([
+      base({ id: 'won', targetDate: '2000-01-01', completed: true }), // past
+      base({ id: 'far', targetDate: '2095-01-01' }),                  // beyond 90
+    ], 1992, 2025);
+    expect(s.clusters[0].dots[0].achieved).toBe(true);
+    expect(s.clusters[0].pct).toBeCloseTo((8 / 90) * 100);
+    expect(s.clusters[1].pct).toBeCloseTo((89 / 90) * 100); // clamped to age 89
+  });
+  it('nine decade ticks 0s..80s', () => {
+    const t = spectrumData([], 1992, 2025).ticks;
+    expect(t.length).toBe(9);
+    expect(t[0]).toEqual({ d0: 0, pct: 0, label: '0s' });
+    expect(t[8].label).toBe('80s');
   });
 });

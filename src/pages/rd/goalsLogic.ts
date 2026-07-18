@@ -113,6 +113,44 @@ export function buildDecades(goals: Goal[], birthYear: number, thisYear: number)
   return out;
 }
 
+export interface SpectrumDot { goalId: string; color: string; achieved: boolean; category: string; }
+export interface SpectrumCluster { year: number; pct: number; d0: number; dots: SpectrumDot[]; extra: number; }
+export interface SpectrumData {
+  nowPct: number;
+  clusters: SpectrumCluster[];
+  ticks: { d0: number; pct: number; label: string }[];
+}
+
+// Whole-life map data: one cluster of dots per goal-year on the 0–90 span.
+export function spectrumData(goals: Goal[], birthYear: number, thisYear: number): SpectrumData {
+  const nowPct = Math.min(100, (currentAge(birthYear, thisYear) / 90) * 100);
+  const byYear = new Map<number, Goal[]>();
+  for (const g of goals) {
+    const y = parseInt((g.targetDate || '').slice(0, 4)) || thisYear;
+    const clamped = Math.min(birthYear + 89, Math.max(birthYear, y));
+    byYear.set(clamped, [...(byYear.get(clamped) || []), g]);
+  }
+  const clusters = [...byYear.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([year, gs]) => {
+      const age = year - birthYear;
+      const sorted = [...gs].sort((a, b) => a.title.localeCompare(b.title));
+      return {
+        year,
+        pct: (age / 90) * 100,
+        d0: Math.floor(age / 10) * 10,
+        dots: sorted.slice(0, 3).map(g => ({
+          goalId: g.id, color: catColor(g.category), achieved: g.completed, category: g.category,
+        })),
+        extra: Math.max(0, gs.length - 3),
+      };
+    });
+  const ticks = Array.from({ length: 9 }, (_, i) => ({
+    d0: i * 10, pct: (i * 10 / 90) * 100, label: `${i * 10}s`,
+  }));
+  return { nowPct, clusters, ticks };
+}
+
 export function draftValid(d: { title: string; targetDate: string }): boolean {
   return d.title.trim().length > 0 && !!d.targetDate;
 }
