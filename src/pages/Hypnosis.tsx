@@ -5,6 +5,8 @@ import XpPopup from '../components/XpPopup';
 import MysteryBox from '../components/MysteryBox';
 import { resolveInitialHypnosisTarget } from './hypnosisLaunch';
 import { canShowCreateHypnosisCTA, isSessionMarkedReady } from './hypnosisReadiness';
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import VoiceSession from './rd/VoiceSession';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -178,6 +180,16 @@ export default function Hypnosis() {
   const [xpPopupData, setXpPopupData] = useState<any>(null);
   const [mysteryBoxData, setMysteryBoxData] = useState<any>(null);
   const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [speakReplies, setSpeakReplies] = useState(() => {
+    try { return localStorage.getItem('voice-speak-replies') === '1'; } catch { return false; }
+  });
+  const [voiceMode, setVoiceMode] = useState(false);
+  const recorder = useVoiceRecorder();
+  const speakRepliesRef = useRef(speakReplies);
+  const voiceModeRef = useRef(false);
+  const speakAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speakUrlRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -449,10 +461,54 @@ export default function Hypnosis() {
     }
   }, [input]);
 
-  const sendMessage = useCallback(async (content: string) => {
+  // ── Voice: spoken replies ──
+  useEffect(() => {
+    speakRepliesRef.current = speakReplies;
+    try { localStorage.setItem('voice-speak-replies', speakReplies ? '1' : '0'); } catch { /* private mode */ }
+  }, [speakReplies]);
+
+  const stopSpeaking = useCallback(() => {
+    speakAudioRef.current?.pause();
+    if (speakUrlRef.current) { URL.revokeObjectURL(speakUrlRef.current); speakUrlRef.current = null; }
+  }, []);
+
+  // Fetch TTS for a reply and play it; resolves when playback ends (or was
+  // interrupted). Best-effort — the reply is already on screen as text.
+  const speakText = useCallback(async (text: string): Promise<void> => {
+    if (!text?.trim()) return;
+    try {
+      const blob = await api.voiceSpeak(text);
+      stopSpeaking();
+      const url = URL.createObjectURL(blob);
+      speakUrlRef.current = url;
+      if (!speakAudioRef.current) speakAudioRef.current = new Audio();
+      const audio = speakAudioRef.current;
+      audio.src = url;
+      await audio.play();
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          audio.removeEventListener('ended', done);
+          audio.removeEventListener('pause', done);
+          resolve();
+        };
+        audio.addEventListener('ended', done);
+        audio.addEventListener('pause', done);
+      });
+    } catch {
+      // TTS failure must never block the conversation.
+    }
+  }, [stopSpeaking]);
+
+  useEffect(() => () => stopSpeaking(), [stopSpeaking]);
+
+  useEffect(() => {
+    if (recorder.error) setError(recorder.error);
+  }, [recorder.error]);
+
+  const sendMessage = useCallback(async (content: string): Promise<string | null> => {
     if (!selectedSession) {
       setError('Start a conversation first.');
-      return;
+      return null;
     }
 
     const userMsg: Message = { role: 'user', content };
@@ -481,14 +537,20 @@ export default function Hypnosis() {
       if (data.profileUpdates) {
         setProfileInsights((prev) => ({ ...prev, ...data.profileUpdates }));
       }
+      // Voice Mode speaks the reply itself as part of its turn loop.
+      if (speakRepliesRef.current && !voiceModeRef.current && data.reply) {
+        void speakText(data.reply);
+      }
       await refreshConversations(selectedSession.id);
+      return (data.reply as string) || null;
     } catch (err: any) {
       setError(err.message || 'Failed to get response');
       setMessages(messages);
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [isSelectedLocked, messages, refreshConversations, selectedSession]);
+  }, [isSelectedLocked, messages, refreshConversations, selectedSession, speakText]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -498,6 +560,40 @@ export default function Hypnosis() {
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
+
+  // Composer mic: tap to record, tap again to stop → transcript lands in the
+  // textarea for review (the user still hits Send).
+  const handleMicTap = useCallback(async () => {
+    if (transcribing || loading || initializing) return;
+    if (recorder.state === 'recording') {
+      const blob = await recorder.stop();
+      if (!blob) return;
+      setTranscribing(true);
+      try {
+        const { text } = await api.voiceTranscribe(blob);
+        setInput((prev) => (prev.trim() ? `${prev.trimEnd()} ${text}` : text));
+        textareaRef.current?.focus();
+      } catch (err: any) {
+        setError(err.message || 'Transcription failed — try again.');
+      } finally {
+        setTranscribing(false);
+      }
+    } else if (recorder.state === 'idle') {
+      if (navigator.vibrate) navigator.vibrate(20);
+      void recorder.start();
+    }
+  }, [initializing, loading, recorder, transcribing]);
+
+  // ?voice=1 opens Voice Mode (chooser "Voice Session" entry).
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('voice') === '1') setVoiceMode(true);
+  }, [location.key, location.search]);
+
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+    if (!voiceMode) stopSpeaking();
+  }, [voiceMode, stopSpeaking]);
 
   // Apply a completed generation result — extracted so the polling effect and
   // any synchronous fallback can both deliver the same downstream state.
@@ -968,6 +1064,19 @@ export default function Hypnosis() {
               </button>
               <div className="w-2 h-2 rounded-full shrink-0 animate-breathe-subtle" style={{ background: 'var(--color-accent-gold)' }} />
               <span className="min-w-0 truncate text-sm sm:text-base font-semibold text-white">{formatTitle(selectedSession)}</span>
+              <button
+                type="button"
+                onClick={() => { if (speakReplies) stopSpeaking(); setSpeakReplies((v) => !v); }}
+                aria-label={speakReplies ? 'Turn off spoken replies' : 'Speak replies aloud'}
+                title={speakReplies ? 'Spoken replies on' : 'Spoken replies off'}
+                className="shrink-0 rounded-lg px-2 py-1.5 haptic-tap btn-ghost"
+                style={{ color: speakReplies ? 'var(--color-accent-gold)' : 'var(--color-text-dim)' }}
+              >
+                <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 5 6 9H2v6h4l5 4V5z" />
+                  {speakReplies ? <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14" /> : <path d="M22 9l-6 6M16 9l6 6" />}
+                </svg>
+              </button>
             </div>
             <div className="hidden sm:flex items-center gap-1.5 flex-wrap mb-1">
               {statusPills(selectedSession).map((pill) => (
@@ -1123,12 +1232,42 @@ export default function Hypnosis() {
               value={input}
               onFocus={handleInputFocus}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={initializing ? 'Loading conversation...' : 'Type your message...'}
+              placeholder={
+                recorder.state === 'recording'
+                  ? 'Listening… tap the mic to finish'
+                  : transcribing
+                    ? 'Transcribing…'
+                    : initializing ? 'Loading conversation...' : 'Type your message...'
+              }
               disabled={loading || initializing}
               rows={1}
               className="brand-input flex-1 resize-none leading-relaxed"
               style={{ minHeight: '42px', maxHeight: '120px', borderRadius: 'var(--radius-button)' }}
             />
+            <button
+              type="button"
+              onClick={handleMicTap}
+              disabled={loading || initializing || transcribing}
+              aria-label={recorder.state === 'recording' ? 'Stop recording' : 'Speak your message'}
+              className="rounded-lg px-3 py-2.5 shrink-0 haptic-tap disabled:opacity-30"
+              style={{
+                background: recorder.state === 'recording' ? 'rgba(239, 68, 68, 0.18)' : 'var(--color-brand-card)',
+                border: `1px solid ${recorder.state === 'recording' ? 'rgba(239, 68, 68, 0.5)' : 'var(--color-brand-border)'}`,
+                color: recorder.state === 'recording' ? 'var(--color-status-error)' : 'var(--color-text-secondary)',
+                minHeight: '42px',
+              }}
+            >
+              {transcribing ? (
+                <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--color-accent-gold)', borderTopColor: 'transparent' }} />
+              ) : recorder.state === 'recording' ? (
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor" className="animate-pulse"><rect x="7" y="7" width="10" height="10" rx="2" /></svg>
+              ) : (
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+                  <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4" />
+                </svg>
+              )}
+            </button>
             <button type="submit"
               disabled={!input.trim() || loading || initializing}
               className="rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors shrink-0 disabled:opacity-30 haptic-tap"
@@ -1312,6 +1451,18 @@ export default function Hypnosis() {
         )}
         </div>
       </section>
+
+      {voiceMode && (
+        <VoiceSession
+          ready={!initializing && !!selectedSession && !isSelectedLocked}
+          lastReply={[...messages].reverse().find((m) => m.role === 'assistant')?.content || ''}
+          onSend={sendMessage}
+          speak={speakText}
+          stopSpeaking={stopSpeaking}
+          recorder={recorder}
+          onClose={() => setVoiceMode(false)}
+        />
+      )}
     </div>
   );
 }

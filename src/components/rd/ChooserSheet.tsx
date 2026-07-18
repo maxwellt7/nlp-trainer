@@ -1,8 +1,10 @@
+export type SessionKind = 'daily' | 'general' | 'voice';
+
 export default function ChooserSheet({ open, onClose, onPick }: {
-  open: boolean; onClose: () => void; onPick: (kind: 'daily' | 'general') => void;
+  open: boolean; onClose: () => void; onPick: (kind: SessionKind) => void;
 }) {
   if (!open) return null;
-  const row = (label: string, sub: string, kind: 'daily' | 'general') => (
+  const row = (label: string, sub: string, kind: SessionKind) => (
     <button onClick={() => onPick(kind)} style={{
       display: 'block', width: '100%', textAlign: 'left', background: 'var(--rd-surface)',
       border: '1px solid var(--rd-border)', borderRadius: 16, padding: 16, marginBottom: 12, color: 'var(--rd-ink)',
@@ -20,7 +22,7 @@ export default function ChooserSheet({ open, onClose, onPick }: {
         <div style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--rd-muted-2)', marginBottom: 14 }}>Start a session</div>
         {row('Daily Session', 'Your evening ritual', 'daily')}
         {row('General Chat', 'An open-ended conversation', 'general')}
-        <div style={{ fontSize: 12, color: 'var(--rd-dim)', textAlign: 'center', marginTop: 8 }}>Voice — coming soon</div>
+        {row('Voice Session', 'Talk it through, out loud', 'voice')}
       </div>
     </div>
   );

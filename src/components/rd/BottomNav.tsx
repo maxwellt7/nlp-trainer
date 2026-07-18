@@ -15,7 +15,12 @@ export default function BottomNav() {
   const navigate = useNavigate();
   // Explicit mode params: bare /hypnosis falls back to "load most recent
   // conversation", which resurfaces a previous day's session.
-  const pick = (kind: 'daily' | 'general') => { setChooser(false); navigate(kind === 'daily' ? '/hypnosis?mode=daily' : '/chat?mode=general'); };
+  const pick = (kind: 'daily' | 'general' | 'voice') => {
+    setChooser(false);
+    if (kind === 'daily') navigate('/hypnosis?mode=daily');
+    else if (kind === 'voice') navigate('/chat?mode=general&voice=1');
+    else navigate('/chat?mode=general');
+  };
   return (
     <>
       <nav style={{
