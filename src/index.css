@@ -499,3 +499,12 @@ body {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
 }
+
+/* ── Redesign (rd) decade jump flash ── */
+@keyframes rdFlash {
+  0% { background: rgba(127, 180, 217, 0.08); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-flash { animation: none !important; }
+}

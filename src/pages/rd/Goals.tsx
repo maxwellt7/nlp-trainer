@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Screen from '../../components/rd/Screen';
 import { api } from '../../services/api';
 import type { Goal } from '../../services/api';
-import { buildDecades, currentAge, type GoalCard } from './goalsLogic';
+import { buildDecades, currentAge, spectrumData, GOAL_CATS, type GoalCard } from './goalsLogic';
 import GoalEditor from './GoalEditor';
 import GoalDetail from './GoalDetail';
+import LifeSpectrum from './LifeSpectrum';
 
 type Overlay =
   | { kind: 'editor'; id?: string; prefillYear?: number }
@@ -19,6 +20,11 @@ export default function Goals() {
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [yearInput, setYearInput] = useState('');
   const [savingYear, setSavingYear] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [flashD0, setFlashD0] = useState<number | null>(null);
+  const decadeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const didAutoScroll = useRef(false);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const thisYear = new Date().getFullYear();
 
@@ -46,6 +52,30 @@ export default function Goals() {
     () => (birthYear ? buildDecades(goals, birthYear, thisYear) : []),
     [goals, birthYear, thisYear],
   );
+  const spectrum = useMemo(
+    () => (birthYear ? spectrumData(goals, birthYear, thisYear) : null),
+    [goals, birthYear, thisYear],
+  );
+
+  const jumpTo = (d0: number) => {
+    decadeRefs.current[d0]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setFlashD0(d0);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashD0(null), 900);
+  };
+
+  // On first load with past decades above, bring "now" into view (the sticky
+  // spectrum keeps the whole-life map visible above it).
+  useEffect(() => {
+    if (loading || birthYear == null || didAutoScroll.current) return;
+    didAutoScroll.current = true;
+    const now = decades.find(d => d.isNow);
+    if (now && decades.some(d => d.lived)) {
+      decadeRefs.current[now.d0]?.scrollIntoView({ block: 'start' });
+    }
+  }, [loading, birthYear, decades]);
+
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   // Close a detail overlay whose goal no longer exists (e.g. after delete).
   useEffect(() => {
@@ -116,7 +146,6 @@ export default function Goals() {
   }
 
   const curAge = currentAge(birthYear, thisYear);
-  const lifePct = `${Math.min(100, (curAge / 90) * 100)}%`;
   const goalsEmpty = goals.length === 0;
 
   return (
@@ -137,14 +166,33 @@ export default function Goals() {
           </button>
         </div>
 
-        {/* Life bar */}
-        <div style={{ margin: '22px 0 30px 0' }}>
-          <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.07)', position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: lifePct, background: 'linear-gradient(90deg, #9DB4CC, #7FB4D9)', borderRadius: 999 }} />
-            <div style={{ position: 'absolute', left: lifePct, top: '50%', transform: 'translate(-50%, -50%)', width: 11, height: 11, borderRadius: '50%', background: '#B3D6EC', boxShadow: '0 0 12px rgba(179,214,236,0.7)' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#5B7085', marginTop: 8 }}>
+        {/* Life spectrum — sticky whole-life map. Bleeds over Screen's 20px side
+            padding so the background covers edge-to-edge while chapters scroll under it. */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 5, background: 'var(--rd-bg)',
+          margin: '18px -20px 8px', padding: '10px 20px 8px',
+        }}>
+          {spectrum && <LifeSpectrum data={spectrum} activeCategory={activeCategory} onJump={jumpTo} />}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#5B7085', margin: '6px 0 10px' }}>
             <span>age {curAge}</span><span>90</span>
+          </div>
+          {/* category filter chips */}
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+            {GOAL_CATS.map(cat => {
+              const on = activeCategory === cat.name;
+              return (
+                <button key={cat.name} onClick={() => setActiveCategory(on ? null : cat.name)} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, cursor: 'pointer',
+                  fontSize: 11.5, padding: '5px 11px', borderRadius: 999,
+                  border: `1px solid ${on ? 'rgba(127,180,217,0.5)' : 'var(--rd-border)'}`,
+                  background: on ? 'rgba(127,180,217,0.12)' : 'var(--rd-surface)',
+                  color: on ? 'var(--rd-ink)' : 'var(--rd-muted)',
+                }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: cat.color }} />
+                  {cat.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -154,39 +202,70 @@ export default function Goals() {
           </div>
         )}
 
-        {/* Decade rail */}
+        {/* Chapters — all decades birth→80s; empty non-current decades collapse to one row */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {decades.map(dec => (
-            <div key={dec.d0} style={{ display: 'flex', gap: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 12, paddingTop: 8 }}>
-                <div style={{
-                  width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                  ...(dec.isNow
-                    ? { background: '#7FB4D9', boxShadow: '0 0 12px rgba(127,180,217,0.6)' }
-                    : dec.hasGoals
-                      ? { background: 'rgba(157,180,204,0.55)' }
-                      : { background: 'rgba(255,255,255,0.12)' }),
-                }} />
-                <div style={{ width: 1.5, flex: 1, background: 'linear-gradient(180deg, rgba(157,180,204,0.25), rgba(157,180,204,0.04))', marginTop: 7 }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0, paddingBottom: 30 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--rd-ink)' }}>{dec.label}</span>
-                  <span style={{ fontSize: 11.5, color: '#5B7085' }}>{dec.years}</span>
-                  {dec.isNow && (
-                    <span style={{ fontSize: 10.5, color: '#7FB4D9', background: 'rgba(127,180,217,0.1)', padding: '3px 10px', borderRadius: 999 }}>you are here</span>
-                  )}
+          {decades.map(dec => {
+            const anchor = (el: HTMLDivElement | null) => { decadeRefs.current[dec.d0] = el; };
+            const flashing = flashD0 === dec.d0;
+            if (!dec.hasGoals && !dec.isNow) {
+              return (
+                <div key={dec.d0} ref={anchor} onClick={() => setOverlay({ kind: 'editor', prefillYear: dec.prefillYear })}
+                  role="button" className={flashing ? 'rd-flash' : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 4px',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer',
+                    scrollMarginTop: 150, borderRadius: 10,
+                    animation: flashing ? 'rdFlash 0.9s ease' : undefined,
+                  }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, color: 'var(--rd-muted)' }}>{dec.label}</span>
+                  <span style={{ fontSize: 11, color: '#5B7085' }}>{dec.years}{dec.lived ? ' · lived' : ''}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 16, color: '#6B8095' }}>+</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
-                  {dec.goals.map(card => <GoalCardView key={card.id} card={card} onOpen={() => setOverlay({ kind: 'detail', id: card.id })} />)}
-                  <div onClick={() => setOverlay({ kind: 'editor', prefillYear: dec.prefillYear })} role="button"
-                    style={{ border: '1.5px dashed rgba(157,180,204,0.22)', borderRadius: 18, padding: '13px 18px', fontSize: 13, color: '#6B8095', cursor: 'pointer', textAlign: 'center' }}>
-                    {dec.addLabel}
+              );
+            }
+            return (
+              <div key={dec.d0} ref={anchor} className={flashing ? 'rd-flash' : undefined}
+                style={{
+                  display: 'flex', gap: 16, scrollMarginTop: 150, borderRadius: 12, marginTop: 8,
+                  animation: flashing ? 'rdFlash 0.9s ease' : undefined,
+                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 12, paddingTop: 8 }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                    ...(dec.isNow
+                      ? { background: '#7FB4D9', boxShadow: '0 0 12px rgba(127,180,217,0.6)' }
+                      : dec.hasGoals
+                        ? { background: 'rgba(157,180,204,0.55)' }
+                        : { background: 'rgba(255,255,255,0.12)' }),
+                  }} />
+                  <div style={{ width: 1.5, flex: 1, background: 'linear-gradient(180deg, rgba(157,180,204,0.25), rgba(157,180,204,0.04))', marginTop: 7 }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0, paddingBottom: 30 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--rd-ink)' }}>{dec.label}</span>
+                    <span style={{ fontSize: 11.5, color: '#5B7085' }}>{dec.years}{dec.lived ? ' · lived' : ''}</span>
+                    {dec.isNow && (
+                      <span style={{ fontSize: 10.5, color: '#7FB4D9', background: 'rgba(127,180,217,0.1)', padding: '3px 10px', borderRadius: 999 }}>you are here</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+                    {dec.goals.map(card => (
+                      <div key={card.id} style={{
+                        opacity: activeCategory != null && card.category !== activeCategory ? 0.35 : 1,
+                        transition: 'opacity 0.2s ease',
+                      }}>
+                        <GoalCardView card={card} onOpen={() => setOverlay({ kind: 'detail', id: card.id })} />
+                      </div>
+                    ))}
+                    <div onClick={() => setOverlay({ kind: 'editor', prefillYear: dec.prefillYear })} role="button"
+                      style={{ border: '1.5px dashed rgba(157,180,204,0.22)', borderRadius: 18, padding: '13px 18px', fontSize: 13, color: '#6B8095', cursor: 'pointer', textAlign: 'center' }}>
+                      {dec.addLabel}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Screen>
 
