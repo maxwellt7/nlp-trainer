@@ -5,6 +5,7 @@ import {
   extractScriptField,
   recoverChatReply,
   recoverScriptText,
+  replyInvitesHypnosisCta,
   sanitizeAssistantContent,
   sanitizeMessageHistory,
 } from './message-sanitizer.js';
@@ -100,4 +101,28 @@ test('recoverScriptText returns plain text unchanged when there is no JSON wrapp
 test('recoverScriptText returns empty string when nothing can be salvaged', () => {
   const blob = '{"title": "Calm", "duration": 5}';
   assert.equal(recoverScriptText(blob, undefined), '');
+});
+
+// ── replyInvitesHypnosisCta ──
+// The model sometimes writes "Click Create Hypnosis now" in the reply while
+// returning readyToGenerate:false — the user is told to click a button that
+// never renders. The reply text is the user-facing contract, so an explicit
+// invite must count as readiness.
+test('replyInvitesHypnosisCta detects an explicit click invite', () => {
+  assert.equal(replyInvitesHypnosisCta("Click Create Hypnosis now and I'll build you something."), true);
+  assert.equal(replyInvitesHypnosisCta('When you feel complete, tap the Create Hypnosis button.'), true);
+  assert.equal(replyInvitesHypnosisCta('Press Create Updated Hypnosis to weave this in.'), true);
+  assert.equal(replyInvitesHypnosisCta('Hit Create Hypnosis and let it anchor.'), true);
+});
+
+test('replyInvitesHypnosisCta ignores passing mentions that are not invites', () => {
+  assert.equal(replyInvitesHypnosisCta('Later, when it feels right, we can create hypnosis together.'), false);
+  assert.equal(replyInvitesHypnosisCta('Tell me more about your morning.'), false);
+  assert.equal(replyInvitesHypnosisCta(''), false);
+  assert.equal(replyInvitesHypnosisCta(null), false);
+});
+
+test('replyInvitesHypnosisCta detects "Create Hypnosis now/button" phrasing without a click verb', () => {
+  assert.equal(replyInvitesHypnosisCta('Create Hypnosis now — everything we need is here.'), true);
+  assert.equal(replyInvitesHypnosisCta('The Create Hypnosis button is ready whenever you are.'), true);
 });

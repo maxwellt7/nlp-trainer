@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import XpPopup from '../components/XpPopup';
 import MysteryBox from '../components/MysteryBox';
 import { resolveInitialHypnosisTarget } from './hypnosisLaunch';
-import { canShowCreateHypnosisCTA, isSessionMarkedReady } from './hypnosisReadiness';
+import { canShowCreateHypnosisCTA, isSessionMarkedReady, replyInvitesHypnosisCta } from './hypnosisReadiness';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import VoiceSession from './rd/VoiceSession';
 
@@ -276,7 +276,11 @@ export default function Hypnosis() {
     setSelectedSession(session);
     setSelectedConversationId(session?.id || null);
     setMessages(nextMessages);
-    setReadyToGenerate(isSessionMarkedReady(session?.session_status) && !(session?.is_locked && session?.session_type === 'daily_hypnosis'));
+    const lastAssistant = [...nextMessages].reverse().find((m) => m.role === 'assistant');
+    setReadyToGenerate(
+      (isSessionMarkedReady(session?.session_status) || replyInvitesHypnosisCta(lastAssistant?.content))
+      && !(session?.is_locked && session?.session_type === 'daily_hypnosis'),
+    );
     setInput('');
     setError(null);
     setProfileInsights({});
@@ -338,11 +342,17 @@ export default function Hypnosis() {
         if (serverMsgs.length > latestMessagesRef.current.length) {
           setMessages(serverMsgs);
         }
+        // Adopt readiness too — a reply that landed while we were backgrounded
+        // may have flipped the session to ready; without this the user sees the
+        // "click Create Hypnosis" invite but no button.
+        if (isSessionMarkedReady(detailRaw.session_status)) {
+          setReadyToGenerate(!isSelectedLocked);
+        }
       } catch { /* ignore transient re-sync failures */ }
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [selectedConversationId, loading, generating, initializing]);
+  }, [selectedConversationId, loading, generating, initializing, isSelectedLocked]);
 
   const startConversation = useCallback(async (sessionType: 'daily_hypnosis' | 'general_chat', options?: { revealOnMobile?: boolean }) => {
     setInitializing(true);

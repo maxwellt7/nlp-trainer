@@ -39,6 +39,18 @@ export function isSessionMarkedReady(sessionStatus?: string | null) {
   return sessionStatus === 'ready_for_hypnosis';
 }
 
+// Mirror of the server-side heal: the model sometimes writes "Click Create
+// Hypnosis now" while returning readyToGenerate:false, leaving the user
+// invited to press a button that never rendered. When a loaded conversation's
+// last assistant message explicitly invites the click, treat it as ready.
+export function replyInvitesHypnosisCta(text?: string | null) {
+  if (!text) return false;
+  return (
+    /\b(click|tap|press|hit)\b[^.!?\n]{0,60}\bcreate (updated )?hypnosis\b/i.test(text) ||
+    /\bcreate (updated )?hypnosis\b[^.!?\n]{0,40}\b(button|now)\b/i.test(text)
+  );
+}
+
 export function canShowCreateHypnosisCTA({
   readyToGenerate,
   messages,

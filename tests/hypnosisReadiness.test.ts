@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   canShowCreateHypnosisCTA,
+  replyInvitesHypnosisCta,
   endsWithQuestion,
   isSessionMarkedReady,
 } from '../src/pages/hypnosisReadiness.ts';
@@ -118,4 +119,12 @@ test('canShowCreateHypnosisCTA returns false during loading/generating/locked st
   assert.equal(canShowCreateHypnosisCTA({ ...baseInput, ...ready, loading: true }), false);
   assert.equal(canShowCreateHypnosisCTA({ ...baseInput, ...ready, generating: true }), false);
   assert.equal(canShowCreateHypnosisCTA({ ...baseInput, ...ready, isSelectedLocked: true }), false);
+});
+
+test('replyInvitesHypnosisCta treats an explicit click invite as readiness (mirror of server heal)', () => {
+  assert.equal(replyInvitesHypnosisCta("Click Create Hypnosis now and I'll build you something."), true);
+  assert.equal(replyInvitesHypnosisCta('When the button appears, click Create Hypnosis and I\'ll build exactly what you need.'), true);
+  assert.equal(replyInvitesHypnosisCta('Later, when it feels right, we can create hypnosis together.'), false);
+  assert.equal(replyInvitesHypnosisCta(''), false);
+  assert.equal(replyInvitesHypnosisCta(undefined), false);
 });

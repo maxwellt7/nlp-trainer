@@ -41,6 +41,7 @@ import {
   extractReadyFlag,
   looksLikeRawJson,
   recoverChatReply,
+  replyInvitesHypnosisCta,
   sanitizeAssistantContent,
   sanitizeMessageHistory,
 } from '../services/message-sanitizer.js';
@@ -427,7 +428,15 @@ router.post('/chat', async (req, res) => {
       }
     }
 
-    const readyToGenerate = (parsed && parsed.readyToGenerate === true) || extractReadyFlag(text);
+    // Readiness ratchets: the JSON flag, a leaked flag in raw text, an explicit
+    // "click Create Hypnosis" invite in the reply, or having been ready before
+    // this turn all count — a later turn must never demote it, or the user gets
+    // invited to press a button that has silently disappeared.
+    const wasReady = session.session_status === 'ready_for_hypnosis';
+    const readyToGenerate = (parsed && parsed.readyToGenerate === true)
+      || extractReadyFlag(text)
+      || replyInvitesHypnosisCta(replyText)
+      || wasReady;
     const profileUpdates = (parsed && parsed.profileUpdates && typeof parsed.profileUpdates === 'object')
       ? parsed.profileUpdates
       : {};

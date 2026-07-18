@@ -45,6 +45,19 @@ export function extractReadyFlag(text) {
   return Boolean(match && match[1] === 'true');
 }
 
+// The model sometimes tells the user to "Click Create Hypnosis now" in the
+// reply while returning readyToGenerate:false (the OpenAI fallback breaks the
+// JSON contract regularly). The reply text is the user-facing contract — an
+// explicit invite to press the button must count as readiness, or the user is
+// told to click a button that never renders.
+export function replyInvitesHypnosisCta(text) {
+  if (typeof text !== 'string') return false;
+  return (
+    /\b(click|tap|press|hit)\b[^.!?\n]{0,60}\bcreate (updated )?hypnosis\b/i.test(text) ||
+    /\bcreate (updated )?hypnosis\b[^.!?\n]{0,40}\b(button|now)\b/i.test(text)
+  );
+}
+
 export function looksLikeRawJson(value) {
   if (typeof value !== 'string') return false;
   const trimmed = value.trim();
