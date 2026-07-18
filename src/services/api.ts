@@ -50,6 +50,27 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// Like request() but leaves the body/response untouched — for audio payloads.
+async function rawRequest(path: string, options: RequestInit & { headers?: Record<string, string> }): Promise<Response> {
+  const headers: Record<string, string> = { ...(options.headers || {}) };
+  const userTimezone = getBrowserTimezone();
+  if (userTimezone) headers['X-User-Timezone'] = userTimezone;
+  if (getToken) {
+    try {
+      const token = await getToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch {
+      // No token available — continue without auth
+    }
+  }
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res;
+}
+
 // ── Goals ("Your 90 years") ──
 export interface GoalReward {
   type: 'material' | 'experience';
@@ -123,6 +144,27 @@ export const api = {
     request<{ jobId: string | null; status?: 'queued' | 'running' }>(
       `/hypnosis/generate-active/${encodeURIComponent(sessionId)}`,
     ),
+
+  // ── Voice (push-to-talk) ──
+  voiceTranscribe: async (audio: Blob): Promise<{ text: string }> => {
+    const res = await rawRequest('/voice/transcribe', {
+      method: 'POST',
+      body: audio,
+      headers: {
+        'Content-Type': audio.type || 'application/octet-stream',
+        'x-audio-mime': audio.type || 'audio/webm',
+      },
+    });
+    return res.json();
+  },
+  voiceSpeak: async (text: string): Promise<Blob> => {
+    const res = await rawRequest('/voice/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    return res.blob();
+  },
 
   // ── Audio / Scripts ──
   listScripts: () => request<any>('/audio/scripts'),
