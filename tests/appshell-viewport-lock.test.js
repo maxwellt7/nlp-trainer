@@ -20,6 +20,15 @@ test('AppShell locks document-level scrolling while mounted', () => {
   assert.match(src, /prevHtml|prev/, 'must restore previous overflow on unmount (sign-in/legal pages scroll normally)');
 });
 
+test('AppShell drives its height from window.innerHeight, not a trusted 100dvh', () => {
+  // iOS standalone can get stuck reporting a shrunken 100dvh — the shell then
+  // honestly ends ~80pt above the physical bottom (the dead band Max saw even
+  // after the scroll-pin fix). innerHeight reports the true span.
+  assert.match(src, /window\.innerHeight/, 'must measure the real viewport');
+  assert.match(src, /--app-height/, 'must publish it as the --app-height CSS var');
+  assert.match(src, /var\(--app-height, 100dvh\)/, 'shell height must consume the var with a dvh fallback');
+});
+
 test('AppShell snaps the panned viewport back to 0 when the keyboard is closed', () => {
   assert.match(src, /window\.scrollTo\(0, 0\)/, 'must scroll the window back to origin');
   assert.match(src, /visualViewport/, 'must watch visualViewport to avoid fighting the open keyboard');

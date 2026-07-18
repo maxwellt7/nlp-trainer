@@ -1,3 +1,5 @@
+declare const __BUILD_TS__: string;
+
 export type SessionKind = 'daily' | 'general' | 'voice';
 
 export default function ChooserSheet({ open, onClose, onPick }: {
@@ -23,6 +25,9 @@ export default function ChooserSheet({ open, onClose, onPick }: {
         {row('Daily Session', 'Your evening ritual', 'daily')}
         {row('General Chat', 'An open-ended conversation', 'general')}
         {row('Voice Session', 'Talk it through, out loud', 'voice')}
+        <div style={{ fontSize: 10, color: 'var(--rd-dim)', textAlign: 'center', marginTop: 6 }}>
+          build {__BUILD_TS__}
+        </div>
       </div>
     </div>
   );

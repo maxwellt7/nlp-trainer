@@ -16,6 +16,24 @@ export default function AppShell() {
   // drags it back. Lock document-level scrolling while the shell is mounted
   // (sign-in/legal pages are outside AppShell and keep their body scroll),
   // and snap the viewport back to 0 whenever the keyboard is not open.
+  // iOS standalone can get stuck reporting a shrunken 100dvh (the app then
+  // honestly believes the screen ends ~80pt early, leaving a dead band under
+  // the nav). window.innerHeight reports the true layout-viewport span, so
+  // drive the shell height from it. On iOS the keyboard overlays rather than
+  // resizes, so innerHeight stays stable while typing.
+  useEffect(() => {
+    const root = document.documentElement;
+    const setH = () => root.style.setProperty('--app-height', `${window.innerHeight}px`);
+    setH();
+    window.addEventListener('resize', setH);
+    window.addEventListener('orientationchange', setH);
+    return () => {
+      window.removeEventListener('resize', setH);
+      window.removeEventListener('orientationchange', setH);
+      root.style.removeProperty('--app-height');
+    };
+  }, []);
+
   useEffect(() => {
     const html = document.documentElement;
     const prevHtml = html.style.overflow;
@@ -45,7 +63,7 @@ export default function AppShell() {
   }, []);
 
   return (
-    <div style={{ background: 'var(--rd-bg)', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ background: 'var(--rd-bg)', height: 'var(--app-height, 100dvh)', display: 'flex', flexDirection: 'column' }}>
       <AccountButton />
       <div style={{ flex: 1, minHeight: 0, overflowY: fullscreen ? 'hidden' : 'auto', overscrollBehavior: 'contain' }}>
         <Outlet />

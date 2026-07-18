@@ -87,6 +87,9 @@
 html, body, #root {
   height: 100%;
   height: 100dvh;
+  /* AppShell sets --app-height from window.innerHeight — the real screen
+     span — because iOS standalone can get stuck reporting a short 100dvh. */
+  height: var(--app-height, 100dvh);
   margin: 0;
   padding: 0;
 }

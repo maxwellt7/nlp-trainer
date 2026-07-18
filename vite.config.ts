@@ -5,6 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Visible build stamp (chooser sheet footer) — lets us confirm on-device
+  // which build the PWA's service worker is actually serving.
+  define: {
+    __BUILD_TS__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'),
+  },
   plugins: [
     react(),
     tailwindcss(),
