@@ -42,14 +42,22 @@ describe('goalCard', () => {
 });
 
 describe('buildDecades', () => {
-  it('starts at current decade, runs to 80s, marks current', () => {
-    const decs = buildDecades([], 1992, 2025); // curAge 33 -> startDec 30
-    expect(decs[0].d0).toBe(30);
+  it('spans all decades 0s → 80s and marks the current one', () => {
+    const decs = buildDecades([], 1992, 2025); // curAge 33 -> now = 30s
+    expect(decs.length).toBe(9);
+    expect(decs[0].d0).toBe(0);
     expect(decs[decs.length - 1].d0).toBe(80);
-    expect(decs[0].isNow).toBe(true);
-    expect(decs[0].years).toBe('2022 – 2031');
-    expect(decs[0].prefillYear).toBe(2026); // isNow -> thisYear+1
-    expect(decs[1].prefillYear).toBe(1992 + 40 + 2);
+    const now = decs.find(d => d.isNow)!;
+    expect(now.d0).toBe(30);
+    expect(now.years).toBe('2022 – 2031');
+    expect(now.prefillYear).toBe(2026); // isNow -> thisYear+1
+    expect(decs.find(d => d.d0 === 40)!.prefillYear).toBe(1992 + 40 + 2);
+  });
+  it('marks decades before the current one as lived', () => {
+    const decs = buildDecades([], 1992, 2025);
+    expect(decs.find(d => d.d0 === 20)!.lived).toBe(true);
+    expect(decs.find(d => d.d0 === 30)!.lived).toBe(false); // isNow, not lived
+    expect(decs.find(d => d.d0 === 40)!.lived).toBe(false);
   });
   it('places a goal into the right decade', () => {
     const decs = buildDecades([base({ targetDate: '2045-01-01' })], 1992, 2025); // age 53 -> 50s
@@ -57,9 +65,19 @@ describe('buildDecades', () => {
     expect(fifties.goals.length).toBe(1);
     expect(fifties.hasGoals).toBe(true);
   });
-  it('clamps a past-dated goal into the current decade', () => {
-    const decs = buildDecades([base({ targetDate: '2000-01-01' })], 1992, 2025); // age 8 < curAge -> current decade
-    expect(decs[0].goals.length).toBe(1);
+  it('places a past-dated goal in its true (lived) decade, not the current one', () => {
+    const decs = buildDecades([base({ targetDate: '2000-01-01' })], 1992, 2025); // age 8 -> 0s
+    expect(decs.find(d => d.d0 === 0)!.goals.length).toBe(1);
+    expect(decs.find(d => d.d0 === 30)!.goals.length).toBe(0);
+  });
+  it('lived add-label reads as memory; future as goal', () => {
+    const decs = buildDecades([], 1992, 2025);
+    expect(decs.find(d => d.d0 === 20)!.addLabel).toBe('Add a memory from your 20s');
+    expect(decs.find(d => d.d0 === 50)!.addLabel).toBe('Add a goal for your 50s');
+  });
+  it('goal cards carry their raw category for filtering', () => {
+    const decs = buildDecades([base({ targetDate: '2045-01-01', category: 'Family' })], 1992, 2025);
+    expect(decs.find(d => d.d0 === 50)!.goals[0].category).toBe('Family');
   });
 });
 

@@ -27,6 +27,7 @@ export interface GoalCard {
   hasImage: boolean;
   image: string;
   catColor: string;
+  category: string;
   metaLine: string;
   title: string;
   thumbs: string[];
@@ -55,6 +56,7 @@ export function goalCard(g: Goal, birthYear: number, thisYear: number): GoalCard
     hasImage: !!img,
     image: img || '',
     catColor: catColor(g.category),
+    category: g.category,
     metaLine: `${year} · age ${age} · ${g.category}`,
     title: g.title,
     thumbs,
@@ -70,33 +72,41 @@ export interface Decade {
   label: string;
   years: string;
   isNow: boolean;
+  lived: boolean;
   hasGoals: boolean;
   goals: GoalCard[];
   addLabel: string;
   prefillYear: number;
 }
 
+// Decade (0/10/…/80) a goal belongs to, from its target year; ages clamp into 0–89.
+export function goalDecade(g: Goal, birthYear: number, thisYear: number): number {
+  const y = parseInt((g.targetDate || '').slice(0, 4)) || thisYear;
+  const a = Math.min(89, Math.max(0, y - birthYear));
+  return Math.floor(a / 10) * 10;
+}
+
 export function buildDecades(goals: Goal[], birthYear: number, thisYear: number): Decade[] {
   const curAge = currentAge(birthYear, thisYear);
-  const startDec = Math.min(80, Math.max(0, Math.floor(curAge / 10) * 10));
+  const nowD0 = Math.min(80, Math.floor(curAge / 10) * 10);
   const out: Decade[] = [];
-  for (let d0 = startDec; d0 <= 80; d0 += 10) {
+  for (let d0 = 0; d0 <= 80; d0 += 10) {
     const gs = goals
-      .filter(g => {
-        const y = parseInt((g.targetDate || '').slice(0, 4)) || thisYear;
-        const a = Math.min(89, Math.max(curAge, y - birthYear));
-        return Math.max(startDec, Math.floor(a / 10) * 10) === d0;
-      })
+      .filter(g => goalDecade(g, birthYear, thisYear) === d0)
       .sort((a, b) => (a.targetDate || '').localeCompare(b.targetDate || ''));
-    const isNow = curAge >= d0 && curAge < d0 + 10;
+    const isNow = d0 === nowD0;
+    const lived = d0 < nowD0;
     out.push({
       d0,
       label: `${d0}s`,
       years: `${birthYear + d0} – ${birthYear + d0 + 9}`,
       isNow,
+      lived,
       hasGoals: gs.length > 0,
       goals: gs.map(g => goalCard(g, birthYear, thisYear)),
-      addLabel: gs.length ? '+ add another' : `Add a goal for your ${d0}s`,
+      addLabel: gs.length
+        ? '+ add another'
+        : lived ? `Add a memory from your ${d0}s` : `Add a goal for your ${d0}s`,
       prefillYear: isNow ? thisYear + 1 : birthYear + d0 + 2,
     });
   }
