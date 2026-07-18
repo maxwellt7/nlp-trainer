@@ -51,7 +51,7 @@ export default function Home() {
         <div style={{ fontSize: 14, color: 'var(--rd-muted)', marginBottom: 18 }}>
           A few minutes of honest conversation, then a guided session shaped around it.
         </div>
-        <button onClick={() => navigate('/hypnosis')} style={{
+        <button onClick={() => navigate('/hypnosis?mode=daily')} style={{
           background: 'var(--rd-accent)', color: '#06121c', border: 'none', borderRadius: 999,
           padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         }}>Begin →</button>
@@ -73,7 +73,8 @@ export default function Home() {
         {reflections.map((r: any) => (
           <div key={r.id} style={{ marginBottom: 12 }}>
             <Card>
-              <div style={{ display: 'flex', gap: 14 }}>
+              <div style={{ display: 'flex', gap: 14, cursor: 'pointer' }}
+                onClick={() => navigate(`/hypnosis?sessionId=${r.id}`)}>
                 <div style={{ textAlign: 'center', minWidth: 34 }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--rd-accent-bright)' }}>
                     {r.created_at ? new Date(r.created_at).getDate() : ''}
@@ -82,8 +83,7 @@ export default function Home() {
                     {r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short' }) : ''}
                   </div>
                 </div>
-                <div style={{ fontSize: 14, color: 'var(--rd-ink-soft)' }}
-                  onClick={() => navigate(`/hypnosis?sessionId=${r.id}`)}>
+                <div style={{ fontSize: 14, color: 'var(--rd-ink-soft)' }}>
                   {r.chat_summary?.trim() || 'A coaching conversation.'}
                 </div>
               </div>

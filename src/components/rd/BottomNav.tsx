@@ -13,15 +13,20 @@ const TABS = [
 export default function BottomNav() {
   const [chooser, setChooser] = useState(false);
   const navigate = useNavigate();
-  const pick = (kind: 'daily' | 'general') => { setChooser(false); navigate(kind === 'daily' ? '/hypnosis' : '/chat'); };
+  // Explicit mode params: bare /hypnosis falls back to "load most recent
+  // conversation", which resurfaces a previous day's session.
+  const pick = (kind: 'daily' | 'general') => { setChooser(false); navigate(kind === 'daily' ? '/hypnosis?mode=daily' : '/chat?mode=general'); };
   return (
     <>
       <nav style={{
         flexShrink: 0, display: 'flex', justifyContent: 'center',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        // Single bottom clearance: the pill sits flush against the safe area.
+        // Stacking the inset with an extra margin left a large dead band on
+        // notched phones in standalone mode.
+        paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
       }}>
         <div style={{
-          width: '100%', maxWidth: 440, margin: '0 auto 12px',
+          width: '100%', maxWidth: 440, margin: '0 auto',
           display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', alignItems: 'center',
           background: 'var(--rd-bg-deep)', border: '1px solid var(--rd-border)',
           borderRadius: 24, padding: '8px 4px', boxShadow: '0 8px 30px rgba(0,0,0,0.4)',

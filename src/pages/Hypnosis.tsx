@@ -187,7 +187,7 @@ export default function Hypnosis() {
   const location = useLocation();
   // Which coaching route we last acted on, so the route-switch effect only fires
   // on an actual change (not on every render).
-  const handledPathRef = useRef<string | null>(null);
+  const handledLocationKeyRef = useRef<string | null>(null);
 
   const hasConversationStarted = useMemo(
     () => messages.some((message) => message.role === 'user') || messages.filter((message) => message.role === 'assistant').length > 1,
@@ -367,7 +367,7 @@ export default function Hypnosis() {
         const launchSearch = window.location.search;
         const launchParams = new URLSearchParams(launchSearch);
         const isChatRoute = window.location.pathname === '/chat';
-        handledPathRef.current = window.location.pathname;
+        handledLocationKeyRef.current = location.key;
         const existing = await refreshConversations();
         const initialTarget = resolveInitialHypnosisTarget(launchSearch, existing, isChatRoute);
         const revealFromLaunchIntent = isChatRoute || launchParams.has('mode') || launchParams.has('sessionId');
@@ -388,17 +388,24 @@ export default function Hypnosis() {
   }, [loadConversation, refreshConversations, startConversation]);
 
   // Sidebar "Daily Session" (/hypnosis) and "General Chat" (/chat) render this
-  // same page, so React Router does not remount when switching between them.
-  // React to the route change (after the initial bootstrap) by opening the
-  // matching conversation type.
+  // same page, so React Router does not remount when switching between them —
+  // and the bottom-nav chooser can push /hypnosis?mode=daily while we are
+  // already on /hypnosis. Key on location.key (not pathname) so every in-app
+  // navigation is handled, including same-path ones.
   useEffect(() => {
     if (!initCalled.current) return;
+    if (handledLocationKeyRef.current === location.key) return;
+    handledLocationKeyRef.current = location.key;
     const path = location.pathname;
     if (path !== '/hypnosis' && path !== '/chat') return;
-    if (handledPathRef.current === path) return;
-    handledPathRef.current = path;
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get('sessionId');
+    if (sessionId) {
+      loadConversation(sessionId, { revealOnMobile: true });
+      return;
+    }
     startConversation(path === '/chat' ? 'general_chat' : 'daily_hypnosis', { revealOnMobile: true });
-  }, [location.pathname, startConversation]);
+  }, [location.key, location.pathname, location.search, loadConversation, startConversation]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
