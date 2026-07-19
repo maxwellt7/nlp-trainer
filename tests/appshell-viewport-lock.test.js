@@ -46,3 +46,11 @@ test('AppShell snaps the panned viewport back to 0 when the keyboard is closed',
   assert.match(src, /visualViewport/, 'must watch visualViewport to avoid fighting the open keyboard');
   assert.match(src, /focusout/, 'must re-pin after inputs blur');
 });
+
+test('the full-bleed chat header clears the status bar', () => {
+  // The chat page is the one full-bleed view without Screen.tsx's safe-area
+  // padding — its History button and title collided with the iOS clock.
+  const hypnosisSrc = fs.readFileSync(path.resolve(__dirname, '..', 'src', 'pages', 'Hypnosis.tsx'), 'utf8');
+  const matches = hypnosisSrc.match(/safe-area-inset-top/g) || [];
+  assert.ok(matches.length >= 2, 'both the chat header and the mobile history drawer header must pad for env(safe-area-inset-top)');
+});

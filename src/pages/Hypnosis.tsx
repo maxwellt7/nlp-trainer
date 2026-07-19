@@ -984,7 +984,10 @@ export default function Hypnosis() {
         className={`absolute inset-y-0 left-0 z-30 w-full max-w-[24rem] border-r flex flex-col transform transition-transform duration-200 ease-in-out lg:static lg:z-auto lg:w-[19rem] xl:w-[21rem] ${mobileHistoryOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
         style={{ borderColor: 'var(--color-brand-border)', background: 'rgba(7, 11, 20, 0.96)' }}
       >
-        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--color-brand-border)' }}>
+        <div
+          className="lg:hidden flex items-center justify-between px-4 py-3 border-b"
+          style={{ borderColor: 'var(--color-brand-border)', paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+        >
           <div>
             <p className="text-uppercase-spaced" style={{ color: 'var(--color-accent-gold)' }}>History</p>
             <p className="text-sm text-white font-semibold">Conversation Sidebar</p>
@@ -1061,7 +1064,13 @@ export default function Hypnosis() {
       <section ref={detailSectionRef} className="flex-1 min-h-0 min-w-0 flex flex-col">
         <div
           className="px-3 sm:px-6 py-3 sm:py-4 border-b flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderColor: 'var(--color-brand-border)', background: 'var(--color-brand-deep)' }}
+          style={{
+            borderColor: 'var(--color-brand-border)',
+            background: 'var(--color-brand-deep)',
+            // Full-bleed under the status bar in the installed PWA — without
+            // this the History button and title collide with the clock.
+            paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)',
+          }}
         >
           <div className="min-w-0">
             <div className="flex items-center gap-2 min-w-0 mb-1">
