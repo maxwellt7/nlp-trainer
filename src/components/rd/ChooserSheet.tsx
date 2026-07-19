@@ -56,7 +56,7 @@ export default function ChooserSheet({ open, onClose, onPick }: {
     </button>
   );
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 'var(--app-height, 100dvh)', background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         width: '100%', maxWidth: 440, margin: '0 auto', background: 'var(--rd-bg-deep)',
         borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',

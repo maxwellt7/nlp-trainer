@@ -72,7 +72,7 @@ export default function GoalDetail({
   // scroll-container / position:fixed rationale).
   return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
+      position: 'fixed', top: 0, left: 0, right: 0, height: 'var(--app-height, 100dvh)', zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
       fontFamily: 'var(--font-sans)', overflowY: 'auto', WebkitOverflowScrolling: 'touch',
       maxWidth: 440, margin: '0 auto',
     }}>

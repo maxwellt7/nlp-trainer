@@ -132,7 +132,7 @@ export default function VoiceSession({ ready, lastReply, onSend, speak, stopSpea
 
   return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
+      position: 'fixed', top: 0, left: 0, right: 0, height: 'var(--app-height, 100dvh)', zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
       fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: 'calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 28px)',
     }}>

@@ -56,7 +56,7 @@ export default function Player({ recording, onClose }: { recording: Recording; o
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 50, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
+      position: 'fixed', top: 0, left: 0, right: 0, height: 'var(--app-height, 100dvh)', zIndex: 50, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
       fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column', alignItems: 'center',
       padding: 'calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 32px)',
     }}>

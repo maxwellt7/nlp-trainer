@@ -20,13 +20,25 @@ test('AppShell locks document-level scrolling while mounted', () => {
   assert.match(src, /prevHtml|prev/, 'must restore previous overflow on unmount (sign-in/legal pages scroll normally)');
 });
 
-test('AppShell drives its height from window.innerHeight, not a trusted 100dvh', () => {
-  // iOS standalone can get stuck reporting a shrunken 100dvh — the shell then
-  // honestly ends ~80pt above the physical bottom (the dead band Max saw even
-  // after the scroll-pin fix). innerHeight reports the true span.
-  assert.match(src, /window\.innerHeight/, 'must measure the real viewport');
-  assert.match(src, /--app-height/, 'must publish it as the --app-height CSS var');
+test('AppShell sizes standalone from the large viewport (100lvh), not innerHeight/dvh', () => {
+  // Confirmed on-device 2026-07-19: screen 874, innerHeight 812, dvh 812,
+  // safeTop 62 — the stuck standalone layout viewport excludes the top safe
+  // area but takes it off the bottom. Only 100lvh still reported 874, so the
+  // shell must size to max(innerHeight, lvh) when standalone.
+  assert.match(src, /100lvh/, 'must probe the large viewport height');
+  assert.match(src, /Math\.max\(window\.innerHeight, lvh\)/, 'standalone height must be the larger of innerHeight and lvh');
+  assert.match(src, /display-mode: standalone/, 'lvh sizing must be standalone-only (browser tabs have real chrome)');
+  assert.match(src, /--app-height/, 'must publish the result as the --app-height CSS var');
   assert.match(src, /var\(--app-height, 100dvh\)/, 'shell height must consume the var with a dvh fallback');
+});
+
+test('full-screen overlays follow --app-height instead of inset:0', () => {
+  // In the stuck state, position:fixed inset:0 sizes to the short layout
+  // viewport, so every overlay would leave the same dead band.
+  for (const file of ['components/rd/ChooserSheet.tsx', 'pages/rd/VoiceSession.tsx', 'pages/rd/Player.tsx', 'pages/rd/GoalDetail.tsx', 'pages/rd/GoalEditor.tsx']) {
+    const overlaySrc = fs.readFileSync(path.resolve(__dirname, '..', 'src', file), 'utf8');
+    assert.match(overlaySrc, /var\(--app-height, 100dvh\)/, `${file} must size its overlay from --app-height`);
+  }
 });
 
 test('AppShell snaps the panned viewport back to 0 when the keyboard is closed', () => {

@@ -122,7 +122,7 @@ export default function GoalEditor({
   // left the tab bar + account avatar showing and trapped the Rewards scroll).
   return createPortal(
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
+      position: 'fixed', top: 0, left: 0, right: 0, height: 'var(--app-height, 100dvh)', zIndex: 100, background: 'var(--rd-bg)', color: 'var(--rd-ink)',
       fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column',
       maxWidth: 440, margin: '0 auto',
     }}>
