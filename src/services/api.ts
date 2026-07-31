@@ -167,11 +167,19 @@ export const api = {
   },
 
   // ── Ask (knowledge-base Q&A) ──
-  ask: (question: string, history: { role: 'user' | 'assistant'; content: string }[]) =>
-    request<{ answer: string; sources: { filename: string; score: number }[] }>(
+  ask: (question: string, threadId?: string | null) =>
+    request<{ answer: string; sources: { filename: string; score: number }[]; threadId: string; title: string }>(
       '/ask',
-      { method: 'POST', body: JSON.stringify({ question, history }) },
+      { method: 'POST', body: JSON.stringify({ question, threadId: threadId || undefined }) },
     ),
+  askThreads: () =>
+    request<{ threads: { id: string; title: string; updatedAt: string }[] }>('/ask/threads'),
+  askThread: (id: string) =>
+    request<{ id: string; title: string; messages: { role: 'user' | 'assistant'; content: string; sources?: { filename: string; score: number }[] }[] }>(
+      `/ask/threads/${encodeURIComponent(id)}`,
+    ),
+  deleteAskThread: (id: string) =>
+    request<{ ok: boolean }>(`/ask/threads/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   // ── Audio / Scripts ──
   listScripts: () => request<any>('/audio/scripts'),
