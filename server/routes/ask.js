@@ -3,6 +3,7 @@ import anthropic from '../config/anthropic.js';
 import { requireAuth } from '../middleware/auth.js';
 import { retrieveRelevant, formatRetrievedForPrompt } from '../services/knowledge-base.js';
 import { dedupeSources, dedupeChunks, isBelowRelevanceFloor } from '../services/ask.js';
+import { createThread, appendTurns, listThreads, getThread, deleteThread } from '../services/ask-threads.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -36,11 +37,20 @@ router.post('/', async (req, res) => {
     const question = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
     if (!question) return res.status(400).json({ error: 'Ask a question first.' });
 
-    const rawHistory = Array.isArray(req.body?.history) ? req.body.history : [];
-    const history = rawHistory
-      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-      .slice(-6)
-      .map((m) => ({ role: m.role, content: m.content }));
+    // Resolve the thread: reopen an existing one (history from its stored
+    // messages) or start a new one titled by this question.
+    let threadId = typeof req.body?.threadId === 'string' ? req.body.threadId : null;
+    let title = '';
+    let history = [];
+    if (threadId) {
+      const thread = getThread(threadId, req.userId);
+      if (!thread) return res.status(404).json({ error: 'Thread not found.' });
+      title = thread.title;
+      history = thread.messages
+        .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .slice(-6)
+        .map((m) => ({ role: m.role, content: m.content }));
+    }
 
     // throwOnError so a transient retrieval failure is reported as an error to
     // retry — NOT as the misleading "not in your library" (which a swallowed
@@ -55,29 +65,61 @@ router.post('/', async (req, res) => {
     // Duplicate files index identical text; collapse so the LLM context and the
     // cited sources aren't crowded by copies.
     chunks = dedupeChunks(chunks);
+
+    let answer;
+    let sources = [];
     if (isBelowRelevanceFloor(chunks, MIN_SCORE)) {
-      return res.json({ answer: NOT_FOUND, sources: [] });
+      answer = NOT_FOUND;
+    } else {
+      const system = `${SYSTEM}\n\nSOURCES:\n${formatRetrievedForPrompt(chunks)}`;
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system,
+        messages: [...history, { role: 'user', content: question }],
+      });
+      answer = (response?.content || [])
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+        .trim() || NOT_FOUND;
+      sources = dedupeSources(chunks);
     }
 
-    const system = `${SYSTEM}\n\nSOURCES:\n${formatRetrievedForPrompt(chunks)}`;
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system,
-      messages: [...history, { role: 'user', content: question }],
-    });
+    // Persist: create the thread on the first turn, then append this Q&A.
+    if (!threadId) {
+      const created = createThread(req.userId, question);
+      threadId = created.id;
+      title = created.title;
+    }
+    appendTurns(threadId, req.userId, [
+      { role: 'user', content: question },
+      { role: 'assistant', content: answer, sources },
+    ]);
 
-    const answer = (response?.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-      .trim() || NOT_FOUND;
-
-    res.json({ answer, sources: dedupeSources(chunks) });
+    res.json({ answer, sources, threadId, title });
   } catch (err) {
     console.error('[ask] failed:', err.message);
     res.status(500).json({ error: 'Something went wrong — try again.' });
   }
+});
+
+// GET /api/ask/threads — the user's threads, newest first
+router.get('/threads', (req, res) => {
+  res.json({ threads: listThreads(req.userId) });
+});
+
+// GET /api/ask/threads/:id — a full thread to reopen
+router.get('/threads/:id', (req, res) => {
+  const thread = getThread(req.params.id, req.userId);
+  if (!thread) return res.status(404).json({ error: 'Thread not found.' });
+  res.json(thread);
+});
+
+// DELETE /api/ask/threads/:id
+router.delete('/threads/:id', (req, res) => {
+  deleteThread(req.params.id, req.userId);
+  res.json({ ok: true });
 });
 
 export default router;
