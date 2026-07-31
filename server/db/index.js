@@ -255,6 +255,16 @@ const SCHEMA_SQL = `
       updated_at  TEXT DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id);
+
+    CREATE TABLE IF NOT EXISTS ask_threads (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      title      TEXT NOT NULL DEFAULT '',
+      messages   TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ask_threads_user ON ask_threads(user_id);
 `;
 
 // Open the on-disk SQLite database with node:sqlite (built into Node — no native
