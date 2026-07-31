@@ -17,6 +17,7 @@ import RouteErrorBoundary from './components/RouteErrorBoundary';
 
 const Home = lazy(() => import('./pages/rd/Home'));
 const Goals = lazy(() => import('./pages/rd/Goals'));
+const Ask = lazy(() => import('./pages/rd/Ask'));
 const Hypnosis = lazy(() => import('./pages/Hypnosis'));
 const Audios = lazy(() => import('./pages/rd/Library'));
 const Sessions = lazy(() => import('./pages/Sessions'));
@@ -53,6 +54,7 @@ function ProtectedRoutes() {
         <Route element={<AppShell />}>
           <Route path="/" element={<Home />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/ask" element={<Ask />} />
           <Route path="/hypnosis" element={<Hypnosis />} />
           <Route path="/chat" element={<Hypnosis />} />
           <Route path="/sessions" element={<Sessions />} />
@@ -89,6 +91,7 @@ function UnauthenticatedApp() {
         <Route element={<AppShell />}>
         <Route path="/" element={<Home />} />
         <Route path="/goals" element={<Goals />} />
+        <Route path="/ask" element={<Ask />} />
         <Route path="/hypnosis" element={<Hypnosis />} />
         <Route path="/chat" element={<Hypnosis />} />
         <Route path="/sessions" element={<Sessions />} />
