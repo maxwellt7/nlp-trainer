@@ -3,9 +3,24 @@ import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/clerk-react'
 import './index.css'
 import App from './App.tsx'
+import { recoverFromStalePwa } from './lib/pwaRecovery'
+
+// Vite fires `vite:preloadError` when a lazy-route chunk can't be fetched —
+// typically a stale service worker serving a precache from before the latest
+// deploy. Clear the SW + caches and hard-reload (loop-guarded) so the new
+// assets load, instead of white-screening on the broken route.
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault()
+    void recoverFromStalePwa()
+  })
+}
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-const PWA_RESET_VERSION = '2026-04-16-v1'
+// Bump this to force every client to run the one-time SW/cache reset again on
+// next open (fixes clients stuck on a stale precache that white-screens a lazy
+// route). 2026-07-31-v2: recover installed PWAs whose /ask chunk 404s.
+const PWA_RESET_VERSION = '2026-07-31-v2'
 const PWA_RESET_STORAGE_KEY = `alignment-engine:pwa-reset:${PWA_RESET_VERSION}`
 const PWA_RESET_QUERY_PARAM = 'pwa-reset'
 
