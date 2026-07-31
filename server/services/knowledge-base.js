@@ -221,8 +221,16 @@ export async function ingestDocument({ source, text, category = null, metadata =
  * Optional category filter: when set, restricts retrieval to chunks tagged
  * with that category in their metadata. Pass null/undefined to search all.
  */
-export async function retrieveRelevant(query, { topK = 5, category = null } = {}) {
-  if (!isEnabled()) return [];
+// `throwOnError`: by default retrieval failures are swallowed (return []) so
+// callers like the coaching chat degrade gracefully. Callers that must
+// distinguish "genuinely no results" from "retrieval broke" (e.g. the Ask Q&A,
+// which otherwise reports a transient error as "not in your library") pass
+// throwOnError:true to have the error propagate.
+export async function retrieveRelevant(query, { topK = 5, category = null, throwOnError = false } = {}) {
+  if (!isEnabled()) {
+    if (throwOnError) throw new Error('Knowledge base is disabled.');
+    return [];
+  }
   if (typeof query !== 'string' || !query.trim()) return [];
 
   try {
@@ -264,6 +272,7 @@ export async function retrieveRelevant(query, { topK = 5, category = null } = {}
     }));
   } catch (err) {
     console.warn('[KB] retrieveRelevant failed; continuing without RAG:', err.message);
+    if (throwOnError) throw err;
     return [];
   }
 }

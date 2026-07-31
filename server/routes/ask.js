@@ -2,7 +2,7 @@ import express from 'express';
 import anthropic from '../config/anthropic.js';
 import { requireAuth } from '../middleware/auth.js';
 import { retrieveRelevant, formatRetrievedForPrompt } from '../services/knowledge-base.js';
-import { dedupeSources, isBelowRelevanceFloor } from '../services/ask.js';
+import { dedupeSources, dedupeChunks, isBelowRelevanceFloor } from '../services/ask.js';
 
 const router = express.Router();
 router.use(requireAuth);
@@ -42,7 +42,19 @@ router.post('/', async (req, res) => {
       .slice(-6)
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const chunks = await retrieveRelevant(question, { topK: 8 });
+    // throwOnError so a transient retrieval failure is reported as an error to
+    // retry — NOT as the misleading "not in your library" (which a swallowed
+    // error would otherwise produce for content that IS indexed).
+    let chunks;
+    try {
+      chunks = await retrieveRelevant(question, { topK: 12, throwOnError: true });
+    } catch (retrievalErr) {
+      console.error('[ask] retrieval failed:', retrievalErr.message);
+      return res.status(503).json({ error: 'Trouble reaching your library right now — try again.' });
+    }
+    // Duplicate files index identical text; collapse so the LLM context and the
+    // cited sources aren't crowded by copies.
+    chunks = dedupeChunks(chunks);
     if (isBelowRelevanceFloor(chunks, MIN_SCORE)) {
       return res.json({ answer: NOT_FOUND, sources: [] });
     }
