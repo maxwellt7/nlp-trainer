@@ -166,6 +166,13 @@ export const api = {
     return res.blob();
   },
 
+  // ── Ask (knowledge-base Q&A) ──
+  ask: (question: string, history: { role: 'user' | 'assistant'; content: string }[]) =>
+    request<{ answer: string; sources: { filename: string; score: number }[] }>(
+      '/ask',
+      { method: 'POST', body: JSON.stringify({ question, history }) },
+    ),
+
   // ── Audio / Scripts ──
   listScripts: () => request<any>('/audio/scripts'),
   listVoices: () => request<any>('/audio/voices'),
