@@ -12,6 +12,7 @@ const indexSrc = read('server', 'index.js');
 test('ask route is auth-gated and retrieves from the knowledge base', () => {
   assert.match(routeSrc, /requireAuth/, 'must require auth');
   assert.match(routeSrc, /retrieveRelevant\(/, 'must retrieve KB chunks');
+  assert.match(routeSrc, /recentUserQuery\(/, 'must retrieve against recent conversation, not only the latest question');
   assert.match(routeSrc, /formatRetrievedForPrompt\(/, 'must format chunks into the prompt');
 });
 
@@ -19,6 +20,10 @@ test('ask route grounds strictly and returns answer + sources', () => {
   assert.match(routeSrc, /dedupeSources\(/, 'must build de-duplicated sources');
   assert.match(routeSrc, /isBelowRelevanceFloor\(/, 'must short-circuit below the relevance floor');
   assert.match(routeSrc, /anthropic\.messages\.create/, 'must call the LLM abstraction');
+  assert.match(routeSrc, /knowledge-base teacher/, 'must teach from the library rather than summarize as a librarian');
+  assert.match(routeSrc, /go as deep as the sources go/, 'must let answer length follow the source material');
+  assert.match(routeSrc, /max_tokens:\s*3072/, 'must allow a source-deep answer to finish');
+  assert.doesNotMatch(routeSrc, /Be concise and direct/, 'must not flatten answers to a concise paraphrase');
 });
 
 test('ask route is mounted in server index', () => {

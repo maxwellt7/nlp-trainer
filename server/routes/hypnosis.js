@@ -33,6 +33,7 @@ import {
   CATEGORY_NLP,
   CATEGORY_COACHING,
 } from '../services/knowledge-base.js';
+import { recentUserQuery } from '../services/retrieval-query.js';
 import { saveScriptForUser } from '../services/scripts.js';
 import { deferTask } from '../services/defer.js';
 import { renderNlpDigest, jsonToMarkdown } from '../services/nlp-content.js';
@@ -89,8 +90,8 @@ function loadCoachingFrameworks() {
 
 // Build the full system prompt with all context injected.
 // `retrievalQuery` (optional) drives the user-knowledge-base RAG step — pass
-// the last user message (or a short summary) when you want chunks pulled
-// from Pinecone. Pass falsy to skip retrieval entirely (init / pre-conversation).
+// recent user turns (via recentUserQuery) when you want chunks pulled from
+// Pinecone. Pass falsy to skip retrieval entirely (init / pre-conversation).
 async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
   const template = readFileSync(join(promptsDir, 'daily-coach.txt'), 'utf-8');
   const nlpContent = loadNlpContent();
@@ -100,10 +101,10 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
 
   const identityContext = buildIdentityContext(userId);
 
-  // Phase-aware retrieval. During GENERATION the script needs heavier NLP
-  // technique density (induction structure, Milton patterns, embedded commands)
-  // so we pull more NLP chunks than coaching ones. During COACHING the
-  // conversational reply leans on Max's voice from transcripts.
+  // Phase-aware retrieval. Generation needs heavier technique density
+  // (induction, Milton, embedded commands). Coaching now pulls a full set
+  // from both libraries so the reply can use Max's frames AND the NLP
+  // distinctions instead of flattening to a generic 2-4 sentence punch.
   let nlpBlock = '(no NLP excerpts retrieved for this query)';
   let coachingBlock = '(no coaching transcripts retrieved for this query)';
   if (kbEnabled() && retrievalQuery && retrievalQuery.trim()) {
@@ -111,15 +112,12 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
       const isGenerationPhase = phase === 'generation';
       const grouped = await retrieveByCategory(retrievalQuery, {
         categories: [CATEGORY_NLP, CATEGORY_COACHING],
-        topKPerCategory: isGenerationPhase ? 6 : 3,
+        topKPerCategory: isGenerationPhase ? 8 : 6,
       });
       const nlp = grouped[CATEGORY_NLP] || [];
       const coaching = grouped[CATEGORY_COACHING] || [];
-      // For coaching phase, flip the bias: more transcript voice, less technique.
-      const trimmedNlp = isGenerationPhase ? nlp : nlp.slice(0, 2);
-      const trimmedCoaching = isGenerationPhase ? coaching.slice(0, 3) : coaching;
-      const formattedNlp = formatRetrievedForPrompt(trimmedNlp);
-      const formattedCoaching = formatRetrievedForPrompt(trimmedCoaching);
+      const formattedNlp = formatRetrievedForPrompt(nlp);
+      const formattedCoaching = formatRetrievedForPrompt(coaching);
       if (formattedNlp) nlpBlock = formattedNlp;
       if (formattedCoaching) coachingBlock = formattedCoaching;
     } catch (err) {
@@ -133,8 +131,8 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
   // specifics still come from the RAG block below ({{NLP_RETRIEVED}}).
   // Function-form replacements so a literal "$" in any injected content (RAG
   // chunks, user memory) is never interpreted as a replace pattern token.
-  const nlpDigest = renderNlpDigest(nlpContent, { maxArrayItems: 3 });
-  const coachingDigest = jsonToMarkdown(coachingFrameworks, { maxArrayItems: 3 });
+  const nlpDigest = renderNlpDigest(nlpContent, { maxArrayItems: 6 });
+  const coachingDigest = jsonToMarkdown(coachingFrameworks, { maxArrayItems: 6 });
   let prompt = template
     .replace('{{NLP_CONTENT}}', () => nlpDigest)
     .replace('{{COACHING_FRAMEWORKS}}', () => coachingDigest)
@@ -151,16 +149,6 @@ async function buildSystemPrompt(userId, phase, retrievalQuery = '') {
   }
 
   return prompt;
-}
-
-function lastUserMessageContent(messages) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    if (m && m.role === 'user' && typeof m.content === 'string' && m.content.trim()) {
-      return m.content;
-    }
-  }
-  return '';
 }
 
 function parseJsonResponse(text) {
@@ -184,7 +172,7 @@ function tryParseChatJson(text) {
 }
 
 const SLIM_CHAT_INSTRUCTION =
-  '\n\nIMPORTANT: Your previous response was truncated. Respond again with ONLY the "reply", "readyToGenerate", and "profileUpdates" fields. OMIT "valueDetections" and "identityStatements" entirely so the response fits the token budget. Keep the reply concise.';
+  '\n\nIMPORTANT: Your previous response was truncated. Respond again with ONLY the "reply", "readyToGenerate", and "profileUpdates" fields. OMIT "valueDetections" and "identityStatements" entirely so the JSON object finishes. Keep the reply complete enough to land the move; shorten only if needed to close the object.';
 
 // The user-facing reply must come back fast and reliably — on mobile a long
 // synchronous call simply dies as "Load failed". So the BLOCKING call asks only
@@ -197,8 +185,9 @@ const REPLY_ONLY_INSTRUCTION =
   '\n\nIMPORTANT OUTPUT CONTRACT: Respond with a SINGLE valid JSON object and nothing else — no prose ' +
   'before or after, no markdown fences. Include ONLY these three fields: "reply", "readyToGenerate", and ' +
   '"profileUpdates". The "reply" field MUST come first. Do NOT include "valueDetections" or ' +
-  '"identityStatements" — those are collected by a separate pass. Keep "reply" to 2-4 sentences so the ' +
-  'JSON is always complete and never truncated.';
+  '"identityStatements" — those are collected by a separate pass. Put the full coaching reply in "reply": ' +
+  'one primary question, grounded in the retrieved libraries, as long as that material requires. Do not pad. ' +
+  'Do not truncate mid-thought.';
 
 const ANALYSIS_INSTRUCTION =
   '\n\nYou are running a SILENT ANALYSIS pass over the conversation above — the user will NOT see this output, ' +
@@ -363,7 +352,7 @@ router.post('/chat', async (req, res) => {
 
     // RAG: use the last user message as the retrieval query so the model
     // sees chunks relevant to what the user just said.
-    const systemPrompt = await buildSystemPrompt(userId, 'coaching', lastUserMessageContent(messages));
+    const systemPrompt = await buildSystemPrompt(userId, 'coaching', recentUserQuery(messages, { maxTurns: 3, maxChars: 900 }));
 
     const apiMessages = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -378,13 +367,13 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'No valid messages provided' });
     }
 
-    // Blocking call: lean output (reply + readyToGenerate + bounded
-    // profileUpdates) so it comes back fast and never truncates mid-JSON. The
-    // 1024-token budget comfortably fits a 2-4 sentence reply plus the small
-    // profileUpdates object; the heavy detection arrays are deferred below.
+    // Blocking call: reply + readyToGenerate + bounded profileUpdates, so it
+    // comes back as a complete JSON object. The 2048-token budget fits a
+    // library-grounded reply plus the small profileUpdates object; the heavy
+    // detection arrays are deferred below.
     const baseChatRequest = {
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: systemPrompt + REPLY_ONLY_INSTRUCTION,
       messages: apiMessages,
     };
@@ -619,7 +608,7 @@ router.post('/generate', async (req, res) => {
     // Build prompt up front (including RAG retrieval) so any prompt-build
     // failure surfaces before we mint a job. The retrieval query is the most
     // recent user message — the focal point of what the script needs to address.
-    const systemPrompt = await buildSystemPrompt(userId, 'generation', lastUserMessageContent(messages));
+    const systemPrompt = await buildSystemPrompt(userId, 'generation', recentUserQuery(messages, { maxTurns: 4, maxChars: 1200 }));
 
     const job = createJob(userId, currentSession.id);
     res.status(202).json({ jobId: job.id, status: 'queued' });

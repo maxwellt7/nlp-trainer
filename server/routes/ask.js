@@ -2,6 +2,7 @@ import express from 'express';
 import anthropic from '../config/anthropic.js';
 import { requireAuth } from '../middleware/auth.js';
 import { retrieveRelevant, formatRetrievedForPrompt } from '../services/knowledge-base.js';
+import { recentUserQuery } from '../services/retrieval-query.js';
 import { dedupeSources, dedupeChunks, isBelowRelevanceFloor } from '../services/ask.js';
 import { createThread, appendTurns, listThreads, getThread, deleteThread } from '../services/ask-threads.js';
 
@@ -22,10 +23,15 @@ function limited(userId) {
 }
 
 const SYSTEM = [
-  "You are a precise librarian answering questions ONLY from the user's own saved library.",
+  "You are a knowledge-base teacher answering questions ONLY from the user's own saved library.",
   'Use ONLY the SOURCES below. If they do not contain the answer, say the library does not cover it —',
-  'never fall back on outside knowledge or guess. Be concise and direct. When the sources answer the',
-  'question, treat them as authoritative.',
+  'never fall back on outside knowledge or guess.',
+  'When the sources answer the question, treat them as authoritative and teach from them:',
+  "use the library's own terms, distinctions, sequences, and examples;",
+  'quote a short passage when the exact wording matters;',
+  'if sources have layers, caveats, or disagreements, surface those instead of flattening into a generic summary;',
+  "go as deep as the sources go — a short answer is right when the library is short; a longer answer is right when the material is specific and rich;",
+  "do not replace the source's framework with a simpler popular-psychology paraphrase.",
 ].join(' ');
 
 // POST /api/ask — { question, history? } -> { answer, sources }
@@ -57,7 +63,11 @@ router.post('/', async (req, res) => {
     // error would otherwise produce for content that IS indexed).
     let chunks;
     try {
-      chunks = await retrieveRelevant(question, { topK: 12, throwOnError: true });
+      const retrievalQuery = recentUserQuery(
+        [...history, { role: 'user', content: question }],
+        { maxTurns: 4, maxChars: 900 },
+      );
+      chunks = await retrieveRelevant(retrievalQuery, { topK: 16, throwOnError: true });
     } catch (retrievalErr) {
       console.error('[ask] retrieval failed:', retrievalErr.message);
       return res.status(503).json({ error: 'Trouble reaching your library right now — try again.' });
@@ -74,7 +84,7 @@ router.post('/', async (req, res) => {
       const system = `${SYSTEM}\n\nSOURCES:\n${formatRetrievedForPrompt(chunks)}`;
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
+        max_tokens: 3072,
         system,
         messages: [...history, { role: 'user', content: question }],
       });
