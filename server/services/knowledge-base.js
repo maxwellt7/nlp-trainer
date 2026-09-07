@@ -302,7 +302,8 @@ export async function retrieveByCategory(query, { categories, topKPerCategory = 
 export function formatRetrievedForPrompt(chunks) {
   if (!Array.isArray(chunks) || chunks.length === 0) return '';
   const blocks = chunks.map((c, i) => {
-    const head = `[#${i + 1} | source: ${c.source || 'unknown'} | score: ${(c.score || 0).toFixed(3)}]`;
+    const label = c.filename || c.source || 'unknown';
+    const head = `[#${i + 1} | source: ${label} | score: ${(c.score || 0).toFixed(3)}]`;
     return `${head}\n${(c.text || '').trim()}`;
   });
   return blocks.join('\n\n---\n\n');

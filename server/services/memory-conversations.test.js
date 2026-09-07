@@ -7,7 +7,10 @@ import {
   createSession,
   getSession,
   getSidebarSessions,
+  getSessionsForAskMemory,
   markHypnosisGenerated,
+  updateSessionMessages,
+  updateSessionMetadata,
 } from './memory.js';
 
 function cleanupUser(userId) {
@@ -80,6 +83,26 @@ test('hypnosis generation locks only daily hypnosis sessions', () => {
   assert.equal(dailySession.session_status, 'locked');
   assert.ok(dailySession.locked_at);
   assert.equal(dailySession.script_id, 'script-daily-1');
+
+  cleanupUser(userId);
+});
+
+test('getSessionsForAskMemory returns sessions with transcripts or summaries, newest first', () => {
+  const userId = `test-user-ask-memory-${Date.now()}`;
+  cleanupUser(userId);
+
+  const empty = createConversationSession(userId, { sessionType: 'general_chat', title: 'Empty' });
+  const withChat = createConversationSession(userId, { sessionType: 'general_chat', title: 'Live chat' });
+  updateSessionMessages(withChat.id, [{ role: 'user', content: 'I freeze when he calls.' }]);
+  const withSummary = createConversationSession(userId, { sessionType: 'daily_hypnosis', title: 'Summary only' });
+  updateSessionMetadata(withSummary.id, { chat_summary: 'Named the permission loop.' });
+
+  const rows = getSessionsForAskMemory(userId, 10);
+  const ids = rows.map((r) => r.id);
+  assert.equal(ids.includes(empty.id), false);
+  assert.equal(rows.length, 2);
+  assert.ok(ids.includes(withChat.id));
+  assert.ok(ids.includes(withSummary.id));
 
   cleanupUser(userId);
 });

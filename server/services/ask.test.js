@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sourceToFilename, dedupeSources, isBelowRelevanceFloor, dedupeChunks } from './ask.js';
+import { sourceToFilename, chunkDisplayName, dedupeSources, isBelowRelevanceFloor, dedupeChunks, mergeAskSources, shouldSkipAskLlm } from './ask.js';
 
 test('sourceToFilename strips the dropbox prefix and returns the basename', () => {
   assert.equal(sourceToFilename('dropbox:/01. Professional/AI Tools/foo.pdf'), 'foo.pdf');
@@ -8,6 +8,12 @@ test('sourceToFilename strips the dropbox prefix and returns the basename', () =
   assert.equal(sourceToFilename('bare.txt'), 'bare.txt');
   assert.equal(sourceToFilename(''), '');
   assert.equal(sourceToFilename(null), '');
+  assert.equal(sourceToFilename('conversation:session-1'), 'Past conversation');
+});
+
+test('chunkDisplayName prefers an explicit filename over the source path', () => {
+  assert.equal(chunkDisplayName({ source: 'conversation:s1', filename: 'Coaching · Sep 3' }), 'Coaching · Sep 3');
+  assert.equal(chunkDisplayName({ source: 'dropbox:/x/a.pdf' }), 'a.pdf');
 });
 
 test('dedupeSources keeps the highest score per file, sorted desc, capped at 5', () => {
@@ -63,4 +69,21 @@ test('dedupeChunks drops chunks with identical text, preserving order', () => {
   assert.equal(out.length, 2);
   assert.equal(out[0].text, 'clarity without control');
   assert.equal(out[1].text, 'no codependency');
+});
+
+test('shouldSkipAskLlm is false when conversation memory hits even if the library misses', () => {
+  assert.equal(shouldSkipAskLlm([], [{ source: 'conversation:s1', filename: 'Coaching · Sep 3', score: 0.5 }], 0.15), false);
+  assert.equal(shouldSkipAskLlm([{ score: 0.1 }], [], 0.15), true);
+  assert.equal(shouldSkipAskLlm([{ score: 0.4 }], [], 0.15), false);
+});
+
+test('mergeAskSources keeps library files and conversation labels side by side', () => {
+  const out = mergeAskSources(
+    [{ source: 'dropbox:/x/a.pdf', score: 0.8 }],
+    [{ source: 'conversation:s1', filename: 'Coaching · Sep 3', score: 0.6 }],
+  );
+  assert.deepEqual(out, [
+    { filename: 'a.pdf', score: 0.8 },
+    { filename: 'Coaching · Sep 3', score: 0.6 },
+  ]);
 });

@@ -87,7 +87,7 @@ export default function Ask() {
         <div style={{ maxWidth: 440, margin: '0 auto' }}>
           {turns.length === 0 && !loading && (
             <div style={{ fontSize: 14, color: 'var(--rd-muted-2)', lineHeight: 1.6, marginTop: 8 }}>
-              Answers come only from what you've saved. Ask anything — “What does the material say about clean influence?”
+              Answers come from your saved library and from coaching conversations you've had here. Ask anything — “What did we land on about clean influence?”
             </div>
           )}
           {turns.map((t, i) => (
@@ -98,14 +98,14 @@ export default function Ask() {
               <div style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rd-ink-soft)', whiteSpace: 'pre-wrap' }}>{t.answer}</div>
               {t.sources.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-                  {t.sources.map((s) => (
-                    <span key={s.filename} style={{ fontSize: 11, color: 'var(--rd-muted)', background: 'var(--rd-surface)', border: '1px solid var(--rd-border)', borderRadius: 999, padding: '3px 10px' }}>{s.filename}</span>
+                  {t.sources.map((s, si) => (
+                    <span key={`${s.filename}-${si}`} style={{ fontSize: 11, color: 'var(--rd-muted)', background: 'var(--rd-surface)', border: '1px solid var(--rd-border)', borderRadius: 999, padding: '3px 10px' }}>{s.filename}</span>
                   ))}
                 </div>
               )}
             </div>
           ))}
-          {loading && <div style={{ fontSize: 14, color: 'var(--rd-muted)', fontStyle: 'italic' }}>Searching your library…</div>}
+          {loading && <div style={{ fontSize: 14, color: 'var(--rd-muted)', fontStyle: 'italic' }}>Searching your library and conversations…</div>}
           {error && <div style={{ fontSize: 13, color: 'var(--rd-danger)', marginTop: 8 }}>{error}</div>}
         </div>
       </div>

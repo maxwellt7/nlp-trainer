@@ -162,6 +162,24 @@ export function getSidebarSessions(userId, limit = 30, offset = 0) {
   `).all(userId, limit, offset);
 }
 
+// Sessions that Ask can search as conversation memory. Includes transcripts
+// and summaries; capped so a long-time user doesn't dump the whole history
+// into RAM on every question.
+export function getSessionsForAskMemory(userId, limit = 80) {
+  return db.prepare(`
+    SELECT id, date_key, title, session_type, chat_summary, key_themes,
+           chat_messages, last_message_at, created_at
+    FROM sessions
+    WHERE user_id = ?
+      AND (
+        (chat_messages IS NOT NULL AND chat_messages != '' AND chat_messages != '[]')
+        OR (chat_summary IS NOT NULL AND TRIM(chat_summary) != '')
+      )
+    ORDER BY COALESCE(last_message_at, created_at) DESC, created_at DESC
+    LIMIT ?
+  `).all(userId, limit);
+}
+
 // Get all sessions for a user (paginated)
 export function getAllSessions(userId, limit = 30, offset = 0) {
   return db.prepare(`

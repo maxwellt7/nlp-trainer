@@ -3,14 +3,16 @@ import anthropic from '../config/anthropic.js';
 import { requireAuth } from '../middleware/auth.js';
 import { retrieveRelevant, formatRetrievedForPrompt } from '../services/knowledge-base.js';
 import { recentUserQuery } from '../services/retrieval-query.js';
-import { dedupeSources, dedupeChunks, isBelowRelevanceFloor } from '../services/ask.js';
+import { dedupeChunks, isBelowRelevanceFloor, mergeAskSources, shouldSkipAskLlm } from '../services/ask.js';
 import { createThread, appendTurns, listThreads, getThread, deleteThread } from '../services/ask-threads.js';
+import { getSessionsForAskMemory } from '../services/memory.js';
+import { retrieveConversationChunks } from '../services/conversation-retrieve.js';
 
 const router = express.Router();
 router.use(requireAuth);
 
 const MIN_SCORE = Number(process.env.ASK_MIN_SCORE) || 0.15;
-const NOT_FOUND = "I don't have anything on that in your library yet.";
+const NOT_FOUND = "I don't have anything on that in your library or past conversations yet.";
 
 // Per-user rate limit (30/min), same shape as the voice route.
 const hits = new Map();
@@ -23,8 +25,9 @@ function limited(userId) {
 }
 
 const SYSTEM = [
-  "You are a knowledge-base teacher answering questions ONLY from the user's own saved library.",
-  'Use ONLY the SOURCES below. If they do not contain the answer, say the library does not cover it —',
+  "You are a knowledge-base teacher answering questions from TWO collections the user owns:",
+  "their saved library (uploaded documents) and their own coaching conversations with this app.",
+  'Use ONLY the SOURCES below. If they do not contain the answer, say it is not in the library or past conversations —',
   'never fall back on outside knowledge or guess.',
   'When the sources answer the question, treat them as authoritative and teach from them:',
   "use the library's own terms, distinctions, sequences, and examples;",
@@ -32,6 +35,8 @@ const SYSTEM = [
   'if sources have layers, caveats, or disagreements, surface those instead of flattening into a generic summary;',
   "go as deep as the sources go — a short answer is right when the library is short; a longer answer is right when the material is specific and rich;",
   "do not replace the source's framework with a simpler popular-psychology paraphrase.",
+  'When CONVERSATION MEMORY and LIBRARY SOURCES both speak to the question, use both:',
+  'the library for the teaching, the conversations for what this person has already lived through or named.',
 ].join(' ');
 
 // POST /api/ask — { question, history? } -> { answer, sources }
@@ -58,30 +63,42 @@ router.post('/', async (req, res) => {
         .map((m) => ({ role: m.role, content: m.content }));
     }
 
-    // throwOnError so a transient retrieval failure is reported as an error to
-    // retry — NOT as the misleading "not in your library" (which a swallowed
-    // error would otherwise produce for content that IS indexed).
-    let chunks;
+    const retrievalQuery = recentUserQuery(
+      [...history, { role: 'user', content: question }],
+      { maxTurns: 4, maxChars: 900 },
+    );
+
+    // throwOnError so a transient Pinecone failure is distinct from "nothing
+    // matched." If the library is unreachable we can still answer from
+    // conversation memory; only 503 when both are empty.
+    let chunks = [];
+    let retrievalFailed = false;
     try {
-      const retrievalQuery = recentUserQuery(
-        [...history, { role: 'user', content: question }],
-        { maxTurns: 4, maxChars: 900 },
-      );
       chunks = await retrieveRelevant(retrievalQuery, { topK: 16, throwOnError: true });
     } catch (retrievalErr) {
       console.error('[ask] retrieval failed:', retrievalErr.message);
-      return res.status(503).json({ error: 'Trouble reaching your library right now — try again.' });
+      retrievalFailed = true;
     }
-    // Duplicate files index identical text; collapse so the LLM context and the
-    // cited sources aren't crowded by copies.
     chunks = dedupeChunks(chunks);
+
+    const conversationChunks = retrieveConversationChunks(
+      retrievalQuery,
+      getSessionsForAskMemory(req.userId),
+    );
 
     let answer;
     let sources = [];
-    if (isBelowRelevanceFloor(chunks, MIN_SCORE)) {
+    if (shouldSkipAskLlm(chunks, conversationChunks, MIN_SCORE)) {
+      if (retrievalFailed) {
+        return res.status(503).json({ error: 'Trouble reaching your library right now — try again.' });
+      }
       answer = NOT_FOUND;
     } else {
-      const system = `${SYSTEM}\n\nSOURCES:\n${formatRetrievedForPrompt(chunks)}`;
+      const libraryChunks = isBelowRelevanceFloor(chunks, MIN_SCORE) ? [] : chunks;
+      const sections = [];
+      if (libraryChunks.length) sections.push(`LIBRARY SOURCES:\n${formatRetrievedForPrompt(libraryChunks)}`);
+      if (conversationChunks.length) sections.push(`CONVERSATION MEMORY:\n${formatRetrievedForPrompt(conversationChunks)}`);
+      const system = `${SYSTEM}\n\n${sections.join('\n\n')}`;
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 3072,
@@ -93,7 +110,7 @@ router.post('/', async (req, res) => {
         .map((b) => b.text)
         .join('')
         .trim() || NOT_FOUND;
-      sources = dedupeSources(chunks);
+      sources = mergeAskSources(libraryChunks, conversationChunks);
     }
 
     // Persist: create the thread on the first turn, then append this Q&A.

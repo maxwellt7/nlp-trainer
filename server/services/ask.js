@@ -2,9 +2,18 @@
 
 export function sourceToFilename(source) {
   if (typeof source !== 'string' || !source) return '';
+  if (source.startsWith('conversation:')) {
+    return 'Past conversation';
+  }
   const withoutPrefix = source.replace(/^dropbox:/, '');
   const parts = withoutPrefix.split('/');
   return parts[parts.length - 1] || '';
+}
+
+export function chunkDisplayName(chunk) {
+  const named = chunk && typeof chunk.filename === 'string' ? chunk.filename.trim() : '';
+  if (named) return named;
+  return sourceToFilename(chunk && chunk.source);
 }
 
 // Collapse Dropbox's " (N)" re-upload suffix so duplicate copies group as one
@@ -18,7 +27,10 @@ export function baseFilename(filename) {
 export function dedupeSources(chunks) {
   const best = new Map();
   for (const c of chunks || []) {
-    const filename = baseFilename(sourceToFilename(c && c.source));
+    const raw = chunkDisplayName(c);
+    const filename = String(c && c.source || '').startsWith('conversation:')
+      ? raw
+      : baseFilename(raw);
     if (!filename) continue;
     const score = typeof c.score === 'number' ? c.score : 0;
     if (!best.has(filename) || score > best.get(filename)) best.set(filename, score);
@@ -27,6 +39,18 @@ export function dedupeSources(chunks) {
     .map(([filename, score]) => ({ filename, score }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+}
+
+export function mergeAskSources(libraryChunks, conversationChunks, { libraryCap = 4, conversationCap = 3 } = {}) {
+  const library = dedupeSources(libraryChunks).slice(0, libraryCap);
+  const conversations = dedupeSources(conversationChunks).slice(0, conversationCap);
+  return [...library, ...conversations];
+}
+
+export function shouldSkipAskLlm(libraryChunks, conversationChunks, minScore) {
+  const libraryMiss = isBelowRelevanceFloor(libraryChunks, minScore);
+  const memoryMiss = !Array.isArray(conversationChunks) || conversationChunks.length === 0;
+  return libraryMiss && memoryMiss;
 }
 
 // Drop chunks whose text exactly matches an earlier one (duplicate files index
