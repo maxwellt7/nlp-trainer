@@ -77,7 +77,8 @@ app.use(cors({
 // Stripe webhook needs raw body for signature verification — mount BEFORE express.json()
 app.use('/api/stripe-webhook', stripeWebhookRoutes);
 
-app.use(express.json({ limit: '1mb' }));
+// Ask screenshot attachments send a JPEG data payload; 1mb was too tight.
+app.use(express.json({ limit: '4mb' }));
 
 // ─── Manual Clerk JWT verification (no @clerk/express dependency) ───
 // Decode the publishable key to get the Clerk Frontend API URL

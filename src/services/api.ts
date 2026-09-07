@@ -167,10 +167,17 @@ export const api = {
   },
 
   // ── Ask (knowledge-base Q&A) ──
-  ask: (question: string, threadId?: string | null) =>
+  ask: (question: string, threadId?: string | null, image?: { mime: string; data: string } | null) =>
     request<{ answer: string; sources: { filename: string; score: number }[]; threadId: string; title: string }>(
       '/ask',
-      { method: 'POST', body: JSON.stringify({ question, threadId: threadId || undefined }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          question,
+          threadId: threadId || undefined,
+          image: image || undefined,
+        }),
+      },
     ),
   askThreads: () =>
     request<{ threads: { id: string; title: string; updatedAt: string }[] }>('/ask/threads'),

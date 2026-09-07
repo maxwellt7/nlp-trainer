@@ -32,4 +32,12 @@ test('ask route grounds strictly and returns answer + sources', () => {
 test('ask route is mounted in server index', () => {
   assert.match(indexSrc, /routes\/ask\.js/, 'must import the ask route');
   assert.match(indexSrc, /app\.use\(\s*['"]\/api\/ask['"]/, 'must mount at /api/ask');
+  assert.match(indexSrc, /limit:\s*'4mb'/, 'must accept screenshot payloads larger than 1mb');
+});
+
+test('ask route OCRs attached screenshots into a source block', () => {
+  assert.match(routeSrc, /parseAskImage\(/, 'must validate the image payload');
+  assert.match(routeSrc, /extractScreenshotText\(/, 'must OCR the screenshot');
+  assert.match(routeSrc, /SCREENSHOT TRANSCRIPT/, 'must inject the extracted transcript');
+  assert.match(routeSrc, /light markdown/, 'must ask the model for markdown the UI can render');
 });
