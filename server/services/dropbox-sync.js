@@ -6,9 +6,11 @@
 // content-hash, so re-running is cheap if nothing has changed.
 
 import { extractTextByExtension } from './pdf-parser.js';
-import { ingestDocument, CATEGORY_NLP, CATEGORY_COACHING } from './knowledge-base.js';
+import { ingestDocument, ingestedFingerprint, CATEGORY_NLP, CATEGORY_COACHING } from './knowledge-base.js';
+import { AUDIO_EXT, isAudioExtension, transcribeAudio } from './audio-transcribe.js';
 
-const SUPPORTED_EXT = new Set(['pdf', 'txt', 'md', 'markdown']);
+const DOC_EXT = new Set(['pdf', 'txt', 'md', 'markdown']);
+const SUPPORTED_EXT = new Set([...DOC_EXT, ...AUDIO_EXT]);
 
 // Map Dropbox subfolder names → category labels. Anything not matched gets
 // no category (still indexed, just won't be filtered by category-aware
@@ -214,14 +216,27 @@ export async function runSyncOnce({ logger = console } = {}) {
 
   for (const file of files) {
     try {
-      const buf = await downloadFile(file.path);
+      const source = `dropbox:${file.path}`;
       const ext = fileExtension(file.name);
-      const text = await extractTextByExtension(ext, buf);
+      // Audio transcription is billed + slow. Skip download/Whisper when the
+      // Dropbox content hash already matches what we ingested.
+      if (isAudioExtension(ext) && ingestedFingerprint(source) === file.contentHash) {
+        summary.unchanged += 1;
+        continue;
+      }
+      const buf = await downloadFile(file.path);
+      const extracted = isAudioExtension(ext)
+        ? await transcribeAudio(buf, ext)
+        : await extractTextByExtension(ext, buf);
+      const text = isAudioExtension(ext) && extracted
+        ? `Transcript of ${file.name}\n\n${extracted}`
+        : extracted;
       const result = await ingestDocument({
-        source: `dropbox:${file.path}`,
+        source,
         text,
         category: categoryFromPath(file.path),
         metadata: { filename: file.name, dropboxContentHash: file.contentHash },
+        fingerprint: isAudioExtension(ext) ? file.contentHash : undefined,
       });
       if (result.status === 'ingested') summary.ingested += 1;
       else if (result.status === 'unchanged') summary.unchanged += 1;
@@ -235,4 +250,4 @@ export async function runSyncOnce({ logger = console } = {}) {
   return summary;
 }
 
-export const __testing = { listAllFiles, downloadFile };
+export const __testing = { listAllFiles, downloadFile, SUPPORTED_EXT };

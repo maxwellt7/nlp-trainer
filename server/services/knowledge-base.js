@@ -120,6 +120,11 @@ function getStoredHash(source) {
   return row || null;
 }
 
+/** Last ingest fingerprint for a source, or null if never ingested. */
+export function ingestedFingerprint(source) {
+  return getStoredHash(source)?.content_hash || null;
+}
+
 function recordIngest(source, contentHash, chunkCount, category = null) {
   ensureKbTable();
   const existing = getStoredHash(source);
@@ -145,15 +150,17 @@ function recordIngest(source, contentHash, chunkCount, category = null) {
  * @param {string} [args.category] — bucket label like 'nlp' or 'coaching' that
  *   propagates into vector metadata so we can filter at retrieval time.
  * @param {object} [args.metadata] — extra metadata to attach to each chunk vector
+ * @param {string} [args.fingerprint] — skip-key override (e.g. Dropbox content_hash
+ *   for audio, so we do not re-transcribe unchanged recordings)
  * @returns {Promise<{ source, chunkCount, status: 'ingested' | 'unchanged' | 'empty' }>}
  */
-export async function ingestDocument({ source, text, category = null, metadata = {} }) {
+export async function ingestDocument({ source, text, category = null, metadata = {}, fingerprint = null }) {
   if (!source) throw new Error('ingestDocument: source is required');
   if (typeof text !== 'string' || !text.trim()) {
     return { source, chunkCount: 0, status: 'empty' };
   }
 
-  const contentHash = sha256Hex(Buffer.from(text, 'utf8'));
+  const contentHash = fingerprint || sha256Hex(Buffer.from(text, 'utf8'));
   const stored = getStoredHash(source);
   if (stored && stored.content_hash === contentHash) {
     return { source, chunkCount: stored.chunk_count, status: 'unchanged' };
