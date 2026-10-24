@@ -176,6 +176,7 @@ export default function Hypnosis() {
   const [sessionRating, setSessionRating] = useState<number>(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [input, setInput] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showXpPopup, setShowXpPopup] = useState(false);
   const [xpPopupData, setXpPopupData] = useState<any>(null);
   const [mysteryBoxData, setMysteryBoxData] = useState<any>(null);
@@ -953,6 +954,27 @@ export default function Hypnosis() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  // Track keyboard height via visualViewport for proper input positioning
+  useEffect(() => {
+    const updateKeyboardHeight = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const diff = windowHeight - viewportHeight;
+        // Only set keyboard height if difference is significant (>100px means keyboard is likely open)
+        setKeyboardHeight(diff > 100 ? diff : 0);
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', updateKeyboardHeight);
+    window.visualViewport?.addEventListener('scroll', updateKeyboardHeight);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateKeyboardHeight);
+      window.visualViewport?.removeEventListener('scroll', updateKeyboardHeight);
+    };
+  }, []);
 
   const handleInputFocus = () => {
     if (hasConversationStarted) return;
