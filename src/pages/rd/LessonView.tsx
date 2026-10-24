@@ -39,11 +39,18 @@ export default function LessonView() {
     async function loadContent() {
       if (!lesson) return;
       try {
-        const data = await import(`../../../server/data/${lesson.dataFile}`);
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${apiUrl}/api/lesson-data/${lesson.dataFile}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch lesson data: ${response.status}`);
+        }
+        
+        const data = await response.json();
         const lessonContent: any = {};
         lesson.contentKeys.forEach(key => {
-          if (data.default[key]) {
-            lessonContent[key] = data.default[key];
+          if (data[key]) {
+            lessonContent[key] = data[key];
           }
         });
         setContent(lessonContent);

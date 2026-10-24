@@ -17,6 +17,7 @@ import stripeWebhookRoutes from './routes/stripe-webhook.js';
 import goalsRoutes from './routes/goals.js';
 import askRoutes from './routes/ask.js';
 import voiceRoutes from './routes/voice.js';
+import lessonDataRoutes from './routes/lesson-data.js';
 import { ensureDefaultUser, ensureUser } from './services/profile.js';
 import { initKnowledgeBaseScheduler } from './services/knowledge-base-scheduler.js';
 import { initClerkPaidSyncScheduler } from './services/clerk-paid-sync-scheduler.js';
@@ -272,6 +273,7 @@ app.use('/api/ghl', ghlRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/provision-access', provisionRoutes);
 app.use('/api/admin', adminKbRoutes);
+app.use('/api/lesson-data', lessonDataRoutes);
 
 // Global error handler
 app.use((err, req, res, _next) => {
