@@ -7,6 +7,7 @@ import { dedupeChunks, isBelowRelevanceFloor, mergeAskSources, shouldSkipAskLlm 
 import { createThread, appendTurns, listThreads, getThread, deleteThread } from '../services/ask-threads.js';
 import { getSessionsForAskMemory } from '../services/memory.js';
 import { retrieveConversationChunks } from '../services/conversation-retrieve.js';
+import { retrieveTranscriptChunks } from '../services/transcript-retrieve.js';
 import { extractScreenshotText, parseAskImage, screenshotChunk } from '../services/screenshot-ocr.js';
 
 const router = express.Router();
@@ -26,9 +27,9 @@ function limited(userId) {
 }
 
 const SYSTEM = [
-  "You are a knowledge-base teacher answering questions from TWO collections the user owns:",
-  "their saved library (uploaded documents) and their own coaching conversations with this app.",
-  'Use ONLY the SOURCES below. If they do not contain the answer, say it is not in the library or past conversations —',
+  "You are a knowledge-base teacher answering questions from THREE collections the user owns:",
+  "their saved library (uploaded documents), their own coaching conversations with this app, and program call transcripts.",
+  'Use ONLY the SOURCES below. If they do not contain the answer, say it is not in the library, past conversations, or program transcripts —',
   'never fall back on outside knowledge or guess.',
   'When the sources answer the question, treat them as authoritative and teach from them:',
   "use the library's own terms, distinctions, sequences, and examples;",
@@ -36,9 +37,9 @@ const SYSTEM = [
   'if sources have layers, caveats, or disagreements, surface those instead of flattening into a generic summary;',
   "go as deep as the sources go — a short answer is right when the library is short; a longer answer is right when the material is specific and rich;",
   "do not replace the source's framework with a simpler popular-psychology paraphrase.",
-  'When CONVERSATION MEMORY and LIBRARY SOURCES both speak to the question, use both:',
-  'the library for the teaching, the conversations for what this person has already lived through or named.',
-  'If a SCREENSHOT TRANSCRIPT is present, treat it as source material the user wants analyzed — quote from it and connect it to the library and past chats.',
+  'When CONVERSATION MEMORY, LIBRARY SOURCES, and PROGRAM CONTEXT all speak to the question, synthesize across them:',
+  'the library for frameworks and teaching, the conversations for what this person has lived through, and program transcripts for group insights and practical examples.',
+  'If a SCREENSHOT TRANSCRIPT is present, treat it as source material the user wants analyzed — quote from it and connect it to the library, past chats, and program context.',
   'Format answers with light markdown: **bold** for emphasis, *italics* for quoted speech, and > at the start of a line for a quoted passage.',
 ].join(' ');
 
@@ -118,12 +119,13 @@ router.post('/', async (req, res) => {
       retrievalQuery,
       getSessionsForAskMemory(req.userId),
     );
+    const transcriptChunks = retrieveTranscriptChunks(retrievalQuery, { topK: 4, minScore: 0.30 });
     const uploaded = screenshotChunk(screenshotText);
     const memoryChunks = uploaded ? [...conversationChunks, uploaded] : conversationChunks;
 
     let answer;
     let sources = [];
-    if (!uploaded && shouldSkipAskLlm(chunks, conversationChunks, MIN_SCORE)) {
+    if (!uploaded && !transcriptChunks.length && shouldSkipAskLlm(chunks, conversationChunks, MIN_SCORE)) {
       if (retrievalFailed) {
         return res.status(503).json({ error: 'Trouble reaching your library right now — try again.' });
       }
@@ -133,6 +135,7 @@ router.post('/', async (req, res) => {
       const sections = [];
       if (libraryChunks.length) sections.push(`LIBRARY SOURCES:\n${formatRetrievedForPrompt(libraryChunks)}`);
       if (conversationChunks.length) sections.push(`CONVERSATION MEMORY:\n${formatRetrievedForPrompt(conversationChunks)}`);
+      if (transcriptChunks.length) sections.push(`PROGRAM CONTEXT:\n${formatRetrievedForPrompt(transcriptChunks)}`);
       if (uploaded) sections.push(`SCREENSHOT TRANSCRIPT:\n${formatRetrievedForPrompt([uploaded])}`);
       const system = `${SYSTEM}\n\n${sections.join('\n\n')}`;
       const response = await anthropic.messages.create({
@@ -146,7 +149,7 @@ router.post('/', async (req, res) => {
         .map((b) => b.text)
         .join('')
         .trim() || NOT_FOUND;
-      sources = mergeAskSources(libraryChunks, memoryChunks);
+      sources = mergeAskSources(libraryChunks, [...memoryChunks, ...transcriptChunks]);
     }
 
     // Persist: create the thread on the first turn, then append this Q&A.
