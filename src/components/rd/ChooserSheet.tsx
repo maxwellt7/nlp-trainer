@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 declare const __BUILD_TS__: string;
 
-export type SessionKind = 'daily' | 'general' | 'voice';
+export type SessionKind = 'daily' | 'general' | 'voice' | 'library';
 
 // Tap the build stamp to print on-device viewport geometry — added to debug the
 // dead band under the bottom nav on the installed iOS PWA. Each line pins down
@@ -65,6 +65,7 @@ export default function ChooserSheet({ open, onClose, onPick }: {
         {row('Daily Session', 'Your evening ritual', 'daily')}
         {row('General Chat', 'An open-ended conversation', 'general')}
         {row('Voice Session', 'Talk it through, out loud', 'voice')}
+        {row('Library', 'Browse hypnosis recordings', 'library')}
         <div
           onClick={() => setDiag(diag ? null : readViewportDiagnostics())}
           style={{ fontSize: 10, color: 'var(--rd-dim)', textAlign: 'center', marginTop: 6, cursor: 'pointer' }}
