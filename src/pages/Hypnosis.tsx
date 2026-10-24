@@ -1243,7 +1243,15 @@ export default function Hypnosis() {
             style={{
               background: 'var(--color-brand-midnight)',
               borderTop: '1px solid var(--color-brand-border)',
-              paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))',
+              paddingBottom: keyboardHeight > 0 
+                ? `max(0.625rem, calc(env(safe-area-inset-bottom) + ${keyboardHeight}px))`
+                : 'max(0.625rem, env(safe-area-inset-bottom))',
+              position: keyboardHeight > 0 ? 'fixed' : 'relative',
+              bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 'auto',
+              left: keyboardHeight > 0 ? '0' : 'auto',
+              right: keyboardHeight > 0 ? '0' : 'auto',
+              zIndex: keyboardHeight > 0 ? 100 : 'auto',
+              transition: 'bottom 0.2s ease-out',
             }}
           >
             <textarea
@@ -1261,7 +1269,13 @@ export default function Hypnosis() {
               disabled={loading || initializing}
               rows={1}
               className="brand-input flex-1 resize-none leading-relaxed"
-              style={{ minHeight: '42px', maxHeight: '120px', borderRadius: 'var(--radius-button)' }}
+              style={{ 
+                minHeight: '42px', 
+                maxHeight: '120px', 
+                borderRadius: 'var(--radius-button)',
+                fontSize: '16px', // Prevent iOS zoom
+                touchAction: 'manipulation', // Prevent double-tap zoom
+              }}
             />
             <button
               type="button"

@@ -59,6 +59,11 @@ function Tab({ to, label, icon }: { to: string; label: string; icon: string }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
       fontSize: 10, textDecoration: 'none',
       color: isActive ? 'var(--rd-ink)' : 'var(--rd-dim)',
+      minWidth: '44px',
+      minHeight: '44px',
+      justifyContent: 'center',
+      padding: '4px',
+      touchAction: 'manipulation', // Prevent double-tap zoom
     })}>
       <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>
       <span>{label}</span>
