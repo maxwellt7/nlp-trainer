@@ -1,0 +1,327 @@
+{
+  "introduction": {
+    "title": "Mind-Body Approaches to Healing",
+    "description": "Evidence-based techniques that address the connection between emotions, beliefs, and physical symptoms. These approaches recognize that unprocessed emotions, limiting beliefs, and chronic stress can manifest as physical symptoms, and that addressing the psychological components can support healing.",
+    "note": "These practices are complementary tools for self-exploration and emotional processing. They are not substitutes for medical care when dealing with serious conditions, persistent symptoms, or trauma."
+  },
+
+  "journalSpeak": {
+    "title": "JournalSpeak",
+    "creator": "Nicole Sachs, LCSW",
+    "source": "Based on Dr. John Sarno's mind-body work",
+    "sourceUrl": "https://www.yourbreakawake.com/journalspeak-info",
+    "description": "A structured expressive journaling practice designed to help process unresolved emotions that may be contributing to physical symptoms. The method involves writing about emotional stressors without censorship, followed by self-soothing meditation.",
+    "background": "JournalSpeak builds on the work of Dr. John Sarno, who proposed that many chronic pain conditions (especially back, neck, and shoulder pain) can be driven by repressed emotions—primarily anger, fear, and anxiety. Sarno called this Tension Myositis Syndrome (TMS) or mind-body syndrome. When the unconscious mind suppresses difficult emotions, the body may create physical symptoms as a distraction. By bringing these emotions into conscious awareness through writing, the symptoms often diminish.",
+    "howItWorks": {
+      "step1_lists": {
+        "title": "Create Your Lists",
+        "description": "Start by creating three foundational lists that will serve as writing prompts.",
+        "lists": {
+          "pastStressors": {
+            "title": "Past Stressors",
+            "description": "Events from your past (childhood through adulthood) that caused stress, fear, anger, guilt, shame, or humiliation.",
+            "examples": [
+              "Neglect, abuse, or abandonment",
+              "Moving home or school frequently",
+              "Bullying or witnessing verbal/physical abuse",
+              "Medical conditions or injuries",
+              "Difficulties with siblings or parents",
+              "Lack of affection or emotional support",
+              "Addiction or mental illness in the family",
+              "Divorce or marital problems",
+              "Bereavement or loss",
+              "Career or academic stress",
+              "Being an energetic mismatch with caregivers",
+              "Any event that means something to you, even if others wouldn't understand"
+            ]
+          },
+          "currentStressors": {
+            "title": "Current Stressors",
+            "description": "Ongoing sources of stress in your present life.",
+            "examples": [
+              "Specific relationships (name each person: family, friends, colleagues)",
+              "Money and financial concerns",
+              "Moving or housing issues",
+              "Job, career, or sense of purpose",
+              "Body image concerns",
+              "Pain, symptoms, or diagnoses and their impact on your life",
+              "Regret or resentment related to your health journey",
+              "Any unresolved issues from your Past Stressors list"
+            ]
+          },
+          "personalityTraits": {
+            "title": "Personality Traits",
+            "description": "Aspects of your personality that may contribute to stress or emotional repression.",
+            "examples": [
+              "Perfectionism",
+              "People-pleasing",
+              "Needing approval or validation from others",
+              "Strong inner critic",
+              "High standards for yourself",
+              "Harsh self-judgment",
+              "Putting others' needs before your own",
+              "Difficulty setting boundaries",
+              "Difficulty feeling or expressing emotions",
+              "Pessimism or negative self-talk",
+              "Low self-esteem or self-worth",
+              "Hyper-vigilance or chronic anxiety"
+            ]
+          }
+        }
+      },
+      "step2_write": {
+        "title": "Write for 20 Minutes",
+        "description": "Pick any topic from your lists and write continuously for at least 20 minutes.",
+        "guidelines": [
+          "Don't overthink where to start—just pick one and begin",
+          "If you go off on a tangent, follow it (like a bunny exploring in the snow)",
+          "20 minutes is the minimum to move past resistance; you can write longer if needed",
+          "Write the raw, unfiltered truth—no censorship, no editing",
+          "Nobody else will read this (consider deleting or destroying it afterward)",
+          "Think of it as 'word vomit' or a tantrum on paper",
+          "Focus on how you FEEL, not just the facts of what happened",
+          "Notice what's happening in your body as you write",
+          "Invite difficult emotions to surface (they may not come right away—that's okay)",
+          "The goal is to express hidden, unfelt feelings so they're no longer stuck in your body"
+        ],
+        "privacyNote": "JournalSpeak entries are meant to be private, cathartic releases. Many practitioners recommend deleting or destroying the writing after completing the practice to reinforce that this is for processing, not preserving."
+      },
+      "step3_meditate": {
+        "title": "Self-Soothing Meditation (10 Minutes)",
+        "description": "After writing, transition to a calming meditation to soothe your nervous system and support re-entry into daily life.",
+        "options": [
+          "Silent meditation",
+          "Guided visualization",
+          "Loving-kindness meditation",
+          "Body scan or breathing exercise",
+          "Monks chanting or singing bowls",
+          "Any gentle, grounding practice that feels supportive"
+        ],
+        "purpose": "Meditation and self-compassion are essential companions to JournalSpeak. After expressing difficult emotions, you need to offer yourself kindness and forgiveness."
+      },
+      "step4_repeat": {
+        "title": "Practice Regularly",
+        "description": "The most effective approach is to practice JournalSpeak daily, especially when beginning this work.",
+        "benefits": [
+          "Reduces internal stress and nervous system activation",
+          "Moves you from fight-or-flight into rest-and-repair",
+          "Creates space for physical healing",
+          "Helps you understand emotional patterns",
+          "Builds capacity to feel and process difficult emotions"
+        ]
+      }
+    },
+    "whenToUse": "JournalSpeak is particularly helpful for chronic pain, unexplained physical symptoms, tension and stress-related conditions, and when you feel stuck emotionally. It's a practice, not a quick fix—consistency over time brings the most benefit."
+  },
+
+  "sarnoTMS": {
+    "title": "Dr. Sarno's TMS Concepts",
+    "creator": "Dr. John E. Sarno, MD",
+    "description": "Tension Myositis Syndrome (TMS), also called mind-body syndrome, refers to physical symptoms—especially chronic pain—that are caused by repressed emotions rather than structural damage.",
+    "coreIdeas": {
+      "premise": "Many chronic pain conditions (back, neck, shoulder, headaches, digestive issues, etc.) arise when the unconscious mind creates physical symptoms to distract from unbearable emotions like rage, anxiety, fear, or shame.",
+      "mechanism": "Sarno originally proposed that the brain restricts blood flow to muscles and nerves, causing pain. While current pain science doesn't support that specific mechanism, research does confirm that the brain can generate and amplify pain in response to psychological factors.",
+      "emotionalRoot": "The pain serves as a defense mechanism—your conscious mind focuses on the body, preventing overwhelming emotions from surfacing.",
+      "treatment": [
+        "Education: Understanding that the pain is real but generated by the brain, not by structural damage",
+        "Emotional awareness: Identifying and processing repressed emotions through journaling or therapy",
+        "Resuming activity: Gradually returning to normal physical activity to retrain the brain",
+        "Rejecting the structural diagnosis: Letting go of fear-based beliefs about fragility or damage"
+      ]
+    },
+    "note": "TMS is not a mainstream medical diagnosis. However, related concepts like Pain Reprocessing Therapy have been validated in randomized controlled trials. If you have unexplained chronic pain, this perspective may be worth exploring alongside appropriate medical care."
+  },
+
+  "expressiveWriting": {
+    "title": "Expressive Writing (Pennebaker Method)",
+    "creator": "Dr. James Pennebaker",
+    "description": "A research-backed writing practice where you write about traumatic or stressful experiences for 15-20 minutes on 3-5 occasions. Studies show improvements in mental and physical health compared to neutral writing.",
+    "protocol": {
+      "duration": "15-20 minutes per session",
+      "frequency": "3-5 sessions (can be consecutive days or spread out)",
+      "topic": "Write about a traumatic, stressful, or emotional experience",
+      "guidelines": [
+        "Write continuously without worrying about grammar or spelling",
+        "Explore your deepest thoughts and feelings about the event",
+        "Connect the experience to your relationships, life story, or identity",
+        "Use insight words (realize, understand, because) and causal words (caused, led to, resulted in)",
+        "The goal is to create a coherent narrative that helps you make sense of the experience"
+      ]
+    },
+    "benefits": [
+      "Improved immune function",
+      "Reduced doctor visits",
+      "Better mental health outcomes",
+      "Clearer thinking and emotional processing",
+      "Helpful for trauma survivors (though not a substitute for therapy)"
+    ],
+    "sourceUrl": "https://liberalarts.utexas.edu/psychology/faculty/pennebak"
+  },
+
+  "painReprocessingTherapy": {
+    "title": "Pain Reprocessing Therapy (PRT)",
+    "description": "A psychological treatment system designed to rewire the brain and break the cycle of chronic pain. PRT teaches that many chronic pain conditions are driven by learned neural pathways rather than ongoing tissue damage.",
+    "sourceUrl": "https://www.curablehealth.com/treatments/what-is-pain-reprocessing-therapy-prt",
+    "components": [
+      "Education: Understanding the brain origins and reversibility of pain",
+      "Evidence gathering: Collecting personalized proof that your pain is brain-generated",
+      "Somatic tracking: Attending to pain sensations through a lens of safety (not threat)",
+      "Addressing emotional threats: Identifying and processing fear, anxiety, and other emotions",
+      "Positive focus: Gravitating toward positive feelings and sensations"
+    ],
+    "research": "A 2021 randomized controlled trial (published in JAMA Psychiatry) found that 66% of participants were pain-free or nearly pain-free after PRT treatment, compared to 20% in the placebo group.",
+    "relatedResource": "The Curable app offers PRT exercises, neuroscience education, guided meditations, and expressive writing prompts for chronic pain conditions.",
+    "conditions": "PRT has been used for chronic back pain, migraines, fibromyalgia, sciatica, nerve pain, IBS, tension headaches, and other conditions lasting 6+ months with no clear tissue damage."
+  },
+
+  "ifsPartsWork": {
+    "title": "Internal Family Systems (IFS) / Parts Work",
+    "creator": "Dr. Richard Schwartz",
+    "sourceUrl": "https://ifs-institute.com/",
+    "description": "IFS views the mind as a family of inner parts—each with its own perspective, feelings, and role. The goal is to get to know these parts with curiosity and compassion, helping them heal and work together under the leadership of Self.",
+    "coreConcepts": {
+      "parts": {
+        "managers": "Protective parts that try to keep you safe by controlling your environment, people-pleasing, perfectionism, planning, or being critical.",
+        "firefighters": "Reactive protectors that jump in when emotions become overwhelming—through distraction, numbing, impulsive behavior, or dissociation.",
+        "exiles": "Wounded, often younger parts that carry pain, shame, fear, or trauma. Protectors try to keep exiles hidden to avoid overwhelming you."
+      },
+      "self": "Your core essence—calm, compassionate, curious, confident, creative, clear, courageous, and connected. Self can lead the system and heal the parts.",
+      "the6Fs": "A process for getting to know a part: Find it, Focus on it, Flesh it out, Feel toward it (with curiosity), beFriend it, and explore its Fears."
+    },
+    "howToUse": [
+      "Notice when a part is present (e.g., a critical voice, anxiety, procrastination)",
+      "Turn your attention inward and find where it lives in your body",
+      "Ask how you feel toward the part (if it's anything other than curious or compassionate, another part is blended—ask it to step back)",
+      "Get to know the part: What's its job? What's it protecting you from? What does it fear would happen if it stopped?",
+      "Listen without judgment, building trust and letting the part feel seen"
+    ],
+    "note": "IFS is a therapeutic model, often practiced with a trained therapist. Self-exploration is possible, but deep trauma work should be done with professional support."
+  },
+
+  "eftTapping": {
+    "title": "Emotional Freedom Technique (EFT) / Tapping",
+    "creator": "Gary Craig (based on Thought Field Therapy by Roger Callahan)",
+    "description": "A self-help technique combining cognitive focus on a specific stressor with gentle tapping on acupressure points. Used to reduce stress, anxiety, and difficult emotions.",
+    "protocol": {
+      "step1": "Identify the issue or emotion you want to address",
+      "step2": "Rate its intensity on a scale of 0-10",
+      "step3": "Create a setup statement: 'Even though [issue], I deeply and completely accept myself'",
+      "step4": "Tap on the side of your hand (karate chop point) while repeating the setup statement 3 times",
+      "step5": "Tap through the sequence (7-9 taps per point) while stating the issue:",
+      "tappingPoints": [
+        "Top of the head (crown)",
+        "Beginning of the eyebrow (inner edge)",
+        "Side of the eye (on the bone)",
+        "Under the eye (on the bone)",
+        "Under the nose",
+        "Chin (between lower lip and chin)",
+        "Collarbone (just below the collarbone notch)",
+        "Under the arm (about 4 inches below armpit)"
+      ],
+      "step6": "Rate the intensity again—repeat as needed until it decreases"
+    },
+    "evidence": "Studies show EFT can reduce anxiety and depression symptoms, though most research relies on self-reported outcomes. It's considered safe as a complementary tool.",
+    "note": "EFT should not replace therapy for serious depression, trauma, or PTSD. If emotions feel overwhelming, reach out to a mental health professional.",
+    "sourceUrl": "https://www.emofree.com/"
+  },
+
+  "theWork": {
+    "title": "The Work of Byron Katie",
+    "creator": "Byron Katie",
+    "sourceUrl": "https://thework.com/",
+    "description": "A simple yet powerful inquiry method for questioning stressful thoughts. The Work helps you examine beliefs that cause suffering and discover turnarounds that offer new perspectives.",
+    "process": {
+      "step1": "Identify a stressful thought or judgment (e.g., 'She doesn't respect me' or 'I should be further along by now')",
+      "step2": "Ask four questions:",
+      "fourQuestions": [
+        "Is it true?",
+        "Can you absolutely know that it's true?",
+        "How do you react—what happens—when you believe that thought?",
+        "Who or what would you be without the thought?"
+      ],
+      "step3": "Turn the thought around: Find opposites of the original statement",
+      "turnarounds": {
+        "toSelf": "'She doesn't respect me' → 'I don't respect me' (or 'I don't respect her')",
+        "toOther": "'She doesn't respect me' → 'I don't respect her'",
+        "toOpposite": "'She doesn't respect me' → 'She does respect me'"
+      },
+      "step4": "Find at least three genuine examples of how each turnaround is as true or truer than the original thought"
+    },
+    "purpose": "The Work is a meditation on reality. It helps you see that suffering comes not from reality itself, but from your thoughts about reality. When you question those thoughts, you often find peace.",
+    "note": "The Work is a tool for self-inquiry, not a replacement for therapy or medical care. It works best when you're genuinely curious about your own beliefs."
+  },
+
+  "resources": {
+    "title": "Further Learning",
+    "description": "These resources can deepen your understanding of mind-body healing and belief change.",
+    "books": [
+      {
+        "title": "Healing Back Pain: The Mind-Body Connection",
+        "author": "Dr. John E. Sarno",
+        "description": "The foundational book on TMS and mind-body pain"
+      },
+      {
+        "title": "The Mindbody Prescription",
+        "author": "Dr. John E. Sarno",
+        "description": "Expands TMS concepts to a wider range of conditions"
+      },
+      {
+        "title": "Unlearn Your Pain",
+        "author": "Dr. Howard Schubiner",
+        "description": "A modern workbook approach to mind-body healing, building on Sarno's work"
+      },
+      {
+        "title": "The Way Out",
+        "author": "Alan Gordon, LCSW",
+        "description": "Introduces Pain Reprocessing Therapy with patient stories and exercises"
+      },
+      {
+        "title": "Opening Up by Writing It Down",
+        "author": "Dr. James W. Pennebaker",
+        "description": "Research and guidance on expressive writing for healing"
+      },
+      {
+        "title": "No Bad Parts",
+        "author": "Dr. Richard Schwartz",
+        "description": "An accessible introduction to Internal Family Systems"
+      },
+      {
+        "title": "The EFT Manual",
+        "author": "Dawson Church",
+        "description": "Comprehensive guide to EFT tapping with research background"
+      },
+      {
+        "title": "Loving What Is",
+        "author": "Byron Katie",
+        "description": "Introduction to The Work with real-life examples"
+      }
+    ],
+    "websites": [
+      {
+        "name": "Your BreakAwake (Nicole Sachs)",
+        "url": "https://www.yourbreakawake.com/",
+        "description": "JournalSpeak resources, podcast, and community"
+      },
+      {
+        "name": "Curable App",
+        "url": "https://www.curablehealth.com/",
+        "description": "Pain Reprocessing Therapy exercises and pain science education"
+      },
+      {
+        "name": "IFS Institute",
+        "url": "https://ifs-institute.com/",
+        "description": "Official IFS training and resources"
+      },
+      {
+        "name": "The Work of Byron Katie",
+        "url": "https://thework.com/",
+        "description": "Free worksheets, instructions, and videos"
+      },
+      {
+        "name": "TMS Wiki",
+        "url": "https://www.tmswiki.org/",
+        "description": "Community-driven resource for mind-body healing"
+      }
+    ]
+  }
+}

@@ -23,6 +23,9 @@ const Audios = lazy(() => import('./pages/rd/Library'));
 const Sessions = lazy(() => import('./pages/Sessions'));
 const Insights = lazy(() => import('./pages/rd/Insights'));
 const Identity = lazy(() => import('./pages/rd/You'));
+const Learn = lazy(() => import('./pages/rd/Learn'));
+const LessonView = lazy(() => import('./pages/rd/LessonView'));
+const JournalSpeakPractice = lazy(() => import('./pages/rd/JournalSpeakPractice'));
 const Admin = lazy(() => import('./pages/Admin'));
 
 function RouteSuspense({ children }: { children: React.ReactNode }) {
@@ -63,6 +66,9 @@ function ProtectedRoutes() {
           <Route path="/audios" element={<Audios />} />
           <Route path="/library" element={<Audios />} />
           <Route path="/you" element={<Identity />} />
+          <Route path="/learn" element={<Learn />} />
+          <Route path="/learn/:moduleId/:lessonId" element={<LessonView />} />
+          <Route path="/practices/journalspeak" element={<JournalSpeakPractice />} />
         </Route>
         {/* Admin dashboard — outside Layout for full-page view */}
         <Route path="/admin" element={<Admin />} />
@@ -100,6 +106,9 @@ function UnauthenticatedApp() {
         <Route path="/audios" element={<Audios />} />
         <Route path="/library" element={<Audios />} />
         <Route path="/you" element={<Identity />} />
+        <Route path="/learn" element={<Learn />} />
+        <Route path="/learn/:moduleId/:lessonId" element={<LessonView />} />
+        <Route path="/practices/journalspeak" element={<JournalSpeakPractice />} />
         </Route>
       </Routes>
     </RouteSuspense>

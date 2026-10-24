@@ -7,7 +7,7 @@ const TABS = [
   { to: '/goals', label: 'Goals', icon: 'M6 21V3M6 4h11l-2.5 3.5L17 11H6' },
   { to: '/ask', label: 'Ask', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM12 8v3M12 14h.01' },
   { to: '/insights', label: 'Insights', icon: 'M4 19V10M10 19V5M16 19v-7M22 19H2' },
-  { to: '/library', label: 'Library', icon: 'M4 5h16v14H4zM8 5v14' },
+  { to: '/learn', label: 'Learn', icon: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z' },
   { to: '/you', label: 'You', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0' },
 ];
 
