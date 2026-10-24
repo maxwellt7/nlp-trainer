@@ -37,6 +37,7 @@ export default function LessonView() {
     }
 
     async function loadContent() {
+      if (!lesson) return;
       try {
         const data = await import(`../../../server/data/${lesson.dataFile}`);
         const lessonContent: any = {};

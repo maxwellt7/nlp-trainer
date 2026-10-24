@@ -14,9 +14,9 @@ export default function JournalSpeakPractice() {
   const [isMeditating, setIsMeditating] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number;
     if (isTimerRunning && timeRemaining > 0) {
-      interval = setInterval(() => {
+      interval = window.setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
             setIsTimerRunning(false);
@@ -30,9 +30,9 @@ export default function JournalSpeakPractice() {
   }, [isTimerRunning, timeRemaining]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number;
     if (isMeditating && meditationTime > 0) {
-      interval = setInterval(() => {
+      interval = window.setInterval(() => {
         setMeditationTime(prev => {
           if (prev <= 1) {
             setIsMeditating(false);
