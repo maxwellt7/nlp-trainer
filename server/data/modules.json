@@ -216,6 +216,48 @@
           "contentKeys": ["completingSession"]
         }
       ]
+    },
+    {
+      "id": "module-7",
+      "title": "Mind-Body Healing & Emotional Processing",
+      "description": "Evidence-based practices that address the connection between emotions, beliefs, and physical symptoms",
+      "lessons": [
+        {
+          "id": "module-7-lesson-1",
+          "title": "JournalSpeak: Expressive Writing for Mind-Body Healing",
+          "description": "Nicole Sachs' structured journaling method based on Dr. Sarno's TMS work—processing unresolved emotions through writing",
+          "dataFile": "mind-body-resources.json",
+          "contentKeys": ["introduction", "journalSpeak", "sarnoTMS"]
+        },
+        {
+          "id": "module-7-lesson-2",
+          "title": "Expressive Writing & Pain Reprocessing",
+          "description": "Research-backed writing practices and Pain Reprocessing Therapy for chronic symptoms",
+          "dataFile": "mind-body-resources.json",
+          "contentKeys": ["expressiveWriting", "painReprocessingTherapy"]
+        },
+        {
+          "id": "module-7-lesson-3",
+          "title": "Internal Family Systems (IFS) & Parts Work",
+          "description": "Understanding and healing your inner parts with compassion and curiosity",
+          "dataFile": "mind-body-resources.json",
+          "contentKeys": ["ifsPartsWork"]
+        },
+        {
+          "id": "module-7-lesson-4",
+          "title": "EFT Tapping & The Work of Byron Katie",
+          "description": "Somatic and cognitive tools for emotional regulation and belief examination",
+          "dataFile": "mind-body-resources.json",
+          "contentKeys": ["eftTapping", "theWork"]
+        },
+        {
+          "id": "module-7-lesson-5",
+          "title": "Resources & Further Learning",
+          "description": "Books, websites, and apps for deepening your mind-body healing practice",
+          "dataFile": "mind-body-resources.json",
+          "contentKeys": ["resources"]
+        }
+      ]
     }
   ]
 }

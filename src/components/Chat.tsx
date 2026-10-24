@@ -22,12 +22,33 @@ interface Props {
 
 export default function Chat({ messages, onSend, loading, coached, disabled }: Props) {
   const [input, setInput] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Track keyboard height for proper positioning
+  useEffect(() => {
+    const updateKeyboardHeight = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const diff = windowHeight - viewportHeight;
+        setKeyboardHeight(diff > 100 ? diff : 0);
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', updateKeyboardHeight);
+    window.visualViewport?.addEventListener('scroll', updateKeyboardHeight);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateKeyboardHeight);
+      window.visualViewport?.removeEventListener('scroll', updateKeyboardHeight);
+    };
+  }, []);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -103,7 +124,21 @@ export default function Chat({ messages, onSend, loading, coached, disabled }: P
         )}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={handleSubmit} className="border-t border-gray-800 p-3 sm:p-4 flex gap-2 items-end bg-gray-950">
+      <form 
+        onSubmit={handleSubmit} 
+        className="border-t border-gray-800 p-3 sm:p-4 flex gap-2 items-end bg-gray-950"
+        style={{
+          paddingBottom: keyboardHeight > 0 
+            ? `max(1rem, calc(env(safe-area-inset-bottom) + ${keyboardHeight}px))`
+            : 'max(1rem, env(safe-area-inset-bottom))',
+          position: keyboardHeight > 0 ? 'fixed' : 'relative',
+          bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 'auto',
+          left: keyboardHeight > 0 ? '0' : 'auto',
+          right: keyboardHeight > 0 ? '0' : 'auto',
+          zIndex: keyboardHeight > 0 ? 100 : 'auto',
+          transition: 'bottom 0.2s ease-out',
+        }}
+      >
         <textarea
           ref={textareaRef}
           value={input}
@@ -115,6 +150,8 @@ export default function Chat({ messages, onSend, loading, coached, disabled }: P
           style={{
             minHeight: '42px',
             maxHeight: '120px',
+            fontSize: '16px', // Prevent iOS zoom
+            touchAction: 'manipulation', // Prevent double-tap zoom
             wordBreak: 'break-word',
             overflowWrap: 'anywhere',
           }}
@@ -123,6 +160,10 @@ export default function Chat({ messages, onSend, loading, coached, disabled }: P
           type="submit"
           disabled={!input.trim() || loading || disabled}
           className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors shrink-0"
+          style={{
+            minWidth: '44px',
+            minHeight: '44px',
+          }}
         >
           Send
         </button>
