@@ -10,6 +10,9 @@ coach-context/
 └── transcripts/
     ├── YYYY-MM-DD.json   (daily transcript files)
     └── ...
+
+(Test fixtures are stored in server/services/__fixtures__/transcripts/
+and are NOT loaded by the production retrieval service)
 ```
 
 ## Transcript File Schema
